@@ -1,0 +1,68 @@
+import argparse
+import os
+import sys
+import json
+from opentaskframework.config.schemas import validate_json
+from glob import glob
+from opentaskframework.taskhandlers import transfer
+from opentaskframework.remoteinit import validate_remote_host
+
+# TODO: Add main function
+
+
+CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-t", "--taskId", help="Name of the JSON config to run", type=str, required=True)
+parser.add_argument("-v", "--verbosity", help="Increase verbosity", type=int)
+parser.add_argument("-c", "--configDir",
+                    help="Directory containing task configurations", type=str)
+
+args = parser.parse_args()
+
+if args.configDir:
+    CONFIG_PATH = args.configDir
+
+print(F"Looking in {CONFIG_PATH}")
+
+active_task_definition = ()
+
+# Load configuration
+json_config = glob(f"{CONFIG_PATH}/**/{args.taskId}.json", recursive=True)
+if not json_config or len(json_config) != 1:
+    print(f"Couldn't find task with name: {args.taskId}")
+    sys.exit(1)
+else:
+    found_file = json_config[0]
+    print(f"Found: {found_file}")
+
+    # Load the JSON file
+    with open(found_file) as json_file:
+        active_task_definition = json.load(json_file)
+# Now we've loaded the config, determine what to do with it
+if "type" not in active_task_definition:
+    print("Invalid task configuration. Cannot continue")
+    sys.exit(1)
+elif active_task_definition["type"] == "transfer":
+    # Hand off to the transfer module
+    print("Transfer")
+    # Validate the schema
+    if not validate_json(active_task_definition):
+        print("JSON format does not match schema")
+        sys.exit(1)
+
+    # We need to copy the required remote scripts to the source and destination (if applicable) hosts
+    validate_remote_host(
+        active_task_definition["source"]["hostname"], active_task_definition["source"]["protocol"])
+    transfer.run(active_task_definition)
+
+elif active_task_definition["type"] == "execution":
+    # Hand off to the execuiton module
+    print("Execution")
+elif active_task_definition["type"] == "batch":
+    # Hand off to the batch module
+    print("Batch")
+else:
+    print(f"Unknown task type!")
+    sys.exit(1)
