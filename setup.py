@@ -5,6 +5,6 @@ setup(
         "jsonschema",
         "paramiko"
     ],
-    packages=["opentaskframework"],
+    packages=["opentaskpy"],
     scripts=["bin/task-run"],
 )

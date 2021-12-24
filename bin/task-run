@@ -2,10 +2,10 @@ import argparse
 import os
 import sys
 import json
-from opentaskframework.config.schemas import validate_json
+from opentaskpy.config.schemas import validate_json
 from glob import glob
-from opentaskframework.taskhandlers import transfer
-from opentaskframework.remoteinit import validate_remote_host
+from opentaskpy.taskhandlers import transfer
+from opentaskpy.remoteinit import validate_remote_host
 
 # TODO: Add main function
 
