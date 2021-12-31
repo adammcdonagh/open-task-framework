@@ -12,8 +12,27 @@
       "console": "integratedTerminal",
       "args": [
         "-t",
-        "scp-with-password-homeassistant"
-      ]
+        "scp-with-password-homeassistant",
+        "-v",
+        "2"
+      ],
+      "justMyCode": false
+
+    },
+    {
+      "name": "Python: Transfer",
+      "type": "python",
+      "request": "launch",
+      "program": "bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "scp-with-password-homeassistant-pull",
+        "-v",
+        "2"
+      ],
+      "justMyCode": false
+      
     }
   ]
 }

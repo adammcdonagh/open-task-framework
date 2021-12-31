@@ -6,11 +6,15 @@ from opentaskpy.config.schemas import validate_json
 from glob import glob
 from opentaskpy.taskhandlers import transfer
 from opentaskpy.remoteinit import validate_remote_host
+import logging
+from enum import Enum
+
 
 # TODO: Add main function
 
 
 CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
+GLOBAL_VERBOSITY = 1
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -21,48 +25,84 @@ parser.add_argument("-c", "--configDir",
 
 args = parser.parse_args()
 
+
 if args.configDir:
     CONFIG_PATH = args.configDir
 
-print(F"Looking in {CONFIG_PATH}")
+logging.basicConfig(
+    format="%(asctime)s — %(name)s — %(levelname)s — %(message)s", level=logging.INFO)
+logging.addLevelName(11, "VERBOSE2")
+logging.addLevelName(12, "VERBOSE1")
+
+logger = logging.getLogger()
+logger.log(11, f"Log verbosity: {args.verbosity}")
+
+if args.verbosity == 3:
+    logger.setLevel(logging.DEBUG)
+elif args.verbosity == 2:
+    logger.setLevel(11)
+elif args.verbosity == 1:
+    logger.setLevel(12)
+
+logger.log(12, "Looking in {CONFIG_PATH}")
 
 active_task_definition = ()
 
 # Load configuration
 json_config = glob(f"{CONFIG_PATH}/**/{args.taskId}.json", recursive=True)
 if not json_config or len(json_config) != 1:
-    print(f"Couldn't find task with name: {args.taskId}")
+    logging.error(f"Couldn't find task with name: {args.taskId}")
     sys.exit(1)
 else:
     found_file = json_config[0]
-    print(f"Found: {found_file}")
+    logger.log(12, f"Found: {found_file}")
 
     # Load the JSON file
     with open(found_file) as json_file:
         active_task_definition = json.load(json_file)
+        logger.log(11, f"Read JSON: {json.dumps(active_task_definition)}")
 # Now we've loaded the config, determine what to do with it
 if "type" not in active_task_definition:
-    print("Invalid task configuration. Cannot continue")
+    logger.error("Invalid task configuration. Cannot continue")
     sys.exit(1)
 elif active_task_definition["type"] == "transfer":
     # Hand off to the transfer module
-    print("Transfer")
+    logger.log(12, "Transfer")
     # Validate the schema
     if not validate_json(active_task_definition):
-        print("JSON format does not match schema")
+        logger.error("JSON format does not match schema")
         sys.exit(1)
 
     # We need to copy the required remote scripts to the source and destination (if applicable) hosts
-    validate_remote_host(
+    logging.info(
+        f"Validating source remote host: {active_task_definition['source']['hostname']}")
+
+    source_client = validate_remote_host(
         active_task_definition["source"]["hostname"], active_task_definition["source"]["protocol"])
-    transfer.run(active_task_definition)
+    if not source_client:
+        logging.error("Failed to set up source SSH client")
+        sys.exit(1)
+
+    dest_client = None
+    if "destination" in active_task_definition:
+        logging.info(
+            f"Validating destination remote host: {active_task_definition['destination']['hostname']}")
+        dest_client = validate_remote_host(
+            active_task_definition["destination"]["hostname"], active_task_definition["destination"]["protocol"])
+        if not dest_client:
+            logging.error("Failed to set up destination SSH client")
+            sys.exit(1)
+
+    rc = transfer.run(args.taskId, active_task_definition,
+                      source_client, dest_client)
+    sys.exit(rc)
 
 elif active_task_definition["type"] == "execution":
     # Hand off to the execuiton module
-    print("Execution")
+    logger.log(12, "Execution")
 elif active_task_definition["type"] == "batch":
     # Hand off to the batch module
-    print("Batch")
+    logger.log(12, "Batch")
 else:
-    print(f"Unknown task type!")
+    logger.error(f"Unknown task type!")
     sys.exit(1)
