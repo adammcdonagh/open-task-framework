@@ -3,7 +3,8 @@ setup(
     name="open-task-framework",
     install_requires=[
         "jsonschema",
-        "paramiko"
+        "paramiko",
+        "jinja2"
     ],
     packages=["opentaskpy"],
     scripts=["bin/task-run"],

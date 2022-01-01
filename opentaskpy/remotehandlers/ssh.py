@@ -1,46 +1,98 @@
 import logging
 import json
 import os
-logger = logging.getLogger("opentaskpy.remotehandlers.SSH")
+import sys
+import re
+from paramiko import SSHClient, AutoAddPolicy
+logger = logging.getLogger("opentaskpy.remotehandlers.ssh")
 
 SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
 
 
 class SSH:
-    def __init__(self, spec, ssh_client, remote_spec=None):
+    def __init__(self, spec, remote_spec=None):
         self.spec = spec
-        self.ssh_client = ssh_client
+        self.ssh_client = None
+        self.sftp_connection = None
         self.remote_spec = remote_spec
 
-    def __del__(self):
-        logging.debug(f"Closing SSH connection to {self.spec['hostname']}")
-        self.ssh_client.close()
+        # We need to copy the required remote scripts to the source and destination (if applicable) hosts
+        hostname = spec['hostname']
+        logger.info(
+            f"Validating source remote host: {hostname}")
+
+        try:
+            client = SSHClient()
+            client.set_missing_host_key_policy(AutoAddPolicy())
+            client.connect(hostname, username=self.spec["protocol"]["credentials"]["username"],
+                           password=self.spec["protocol"]["credentials"]["password"], timeout=5)
+            stdin, stdout, stderr = client.exec_command("uname -a")
+            with stdout as stdout_fh:
+                logger.log(
+                    11, f"Remote uname: {stdout_fh.read().decode('UTF-8')}")
+
+            # Transfer over the transfer.py script
+            local_script = f"{os.path.dirname(os.path.realpath(__file__))}/scripts/transfer.py"
+
+            sftp = client.open_sftp()
+            sftp.put(local_script, '/tmp/transfer.py')
+
+            self.ssh_client = client
+            self.sftp_connection = sftp
+        except Exception as ex:
+            logger.error(
+                f"Exception while setting up remote SSH client: {ex}")
+
+        if not self.ssh_client or not self.sftp_connection:
+            logger.error(f"Failed to set up SSH client to {hostname}")
+            sys.exit(1)
+
+    def tidy(self):
+        # Remove remote scripts
+        if self.ssh_client:
+            file_list = self.sftp_connection.listdir("/tmp")
+            if "transfer.py" in file_list:
+                self.sftp_connection.remove("/tmp/transfer.py")
+            self.sftp_connection.close()
+
+            logging.debug(f"Closing SSH connection to {self.spec['hostname']}")
+            self.ssh_client.close()
 
     def get_staging_directory(self):
-        return self.remote_spec[
-            "stagingDirectory"] if "stagingDirectory" in self.remote_spec else f"~/otf/{os.environ['OTF_TASK_ID']}/"
+        return self.remote_spec["stagingDirectory"] if "stagingDirectory" in self.remote_spec else f"~/otf/{os.environ['OTF_TASK_ID']}/"
 
     # Determine the list of files that match the source definition
     # List remote files based on the source file pattern
 
     def list_files(self):
 
-        remote_command = f"python3 /tmp/transfer.py --listFiles '{self.spec['directory']}/{self.spec['fileRegex']}' --details"
-        logger.log(12, f"Running: {remote_command}")
+        remote_files = dict()
+        remote_file_list = self.sftp_connection.listdir(self.spec['directory'])
+        for file in list(remote_file_list):
+            if re.match(f"{self.spec['fileRegex']}", file):
+                # Get the file attributes
+                file_attr = self.sftp_connection.lstat(f"{self.spec['directory']}/{file}")
+                logger.log(12, f"File attributes {file_attr}")
+                remote_files[f"{self.spec['directory']}/{file}"] = {
+                    "size": file_attr.st_size,
+                    "modified_time": file_attr.st_mtime
+                }
+        # remote_command = f"python3 /tmp/transfer.py --listFiles '{self.spec['directory']}/{self.spec['fileRegex']}' --details"
+        # logger.log(12, f"Running: {remote_command}")
 
-        remote_files = None
-        stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
-        with stdout as stdout_fh:
-            str_stdout = stdout_fh.read().decode('UTF-8')
-            logger.log(
-                12, f"Remote command returned:\n{str_stdout}")
-            remote_files = json.loads(str_stdout)
+        # remote_files = None
+        # stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
+        # with stdout as stdout_fh:
+        #     str_stdout = stdout_fh.read().decode('UTF-8')
+        #     logger.log(
+        #         12, f"Remote command returned:\n{str_stdout}")
+        #     remote_files = json.loads(str_stdout)
 
         return remote_files
 
     def transfer_files(self, files, dest_client):
         # Construct an SCP command to transfer the files to the destination server
-        remote_user = self.remote_spec["protocol"]["credentials"]["username"]
+        remote_user = self.remote_spec["protocol"]["credentials"]["transferUsername"] if "transferUsername" in self.remote_spec["protocol"]["credentials"] else self.remote_spec["protocol"]["credentials"]["username"]
         remote_host = self.remote_spec["hostname"]
         # Handle staging directory if there is one
         destination_directory = self.get_staging_directory()
@@ -84,7 +136,7 @@ class SSH:
 
     def pull_files(self, files):
         # Construct an SCP command to transfer the files from the source server
-        source_user = self.spec["protocol"]["pullUsername"]
+        source_user = self.spec["protocol"]["credentials"]["transferUsername"]
         source_host = self.remote_spec["hostname"]
 
         # Handle staging directory if there is one
