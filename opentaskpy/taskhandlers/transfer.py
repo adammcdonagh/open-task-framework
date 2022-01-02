@@ -50,9 +50,38 @@ class Transfer:
         # If log watching, do that first
         if "logWatch" in source_file_spec:
             logger.info("Performing a log watch")
-            logging.error("NOT IMPLEMENTED")
-            # TODO: Implement this
-            self.source_remote_handler.do_logwatch()
+
+            if self.source_remote_handler.init_logwatch() != 0:
+                return self.return_result(1, "Logwatch init failed")
+
+            timeout_seconds = 60 if "timeout" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["timeout"]
+            sleep_seconds = 10 if "sleepTime" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["sleepTime"]
+
+            # Now we start the loop to monitor the log file
+            start_time = time.time()
+            found_log_entry = False
+            while floor(time.time() - start_time) <= timeout_seconds:
+                if self.source_remote_handler.do_logwatch() == 0:
+                    found_log_entry = True
+                    break
+                else:
+                    remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
+                    if remaining_seconds == 0:
+                        break
+
+                    # If the sleep time is longer than the time remaining, sleep for that long instead
+                    if(remaining_seconds < sleep_seconds):
+                        actual_sleep_seconds = remaining_seconds
+                    else:
+                        actual_sleep_seconds = sleep_seconds
+
+                    logger.info(f"No entry found in log. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain")
+                    time.sleep(actual_sleep_seconds)
+
+            if found_log_entry:
+                logging.info("Found pattern in log file")
+            else:
+                return self.return_result(1, f"No log entry found after {timeout_seconds} seconds")
 
         # If filewatching, do that next
         if "fileWatch" in source_file_spec:

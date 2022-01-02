@@ -15,6 +15,7 @@ class SSH:
         self.ssh_client = None
         self.sftp_connection = None
         self.remote_spec = remote_spec
+        self.log_watch_start_row = 0
 
         # We need to copy the required remote scripts to the source and destination (if applicable) hosts
         hostname = spec['hostname']
@@ -249,3 +250,48 @@ class SSH:
             remote_rc = stdout.channel.recv_exit_status()
             logger.info(f"Got return code {remote_rc} from SSH post copy action command")
             return remote_rc
+
+    def init_logwatch(self):
+        # There are 2 options for logwatches. One is to watch for new entries, the other is to scan the entire log.
+        # Default if not specified is to watch for new entries
+
+        # Determine the log details and check it exists first
+        log_file = f"{self.spec['logWatch']['directory']}/{self.spec['logWatch']['log']}"
+
+        # Stat the file
+        try:
+            file_attr = self.sftp_connection.lstat(f"{log_file}")
+        except FileNotFoundError:
+            logger.error(f"Log file {log_file} does not exist")
+            return 1
+        except PermissionError:
+            logger.error(f"Log file {log_file} cannot be accessed")
+            return 1
+
+        # Open the existing file and determine the number of rows
+        with self.sftp_connection.open(log_file) as log_fh:
+            rows = 0
+            for rows, l in enumerate(log_fh):
+                pass
+            logger.log(12, f"Found {rows+1} lines in log")
+            self.log_watch_start_row = rows
+
+        return 0
+
+    def do_logwatch(self):
+        # Determine if the config requires scanning the entire log, or just from the start_row determine in the init function
+        start_row = self.log_watch_start_row if "tail" not in self.spec["logWatch"] or self.spec["logWatch"]["tail"] else 0
+        logger.log(12, f"Starting logwatch from row {start_row}")
+
+        # Open the remote log file and parse each line for the pattern
+        log_file = f"{self.spec['logWatch']['directory']}/{self.spec['logWatch']['log']}"
+
+        with self.sftp_connection.open(log_file) as log_fh:
+            for i, line in enumerate(log_fh):
+                if i >= start_row:
+                    logger.log(11, f"Log line: {line.strip()}")
+                    if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
+                        logger.log(12, f"Found matching line in log: {line.strip()}")
+                        return 0
+
+        return 1
