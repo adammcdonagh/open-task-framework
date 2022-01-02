@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import datetime
 import json
 from opentaskpy.config.schemas import validate_json
 from glob import glob
@@ -28,6 +29,10 @@ def recurse_json(d):
                     logging.log(12, f"Found variable: {variable_name} - Value is: {variable}")
                     v = re.sub(pattern, variable, v)
                     logging.log(12, v)
+
+
+def delta_days(value, days):
+    return value + datetime.timedelta(days)
 
 
 def main():
@@ -64,6 +69,7 @@ def main():
     # Force Jinja2 to log undefined variables
     LoggingUndefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
     template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+    template_env.filters["delta_days"] = delta_days
 
     logger.log(12, "Looking in {CONFIG_PATH}")
 
@@ -71,12 +77,15 @@ def main():
 
     # Load global config variables
     global_variables = dict()
-    variable_config = glob(f"{CONFIG_PATH}/**/variables.json", recursive=True)
-    if not variable_config:
-        logging.error("Couldn't find any variables.json files")
+    variable_configs = []
+    file_types = (".json.j2", ".json")
+    for file_type in file_types:
+        variable_configs.extend(glob(f"{CONFIG_PATH}/**/variables{file_type}", recursive=True))
+    if not variable_configs:
+        logging.error("Couldn't find any variables.(json|json.j2) files")
         sys.exit(1)
     else:
-        for variable_file in variable_config:
+        for variable_file in variable_configs:
             with open(variable_file) as json_file:
                 this_variable_config = json.load(json_file)
                 global_variables = global_variables | this_variable_config
@@ -111,6 +120,7 @@ def main():
             previous_render = None
 
             variables_template = template_env.from_string(json.dumps(global_variables))
+            variables_template.globals['now'] = datetime.datetime.utcnow
             evaluated_variables = variables_template.render(global_variables)
 
             while evaluated_variables != previous_render and current_depth < MAX_DEPTH:
