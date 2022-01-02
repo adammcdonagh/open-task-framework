@@ -3,6 +3,7 @@ import sys
 import time
 from os import environ
 from opentaskpy.remotehandlers.ssh import SSH
+from math import ceil, floor
 
 logger = logging.getLogger("opentaskpy.taskhandlers.transfer")
 
@@ -21,7 +22,10 @@ class Transfer:
 
     def return_result(self, status, message=None):
         if message:
-            logger.error(message)
+            if status == 0:
+                logger.info(message)
+            else:
+                logger.error(message)
 
         # Delete the remote connection objects
         if self.source_remote_handler:
@@ -52,16 +56,45 @@ class Transfer:
 
         # If filewatching, do that next
         if "fileWatch" in source_file_spec:
-            logger.info("Performing a file watch")
-            # TODO: Implement this
-            logging.error("NOT IMPLEMENTED")
 
-            if not self.source_remote_handler.do_filewatch():
-                self.return_result(1, "No files matched filewatch")
+            # Setup a loop for the filewatch
+            timeout_seconds = 60 if "timeout" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["timeout"]
+            sleep_seconds = 10 if "sleepTime" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["sleepTime"]
 
-            if "watchOnly" in source_file_spec["fileWatch"]:
-                logger.info("Only performing file watch")
-                return 0
+            start_time = time.time()
+            remote_files = []
+
+            # Determine if we're doing a plain filewatch, or looking for a different file to what we are transferring
+            watch_directory = source_file_spec["fileWatch"]["directory"] if "directory" in source_file_spec["fileWatch"] else source_file_spec["directory"]
+            watch_file_pattern = source_file_spec["fileWatch"]["fileRegex"] if "fileRegex" in source_file_spec["fileWatch"] else source_file_spec["fileRegex"]
+
+            logger.info(f"Performing a file watch on {watch_directory}/{watch_file_pattern}")
+
+            while not remote_files and floor(time.time() - start_time) <= timeout_seconds:
+
+                remote_files = self.source_remote_handler.list_files(directory=watch_directory, file_pattern=watch_file_pattern)
+
+                if remote_files:
+                    logging.info("Filewatch found remote file(s)")
+                    break
+                else:
+                    remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
+                    if remaining_seconds == 0:
+                        break
+
+                    # If the sleep time is longer than the time remaining, sleep for that long instead
+                    if(remaining_seconds < sleep_seconds):
+                        actual_sleep_seconds = remaining_seconds
+                    else:
+                        actual_sleep_seconds = sleep_seconds
+
+                    logger.info(f"No files found. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain")
+                    time.sleep(actual_sleep_seconds)
+
+            if remote_files and "watchOnly" in source_file_spec["fileWatch"] and source_file_spec["fileWatch"]["watchOnly"]:
+                return self.return_result("0", "Just performing filewatch")
+            elif not remote_files:
+                return self.return_result(1, f"No files found after {timeout_seconds} seconds")
 
         # Determine what needs to be transferred
 
@@ -117,9 +150,9 @@ class Transfer:
 
         if not remote_files:
             if "error" in source_file_spec and not source_file_spec["error"]:
-                self.return_result(0, "No remote files could be found to transfer. But not erroring due to config")
+                return self.return_result(0, "No remote files could be found to transfer. But not erroring due to config")
             else:
-                self.return_result(1, "No remote files could be found to transfer")
+                return self.return_result(1, "No remote files could be found to transfer")
         else:
             logging.info(
                 "Found the following file(s) that match all requirements:")
@@ -135,14 +168,14 @@ class Transfer:
 
                 transfer_result = self.source_remote_handler.transfer_files(remote_files, dest_client)
                 if transfer_result != 0:
-                    self.return_result(1, "Remote transfer errored")
+                    return self.return_result(1, "Remote transfer errored")
 
                 logging.info("Transfer completed successfully")
 
             else:
                 transfer_result = self.dest_remote_handler.pull_files(remote_files)
                 if transfer_result != 0:
-                    self.return_result(1, "Remote PULL transfer errored")
+                    return self.return_result(1, "Remote PULL transfer errored")
 
                 logging.info("Transfer completed successfully")
 
@@ -150,12 +183,12 @@ class Transfer:
             if dest_file_spec["protocol"]["name"] == "ssh":
                 move_result = self.dest_remote_handler.move_files_to_final_location(remote_files)
                 if move_result != 0:
-                    self.return_result(1, "Error moving file into final location")
+                    return self.return_result(1, "Error moving file into final location")
 
             if "postCopyAction" in source_file_spec:
 
                 pca_result = self.source_remote_handler.handle_post_copy_action(remote_files)
                 if pca_result != 0:
-                    self.return_result(1, "Error performing post copy action")
+                    return self.return_result(1, "Error performing post copy action")
 
-            self.return_result(0)
+            return self.return_result(0)

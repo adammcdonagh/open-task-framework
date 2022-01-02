@@ -64,16 +64,22 @@ class SSH:
     # Determine the list of files that match the source definition
     # List remote files based on the source file pattern
 
-    def list_files(self):
+    def list_files(self, directory=None, file_pattern=None):
 
+        if not directory:
+            directory = self.spec["directory"]
+        if not file_pattern:
+            file_pattern = self.spec["fileRegex"]
+
+        logger.log(12, f"Searching in {directory} for files with pattern {file_pattern}")
         remote_files = dict()
-        remote_file_list = self.sftp_connection.listdir(self.spec['directory'])
+        remote_file_list = self.sftp_connection.listdir(directory)
         for file in list(remote_file_list):
-            if re.match(f"{self.spec['fileRegex']}", file):
+            if re.match(file_pattern, file):
                 # Get the file attributes
-                file_attr = self.sftp_connection.lstat(f"{self.spec['directory']}/{file}")
+                file_attr = self.sftp_connection.lstat(f"{directory}/{file}")
                 logger.log(12, f"File attributes {file_attr}")
-                remote_files[f"{self.spec['directory']}/{file}"] = {
+                remote_files[f"{directory}/{file}"] = {
                     "size": file_attr.st_size,
                     "modified_time": file_attr.st_mtime
                 }
