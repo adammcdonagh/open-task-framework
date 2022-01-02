@@ -288,7 +288,8 @@ class SSH:
 
         with self.sftp_connection.open(log_file) as log_fh:
             for i, line in enumerate(log_fh):
-                if i >= start_row:
+                # We need to start after the previous line in the log
+                if i > start_row:
                     logger.log(11, f"Log line: {line.strip()}")
                     if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
                         logger.log(12, f"Found matching line in log: {line.strip()}")

@@ -49,7 +49,7 @@ class Transfer:
 
         # If log watching, do that first
         if "logWatch" in source_file_spec:
-            logger.info("Performing a log watch")
+            logger.info(f"Performing a log watch of {source_file_spec['logWatch']['directory']}/{source_file_spec['logWatch']['log']}")
 
             if self.source_remote_handler.init_logwatch() != 0:
                 return self.return_result(1, "Logwatch init failed")
