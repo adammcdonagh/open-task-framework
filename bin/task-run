@@ -35,6 +35,10 @@ def delta_days(value, days):
     return value + datetime.timedelta(days)
 
 
+def template_lookup(plugin):
+    logging.log(11, "got call to lookup function")
+
+
 def main():
     CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
     GLOBAL_VERBOSITY = 1
@@ -121,6 +125,10 @@ def main():
 
             variables_template = template_env.from_string(json.dumps(global_variables))
             variables_template.globals['now'] = datetime.datetime.utcnow
+
+            # Define lookup function
+            variables_template.globals['lookup'] = template_lookup
+
             evaluated_variables = variables_template.render(global_variables)
 
             while evaluated_variables != previous_render and current_depth < MAX_DEPTH:

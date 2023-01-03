@@ -12,7 +12,7 @@
       "console": "integratedTerminal",
       "args": [
         "-t",
-        "scp-with-password-homeassistant",
+        "scp-with-password.example",
         "-v",
         "2"
       ],
@@ -27,7 +27,7 @@
       "console": "integratedTerminal",
       "args": [
         "-t",
-        "scp-with-password-homeassistant-pull",
+        "scp-with-password-pull.example",
         "-v",
         "2"
       ],
