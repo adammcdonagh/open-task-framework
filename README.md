@@ -1,8 +1,8 @@
-# TODO: Add some documentation
-
-From: https://www.reddit.com/r/learnpython/comments/2lzh9z/starting_a_python_project_the_right_way/
+### Setup
 
 ```
-$ source env/bin/activate
-$ pip install --editable .
+pip install pipenv
+pipenv --python 3.10
+pipenv shell
+pipenv install
 ```

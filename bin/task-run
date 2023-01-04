@@ -7,28 +7,29 @@ from opentaskpy.config.schemas import validate_json
 from glob import glob
 from opentaskpy.taskhandlers.transfer import Transfer
 import logging
-from enum import Enum
-import re
 import jinja2
-from jinja2 import Environment, Template, Undefined
-from jinja2.exceptions import UndefinedError
+from jinja2 import Template
 
+CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
+GLOBAL_VERBOSITY = 1
+MAX_DEPTH = 5
 
-def recurse_json(d):
-    for k, v in d.items():
-        if isinstance(v, dict):
-            recurse_json(v)
-        else:
-            # Evaluate any variables
-            if isinstance(v, str):
-                pattern = r"\$\{([^\}]+)\}"
-                m = re.search(pattern, v)
-                if m:
-                    variable_name = m.group(1)
-                    variable = global_variables[variable_name]
-                    logging.log(12, f"Found variable: {variable_name} - Value is: {variable}")
-                    v = re.sub(pattern, variable, v)
-                    logging.log(12, v)
+# Not needed now we're using Jinja2
+# def recurse_json(d):
+#     for _, v in d.items():
+#         if isinstance(v, dict):
+#             recurse_json(v)
+#         else:
+#             # Evaluate any variables
+#             if isinstance(v, str):
+#                 pattern = r"\$\{([^\}]+)\}"
+#                 m = re.search(pattern, v)
+#                 if m:
+#                     variable_name = m.group(1)
+#                     variable = global_variables[variable_name]
+#                     logging.log(12, f"Found variable: {variable_name} - Value is: {variable}")
+#                     v = re.sub(pattern, variable, v)
+#                     logging.log(12, v)
 
 
 def delta_days(value, days):
@@ -40,23 +41,19 @@ def template_lookup(plugin):
 
 
 def main():
-    CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
-    GLOBAL_VERBOSITY = 1
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-t", "--taskId", help="Name of the JSON config to run", type=str, required=True)
+    parser.add_argument("-t", "--taskId", help="Name of the JSON config to run", type=str, required=True)
     parser.add_argument("-v", "--verbosity", help="Increase verbosity", type=int)
-    parser.add_argument("-c", "--configDir",
-                        help="Directory containing task configurations", type=str)
+    parser.add_argument("-c", "--configDir", help="Directory containing task configurations", type=str)
 
     args = parser.parse_args()
 
     if args.configDir:
+        global CONFIG_PATH
         CONFIG_PATH = args.configDir
 
-    logging.basicConfig(
-        format="%(asctime)s — %(name)s — %(levelname)s — %(message)s", level=logging.INFO)
+    logging.basicConfig(format="%(asctime)s — %(name)s — %(levelname)s — %(message)s", level=logging.INFO)
     logging.addLevelName(11, "VERBOSE2")
     logging.addLevelName(12, "VERBOSE1")
 
@@ -71,11 +68,11 @@ def main():
         logger.setLevel(12)
 
     # Force Jinja2 to log undefined variables
-    LoggingUndefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
+    LoggingUndefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)  # noqa
     template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
     template_env.filters["delta_days"] = delta_days
 
-    logger.log(12, "Looking in {CONFIG_PATH}")
+    logger.log(12, f"Looking in {CONFIG_PATH}")
 
     active_task_definition = ()
 
@@ -119,15 +116,15 @@ def main():
 
             # We need to evaluate the variables themselves, incase theres any recursion
             # Convert the variables to a JSON string which we can process with the jinja2 templater
-            MAX_DEPTH = 5
+            global MAX_DEPTH
             current_depth = 0
             previous_render = None
 
             variables_template = template_env.from_string(json.dumps(global_variables))
-            variables_template.globals['now'] = datetime.datetime.utcnow
+            variables_template.globals["now"] = datetime.datetime.utcnow
 
             # Define lookup function
-            variables_template.globals['lookup'] = template_lookup
+            variables_template.globals["lookup"] = template_lookup
 
             evaluated_variables = variables_template.render(global_variables)
 
@@ -139,7 +136,9 @@ def main():
 
                 current_depth += 1
                 if current_depth >= MAX_DEPTH:
-                    logging.error("Reached max depth of recursive template evaluation. Please check the task as variable definitions for infinite recursion")
+                    logging.error(
+                        "Reached max depth of recursive template evaluation. Please check the task as variable definitions for infinite recursion"
+                    )
                     sys.exit(1)
 
                 global_variables = json.loads(evaluated_variables)
@@ -178,7 +177,7 @@ def main():
         # Hand off to the batch module
         logger.log(12, "Batch")
     else:
-        logger.error(f"Unknown task type!")
+        logger.error("Unknown task type!")
         sys.exit(1)
 
 

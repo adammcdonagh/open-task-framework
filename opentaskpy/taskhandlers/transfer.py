@@ -1,5 +1,4 @@
 import logging
-import sys
 import time
 from os import environ
 from opentaskpy.remotehandlers.ssh import SSH
@@ -13,7 +12,6 @@ logger = logging.getLogger("opentaskpy.taskhandlers.transfer")
 
 
 class Transfer:
-
     def __init__(self, task_id, transfer_definition):
         self.task_id = task_id
         self.transfer_definition = transfer_definition
@@ -38,7 +36,7 @@ class Transfer:
 
     def run(self):
         logger.info("Running transfer")
-        environ['OTF_TASK_ID'] = self.task_id
+        environ["OTF_TASK_ID"] = self.task_id
 
         # Based on the transfer definition, determine what to do first
         source_file_spec = self.transfer_definition["source"]
@@ -49,13 +47,19 @@ class Transfer:
 
         # If log watching, do that first
         if "logWatch" in source_file_spec:
-            logger.info(f"Performing a log watch of {source_file_spec['logWatch']['directory']}/{source_file_spec['logWatch']['log']}")
+            logger.info(
+                f"Performing a log watch of {source_file_spec['logWatch']['directory']}/{source_file_spec['logWatch']['log']}"
+            )
 
             if self.source_remote_handler.init_logwatch() != 0:
                 return self.return_result(1, "Logwatch init failed")
 
-            timeout_seconds = 60 if "timeout" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["timeout"]
-            sleep_seconds = 10 if "sleepTime" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["sleepTime"]
+            timeout_seconds = (
+                60 if "timeout" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["timeout"]
+            )
+            sleep_seconds = (
+                10 if "sleepTime" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["sleepTime"]
+            )
 
             # Now we start the loop to monitor the log file
             start_time = time.time()
@@ -70,12 +74,14 @@ class Transfer:
                         break
 
                     # If the sleep time is longer than the time remaining, sleep for that long instead
-                    if(remaining_seconds < sleep_seconds):
+                    if remaining_seconds < sleep_seconds:
                         actual_sleep_seconds = remaining_seconds
                     else:
                         actual_sleep_seconds = sleep_seconds
 
-                    logger.info(f"No entry found in log. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain")
+                    logger.info(
+                        f"No entry found in log. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain"
+                    )
                     time.sleep(actual_sleep_seconds)
 
             if found_log_entry:
@@ -87,21 +93,35 @@ class Transfer:
         if "fileWatch" in source_file_spec:
 
             # Setup a loop for the filewatch
-            timeout_seconds = 60 if "timeout" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["timeout"]
-            sleep_seconds = 10 if "sleepTime" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["sleepTime"]
+            timeout_seconds = (
+                60 if "timeout" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["timeout"]
+            )
+            sleep_seconds = (
+                10 if "sleepTime" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["sleepTime"]
+            )
 
             start_time = time.time()
             remote_files = []
 
             # Determine if we're doing a plain filewatch, or looking for a different file to what we are transferring
-            watch_directory = source_file_spec["fileWatch"]["directory"] if "directory" in source_file_spec["fileWatch"] else source_file_spec["directory"]
-            watch_file_pattern = source_file_spec["fileWatch"]["fileRegex"] if "fileRegex" in source_file_spec["fileWatch"] else source_file_spec["fileRegex"]
+            watch_directory = (
+                source_file_spec["fileWatch"]["directory"]
+                if "directory" in source_file_spec["fileWatch"]
+                else source_file_spec["directory"]
+            )
+            watch_file_pattern = (
+                source_file_spec["fileWatch"]["fileRegex"]
+                if "fileRegex" in source_file_spec["fileWatch"]
+                else source_file_spec["fileRegex"]
+            )
 
             logger.info(f"Performing a file watch on {watch_directory}/{watch_file_pattern}")
 
             while not remote_files and floor(time.time() - start_time) <= timeout_seconds:
 
-                remote_files = self.source_remote_handler.list_files(directory=watch_directory, file_pattern=watch_file_pattern)
+                remote_files = self.source_remote_handler.list_files(
+                    directory=watch_directory, file_pattern=watch_file_pattern
+                )
 
                 if remote_files:
                     logging.info("Filewatch found remote file(s)")
@@ -112,15 +132,21 @@ class Transfer:
                         break
 
                     # If the sleep time is longer than the time remaining, sleep for that long instead
-                    if(remaining_seconds < sleep_seconds):
+                    if remaining_seconds < sleep_seconds:
                         actual_sleep_seconds = remaining_seconds
                     else:
                         actual_sleep_seconds = sleep_seconds
 
-                    logger.info(f"No files found. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain")
+                    logger.info(
+                        f"No files found. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain"
+                    )
                     time.sleep(actual_sleep_seconds)
 
-            if remote_files and "watchOnly" in source_file_spec["fileWatch"] and source_file_spec["fileWatch"]["watchOnly"]:
+            if (
+                remote_files
+                and "watchOnly" in source_file_spec["fileWatch"]
+                and source_file_spec["fileWatch"]["watchOnly"]
+            ):
                 return self.return_result("0", "Just performing filewatch")
             elif not remote_files:
                 return self.return_result(1, f"No files found after {timeout_seconds} seconds")
@@ -139,39 +165,50 @@ class Transfer:
 
                 if "size" in source_file_spec["conditionals"]:
                     logger.log(12, "Checking file size")
-                    min_size = source_file_spec["conditionals"]["size"]["gt"] if "gt" in source_file_spec["conditionals"]["size"] else None
-                    max_size = source_file_spec["conditionals"]["size"]["lt"] if "lt" in source_file_spec["conditionals"]["size"] else None
+                    min_size = (
+                        source_file_spec["conditionals"]["size"]["gt"]
+                        if "gt" in source_file_spec["conditionals"]["size"]
+                        else None
+                    )
+                    max_size = (
+                        source_file_spec["conditionals"]["size"]["lt"]
+                        if "lt" in source_file_spec["conditionals"]["size"]
+                        else None
+                    )
 
                     file_size = remote_files[remote_file]["size"]
 
                     if min_size and file_size <= min_size:
-                        logger.info(
-                            f"File is too small: Min size: [{min_size} B] Actual size: [{file_size} B]")
+                        logger.info(f"File is too small: Min size: [{min_size} B] Actual size: [{file_size} B]")
                         meets_condition = False
 
                     if max_size and file_size >= max_size:
-                        logger.info(
-                            f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]")
+                        logger.info(f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]")
                         meets_condition = False
 
                 if "age" in source_file_spec["conditionals"]:
-                    min_age = None if not "gt" in source_file_spec["conditionals"]["age"] else source_file_spec["conditionals"]["age"]["gt"]
-                    max_age = None if not "lt" in source_file_spec["conditionals"]["age"] else source_file_spec["conditionals"]["age"]["lt"]
+                    min_age = (
+                        None
+                        if "gt" not in source_file_spec["conditionals"]["age"]
+                        else source_file_spec["conditionals"]["age"]["gt"]
+                    )
+                    max_age = (
+                        None
+                        if "lt" not in source_file_spec["conditionals"]["age"]
+                        else source_file_spec["conditionals"]["age"]["lt"]
+                    )
 
                     file_modified_time = remote_files[remote_file]["modified_time"]
                     file_age = time.time() - file_modified_time
 
-                    logger.log(
-                        12, f"Checking file age - Last modified time: {time.ctime(file_modified_time)}")
+                    logger.log(12, f"Checking file age - Last modified time: {time.ctime(file_modified_time)}")
 
                     if min_age and file_age <= min_age:
-                        logger.info(
-                            f"File is too new: Min age: [{min_age} secs] Actual age: [{file_age} secs]")
+                        logger.info(f"File is too new: Min age: [{min_age} secs] Actual age: [{file_age} secs]")
                         meets_condition = False
 
                     if max_age and file_age >= max_age:
-                        logger.info(
-                            f"File is too old: Max age: [{max_age} secs] Actual age: [{file_age} secs]")
+                        logger.info(f"File is too old: Max age: [{max_age} secs] Actual age: [{file_age} secs]")
                         meets_condition = False
 
                 if not meets_condition:
@@ -179,12 +216,13 @@ class Transfer:
 
         if not remote_files:
             if "error" in source_file_spec and not source_file_spec["error"]:
-                return self.return_result(0, "No remote files could be found to transfer. But not erroring due to config")
+                return self.return_result(
+                    0, "No remote files could be found to transfer. But not erroring due to config"
+                )
             else:
                 return self.return_result(1, "No remote files could be found to transfer")
         else:
-            logging.info(
-                "Found the following file(s) that match all requirements:")
+            logging.info("Found the following file(s) that match all requirements:")
             for file in remote_files:
                 logging.info(f" * {file}")
             # This is where the transfer actually needs to happen
@@ -195,7 +233,9 @@ class Transfer:
             # Handle the push or pull transfer types
             if "transferType" not in dest_file_spec or dest_file_spec["transferType"] == "push":
 
-                transfer_result = self.source_remote_handler.transfer_files(remote_files, dest_client)
+                transfer_result = self.source_remote_handler.transfer_files(
+                    remote_files, dest_remote_handler=self.dest_remote_handler
+                )
                 if transfer_result != 0:
                     return self.return_result(1, "Remote transfer errored")
 

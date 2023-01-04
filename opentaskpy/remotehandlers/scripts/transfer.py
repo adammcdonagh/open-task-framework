@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import re
-import logging
 import pwd
 import grp
 
@@ -14,8 +13,7 @@ def list_files(pattern, details=False):
     directory = os.path.dirname(pattern)
     files = None
     try:
-        files = [
-            f"{directory}/{f}" for f in os.listdir(directory) if re.match(file_regex, f)]
+        files = [f"{directory}/{f}" for f in os.listdir(directory) if re.match(file_regex, f)]
     except FileNotFoundError:
         files = []
 
@@ -27,8 +25,8 @@ def list_files(pattern, details=False):
             modified_time = file_stat.st_mtime
             size = file_stat.st_size
             result[file] = dict()
-            result[file]['size'] = size
-            result[file]['modified_time'] = modified_time
+            result[file]["size"] = size
+            result[file]["modified_time"] = modified_time
         return result
 
     return files
@@ -36,26 +34,18 @@ def list_files(pattern, details=False):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-l", "--listFiles", help="Regex of files to look for", type=str, required=False)
+    parser.add_argument("-d", "--details", help="Include file details in output", action="store_true", required=False)
     parser.add_argument(
-        "-l", "--listFiles", help="Regex of files to look for", type=str, required=False)
-    parser.add_argument(
-        "-d", "--details", help="Include file details in output", action='store_true', required=False)
-    parser.add_argument(
-        "-m", "--moveFiles", help="List of source files to move from one directory to another", required=False)
-    parser.add_argument(
-        "--deleteFiles", help="List of source files to delete as a post copy action", required=False)
-    parser.add_argument(
-        "--destination", help="Destination directory to move files into", required=False)
-    parser.add_argument(
-        "--owner", help="Owner to set on files to be moved", required=False)
-    parser.add_argument(
-        "--group", help="Group to set on files to be moved", required=False)
-    parser.add_argument(
-        "--mode", help="Mode to set on files to be moved", required=False)
-    parser.add_argument(
-        "--renameRegex", help="Regex expression to apply to filenames", required=False)
-    parser.add_argument(
-        "--renameSub", help="Regex substitution to apply to filenames", required=False)
+        "-m", "--moveFiles", help="List of source files to move from one directory to another", required=False
+    )
+    parser.add_argument("--deleteFiles", help="List of source files to delete as a post copy action", required=False)
+    parser.add_argument("--destination", help="Destination directory to move files into", required=False)
+    parser.add_argument("--owner", help="Owner to set on files to be moved", required=False)
+    parser.add_argument("--group", help="Group to set on files to be moved", required=False)
+    parser.add_argument("--mode", help="Mode to set on files to be moved", required=False)
+    parser.add_argument("--renameRegex", help="Regex expression to apply to filenames", required=False)
+    parser.add_argument("--renameSub", help="Regex substitution to apply to filenames", required=False)
 
     args = parser.parse_args()
 
