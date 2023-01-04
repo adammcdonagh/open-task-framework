@@ -1,3 +1,4 @@
+"""Setup function for opentaskpy package."""
 from setuptools import setup
 setup(
     name="open-task-framework",
