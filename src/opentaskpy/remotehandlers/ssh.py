@@ -10,6 +10,9 @@ SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
 
 
 class SSH:
+
+    FILE_NAME_DELIMITER = "|||"
+
     def __init__(self, spec, remote_spec=None):
         self.spec = spec
         self.ssh_client = None
@@ -27,7 +30,6 @@ class SSH:
             client.connect(
                 hostname,
                 username=self.spec["protocol"]["credentials"]["username"],
-                password=self.spec["protocol"]["credentials"]["password"],
                 timeout=5,
             )
             _, stdout, _ = client.exec_command("uname -a")
@@ -127,7 +129,7 @@ class SSH:
         remote_rc = stdout.channel.recv_exit_status()
         logger.info(f"Got return code {remote_rc} from SSH command")
 
-        remote_command = f'scp {SSH_OPTIONS} {"".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
+        remote_command = f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
         logging.info(f"Transferring files via SCP: {remote_command}")
 
         stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
@@ -201,7 +203,7 @@ class SSH:
         # Convert all the source file names into the filename with the destination directory as a prefix
         file_names_str = ""
         for file in list(files):
-            file_names_str += f"{self.get_staging_directory()}{os.path.basename(file)} "
+            file_names_str += f"{self.get_staging_directory()}{os.path.basename(file)}{self.FILE_NAME_DELIMITER}"
         file_names_str = file_names_str.strip()
 
         # Next step is to move the file to it's final resting place with the correct permissions and ownership
@@ -244,9 +246,9 @@ class SSH:
     def handle_post_copy_action(self, files):
         remote_command = None
         if self.spec["postCopyAction"]["action"] == "delete":
-            remote_command = f"python3 /tmp/transfer.py --deleteFiles '{' '.join(files)}'"
+            remote_command = f"python3 /tmp/transfer.py --deleteFiles '{self.FILE_NAME_DELIMITER.join(files)}'"
         if self.spec["postCopyAction"]["action"] == "move":
-            remote_command = f"python3 /tmp/transfer.py --moveFiles '{' '.join(files)}' --destination {self.spec['postCopyAction']['destination']}"
+            remote_command = f"python3 /tmp/transfer.py --moveFiles '{self.FILE_NAME_DELIMITER.join(files)}' --destination {self.spec['postCopyAction']['destination']}"
 
         if remote_command:
             logger.log(12, f"Running: {remote_command}")
