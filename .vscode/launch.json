@@ -11,28 +11,44 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "args": [
-        "-t",
-        "scp-with-password.example",
-        "-v",
-        "2"
+        "./test",
+        "test*.py"
       ],
       "justMyCode": false
-
     },
     {
-      "name": "Python: Transfer",
+      "name": "Python: Transfer - Basic",
       "type": "python",
       "request": "launch",
-      "program": "bin/task-run",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
         "-t",
-        "scp-with-password-pull.example",
+        "scp-basic",
         "-v",
-        "2"
+        "2",
+        "-c",
+        "test/cfg"
       ],
       "justMyCode": false
-      
+    },
+    {
+      "name": "Python: Transfer - File Conditions 1",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "scp-source-file-conditions",
+        "-v",
+        "2",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
     }
   ]
 }

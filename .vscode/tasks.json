@@ -1,0 +1,80 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Test containers",
+      "type": "shell",
+      "command": "cd test && docker-compose up -d",
+      "dependsOn": "Setup SSH keys",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Configure test users",
+      "type": "shell",
+      "command": "docker exec -it ssh_1 /bin/sh -c \"usermod -G operator -a application\" && docker exec -it ssh_2 /bin/sh -c \"usermod -G operator -a application\"",
+      "problemMatcher": [],
+      "dependsOn": "Build Test containers",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Create test volume dirs",
+      "type": "shell",
+      "command": "./test/createTestDirectories.sh",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Create test files",
+      "type": "shell",
+      "command": "./test/createTestFiles.sh",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Configure test users",
+        "Configure SSH keys - host A",
+        "Configure SSH keys - host B"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Setup SSH keys",
+      "type": "shell",
+      "command": "./test/setupSSHKeys.sh",
+      "dependsOn": "Create test volume dirs",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Configure SSH keys - host A",
+      "type": "shell",
+      "command": "docker exec -it ssh_1 /bin/sh -c \"mkdir -p ~application/.ssh && cp /tmp/testFiles/ssh/id_rsa ~application/.ssh && cp /tmp/testFiles/ssh/authorized_keys ~application/.ssh && chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh\" ",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Configure SSH keys - host B",
+      "type": "shell",
+      "command": "docker exec -it ssh_2 /bin/sh -c \"mkdir -p ~application/.ssh && chown application ~application/.ssh && cp /tmp/testFiles/ssh/id_rsa ~application/.ssh && cp /tmp/testFiles/ssh/authorized_keys ~application/.ssh && chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh\" ",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}
