@@ -4,8 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-boto3 = "*"
-jinja2 = "*"
+opentaskpy = {editable = true, path = "."}
 
 [dev-packages]
 flake8 = "*"
