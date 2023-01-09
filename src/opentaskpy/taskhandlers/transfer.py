@@ -40,7 +40,7 @@ class Transfer:
 
         # Based on the transfer definition, determine what to do first
         source_file_spec = self.transfer_definition["source"]
-        dest_file_spec = self.transfer_definition["destination"]
+        dest_file_spec = self.transfer_definition["destination"] if "destination" in self.transfer_definition else None
         # Based on the source protocol pick the appropriate remote handler
         if source_file_spec["protocol"]["name"] == "ssh":
             self.source_remote_handler = SSH(source_file_spec, remote_spec=dest_file_spec)
@@ -225,34 +225,39 @@ class Transfer:
             logging.info("Found the following file(s) that match all requirements:")
             for file in remote_files:
                 logging.info(f" * {file}")
-            # This is where the transfer actually needs to happen
 
-            if dest_file_spec["protocol"]["name"] == "ssh":
-                self.dest_remote_handler = SSH(dest_file_spec, remote_spec=source_file_spec)
+            # If there's a destination file spec, then we need to transfer the files
+            if dest_file_spec:
 
-            # Handle the push or pull transfer types
-            if "transferType" not in dest_file_spec or dest_file_spec["transferType"] == "push":
+                # This is where the transfer actually needs to happen
+                if dest_file_spec["protocol"]["name"] == "ssh":
+                    self.dest_remote_handler = SSH(dest_file_spec, remote_spec=source_file_spec)
 
-                transfer_result = self.source_remote_handler.transfer_files(
-                    remote_files, dest_remote_handler=self.dest_remote_handler
-                )
-                if transfer_result != 0:
-                    return self.return_result(1, "Remote transfer errored")
+                # Handle the push or pull transfer types
+                if "transferType" not in dest_file_spec or dest_file_spec["transferType"] == "push":
 
-                logging.info("Transfer completed successfully")
+                    transfer_result = self.source_remote_handler.transfer_files(
+                        remote_files, dest_remote_handler=self.dest_remote_handler
+                    )
+                    if transfer_result != 0:
+                        return self.return_result(1, "Remote transfer errored")
 
+                    logging.info("Transfer completed successfully")
+
+                else:
+                    transfer_result = self.dest_remote_handler.pull_files(remote_files)
+                    if transfer_result != 0:
+                        return self.return_result(1, "Remote PULL transfer errored")
+
+                    logging.info("Transfer completed successfully")
+
+                # Handle any ownership and permissions changes
+                if dest_file_spec["protocol"]["name"] == "ssh":
+                    move_result = self.dest_remote_handler.move_files_to_final_location(remote_files)
+                    if move_result != 0:
+                        return self.return_result(1, "Error moving file into final location")
             else:
-                transfer_result = self.dest_remote_handler.pull_files(remote_files)
-                if transfer_result != 0:
-                    return self.return_result(1, "Remote PULL transfer errored")
-
-                logging.info("Transfer completed successfully")
-
-            # Handle any ownership and permissions changes
-            if dest_file_spec["protocol"]["name"] == "ssh":
-                move_result = self.dest_remote_handler.move_files_to_final_location(remote_files)
-                if move_result != 0:
-                    return self.return_result(1, "Error moving file into final location")
+                logging.info("Performing filewatch only")
 
             if "postCopyAction" in source_file_spec:
 
