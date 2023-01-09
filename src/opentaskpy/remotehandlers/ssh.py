@@ -202,9 +202,10 @@ class SSH:
 
         # Convert all the source file names into the filename with the destination directory as a prefix
         file_names_str = ""
+        files_with_directory = []
         for file in list(files):
-            file_names_str += f"{self.get_staging_directory()}{os.path.basename(file)}{self.FILE_NAME_DELIMITER}"
-        file_names_str = file_names_str.strip()
+            files_with_directory.append(f"{self.get_staging_directory()}{os.path.basename(file)}")
+        file_names_str = self.FILE_NAME_DELIMITER.join(files_with_directory).strip()
 
         # Next step is to move the file to it's final resting place with the correct permissions and ownership
         # Build a commnd to pass to the remote transfer.py to do the work
@@ -292,7 +293,7 @@ class SSH:
             for rows, _ in enumerate(log_fh):  # noqa #B007
                 pass
             logger.log(12, f"Found {rows+1} lines in log")
-            self.log_watch_start_row = rows
+            self.log_watch_start_row = rows + 1
 
         return 0
 
@@ -309,10 +310,10 @@ class SSH:
         with self.sftp_connection.open(log_file) as log_fh:
             for i, line in enumerate(log_fh):
                 # We need to start after the previous line in the log
-                if i > start_row:
+                if i >= start_row:
                     logger.log(11, f"Log line: {line.strip()}")
                     if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
-                        logger.log(12, f"Found matching line in log: {line.strip()}")
+                        logger.log(12, f"Found matching line in log: {line.strip()} on line: {i+1}")
                         return 0
 
         return 1
