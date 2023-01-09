@@ -1,0 +1,27 @@
+{
+  "HOST_A": "172.16.0.11",
+  "HOST_B": "172.16.0.12",
+  "SSH_USERNAME": "application",
+  "SSH_KEY_LOCATION": "test/testFiles/id_rsa",
+  "TEMP_SOURCE_FOLDER": "/tmp",
+  "MY_FOLDER": "{{ FOLDER1 }}",
+  "FOLDER1": "{{ FOLDER2 }}",
+  "FOLDER2": "{{ FOLDER3 }}",
+  "FOLDER3": "{{ FOLDER4 }}",
+  "FOLDER4": "{{ FOLDER5 }}",
+  "FOLDER5": "{{ FOLDER6 }}",
+  "FOLDER6": "{{ FOLDER7 }}",
+  "FOLDER7": "{{ FOLDER8 }}",
+  "FOLDER8": "{{ FOLDER9 }}",
+  "FOLDER9": "AFOLDE66666",
+  "YYYY": "{{ now().strftime('%Y') }}",
+  "MM": "{{ now().strftime('%m') }}",
+  "DD": "{{ now().strftime('%d') }}",
+  "MONTH_SHORT": "{{ now().strftime('%b') }}",
+  "DAY_SHORT": "{{ now().strftime('%a') }}",
+  "PREV_DD": "{{ (now()|delta_days(-1)).strftime('%d') }}",
+  "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
+  "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
+  "testLookup": "{{ lookup('test') }}"
+  
+}

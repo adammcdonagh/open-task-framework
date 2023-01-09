@@ -1,0 +1,20 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "{{ HOST_A }}",
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": ".*\\.log",
+    "logWatch": {
+      "timeout": 15,
+      "directory": "/tmp/testFiles/src",
+      "log": "log{{ YYYY }}Watch.log",
+      "contentRegex": "someText"
+    },
+    "protocol": {
+      "name": "ssh",
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  }
+}

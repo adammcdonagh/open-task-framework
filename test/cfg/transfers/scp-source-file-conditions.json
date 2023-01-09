@@ -1,0 +1,38 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "{{ HOST_A }}",
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": "log\\..*\\.log",
+    "conditionals": {
+      "size": {
+        "gt": 10,
+        "lt": 20
+      },
+      "age": {
+        "gt": 60,
+        "lt": 600
+      }
+    },
+    "protocol": {
+      "name": "ssh",
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  },
+  "destination": {
+    "hostname": "{{ HOST_B }}",
+    "directory": "/tmp/testFiles/dest",
+    "permissions": {
+      "group": "operator"
+    },
+    "mode": "0644",
+    "protocol": {
+      "name": "ssh",
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  }
+}

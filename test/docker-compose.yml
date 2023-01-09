@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+
+  ssh_1:
+    image: webdevops/ssh
+    restart: always
+    hostname: ssh_1
+    container_name: ssh_1
+    networks:
+      test-network:
+        ipv4_address: 172.16.0.11
+    volumes:
+      - ./testFiles/ssh_1:/tmp/testFiles
+
+  ssh_2:
+    image: webdevops/ssh
+    restart: always
+    hostname: ssh_2
+    container_name: ssh_2
+    networks:
+      test-network:
+        ipv4_address: 172.16.0.12
+    volumes:
+      - ./testFiles/ssh_2:/tmp/testFiles
+
+networks:
+  test-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/24
+          gateway: 172.16.0.1
