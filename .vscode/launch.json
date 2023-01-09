@@ -49,6 +49,57 @@
         "test/cfg"
       ],
       "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - File Watch only",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "scp-file-watch",
+        "-v",
+        "2",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - Log Watch only",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "scp-log-watch",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - Log Watch tail only",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "scp-log-watch-tail",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
     }
   ]
 }

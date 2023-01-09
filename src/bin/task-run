@@ -14,23 +14,6 @@ CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
 GLOBAL_VERBOSITY = 1
 MAX_DEPTH = 5
 
-# Not needed now we're using Jinja2
-# def recurse_json(d):
-#     for _, v in d.items():
-#         if isinstance(v, dict):
-#             recurse_json(v)
-#         else:
-#             # Evaluate any variables
-#             if isinstance(v, str):
-#                 pattern = r"\$\{([^\}]+)\}"
-#                 m = re.search(pattern, v)
-#                 if m:
-#                     variable_name = m.group(1)
-#                     variable = global_variables[variable_name]
-#                     logging.log(12, f"Found variable: {variable_name} - Value is: {variable}")
-#                     v = re.sub(pattern, variable, v)
-#                     logging.log(12, v)
-
 
 def delta_days(value, days):
     return value + datetime.timedelta(days)
