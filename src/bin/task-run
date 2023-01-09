@@ -166,9 +166,8 @@ def main():
             sys.exit(1)
 
         transfer = Transfer(args.taskId, active_task_definition)
-        rc = transfer.run()
 
-        sys.exit(rc)
+        sys.exit(transfer.run())
 
     elif active_task_definition["type"] == "execution":
         # Hand off to the execuiton module
