@@ -5,6 +5,9 @@ import re
 import pwd
 import grp
 import shutil
+import logging
+
+logger = logging.getLogger("opentaskpy.remotehandlers.scripts.transfer")
 
 # Remote script intended to serve as a utility to the main script for dealing with file transfers
 
@@ -36,7 +39,7 @@ def list_files(pattern, details=False):
 def delete_files(files, delimiter):
     files = files.split(delimiter)
     for file in list(files):
-        print(f"Deleting {file}")
+        logger.info(f"Deleting {file}")
         os.unlink(file)
 
 
@@ -46,21 +49,21 @@ def move_files(files, delimiter, destination, create_dest_dir, owner, group, mod
     for file in list(files):
 
         file = os.path.expanduser(file)
-        print(f"Handling {file}")
+        logger.info(f"Handling {file}")
 
         # Change ownership and permissions
         if owner:
             uid = pwd.getpwnam(owner).pw_uid
-            print(f"Setting owner to {owner}")
+            logger.info(f"Setting owner to {owner}")
             os.chown(file, uid, -1)
 
         if group:
             gid = grp.getgrnam(group).gr_gid
-            print(f"Setting group to {group}")
+            logger.info(f"Setting group to {group}")
             os.chown(file, -1, gid)
 
         if mode:
-            print(f"Setting mode to {mode}")
+            logger.info(f"Setting mode to {mode}")
             os.chmod(file, int(mode, 8))
 
         # Apply any regex substitution if needed
@@ -69,21 +72,21 @@ def move_files(files, delimiter, destination, create_dest_dir, owner, group, mod
             orig_filename = os.path.basename(file)
             orig_dirname = os.path.dirname(file)
             new_filename = f"{orig_dirname}/{re.sub(rename_regex, rename_sub, orig_filename)}"
-            print(f"Renaming: {file} to {new_filename}")
+            logger.info(f"Renaming: {file} to {new_filename}")
             os.rename(file, new_filename)
             file = new_filename
 
         # Verify the destination directory exists
         if not os.path.exists(destination) and create_dest_dir:
-            print(f"Creating destination directory: {destination}")
+            logger.info(f"Creating destination directory: {destination}")
             os.makedirs(destination)
         elif not os.path.exists(destination):
-            print(f"ERROR: Destination directory does not exist: {destination}, and not requested to create it")
+            logger.error(f"ERROR: Destination directory does not exist: {destination}, and not requested to create it")
             raise FileNotFoundError
 
         # Now we can move the file into it's final location
         filename = os.path.basename(file)
-        print(f"Moving {file} to {destination}/{filename}")
+        logger.info(f"Moving {file} to {destination}/{filename}")
 
         # Save the existing permissions on the file
         file_stat = os.stat(file)
@@ -94,6 +97,8 @@ def move_files(files, delimiter, destination, create_dest_dir, owner, group, mod
 
 
 def main():
+
+    logging.basicConfig(format="%(asctime)s — %(name)s — %(levelname)s — %(message)s", level=logging.INFO)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--listFiles", help="Regex of files to look for", type=str, required=False)
