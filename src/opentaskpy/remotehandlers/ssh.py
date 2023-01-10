@@ -59,7 +59,7 @@ class SSH:
                 self.sftp_connection.remove("/tmp/transfer.py")
             self.sftp_connection.close()
 
-            logging.debug(f"Closing SSH connection to {self.spec['hostname']}")
+            logger.debug(f"Closing SSH connection to {self.spec['hostname']}")
             self.ssh_client.close()
 
     def get_staging_directory(self):
@@ -114,12 +114,12 @@ class SSH:
 
         # Create/validate staging directory exists on destination
         remote_command = f"test -e {destination_directory} || mkdir -p {destination_directory}"
-        logging.info(f"Validating staging dir via SSH: {remote_command}")
+        logger.info(f"Validating staging dir via SSH: {remote_command}")
         stdin, stdout, stderr = dest_remote_handler.ssh_client.exec_command(remote_command)
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                logger.info(f"Remote stdout returned:\n{str_stdout}")
+                self.log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -130,14 +130,14 @@ class SSH:
         logger.info(f"Got return code {remote_rc} from SSH command")
 
         remote_command = f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
-        logging.info(f"Transferring files via SCP: {remote_command}")
+        logger.info(f"Transferring files via SCP: {remote_command}")
 
         stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
 
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                logger.info(f"Remote stdout returned:\n{str_stdout}")
+                self.log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -159,12 +159,12 @@ class SSH:
 
         # Create/validate staging directory exists
         remote_command = f"test -e {destination_directory} || mkdir -p {destination_directory}"
-        logging.info(f"Validating staging dir via SSH: {remote_command}")
+        logger.info(f"Validating staging dir via SSH: {remote_command}")
         stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                logger.info(f"Remote stdout returned:\n{str_stdout}")
+                self.log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -179,14 +179,14 @@ class SSH:
             files_str += f"{source_user}@{source_host}:{file} "
 
         remote_command = f"scp {SSH_OPTIONS} {files_str.strip()} {destination_directory}"
-        logging.info(f"Transferring files via SCP: {remote_command}")
+        logger.info(f"Transferring files via SCP: {remote_command}")
 
         stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
 
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                logger.info(f"Remote stdout returned:\n{str_stdout}")
+                self.log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -226,14 +226,14 @@ class SSH:
             else ""
         )
         remote_command = f"python3 /tmp/transfer.py --moveFiles '{file_names_str}' --destination {self.spec['directory']} {owner_args} {group_args} {mode_args} {rename_args}"
-        logger.log(12, f"Running: {remote_command}")
+        logger.info(f"[{self.spec['hostname']}] - Running: {remote_command}")
 
         stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
 
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                logger.info(f"Remote stdout returned:\n{str_stdout}")
+                self.log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -252,14 +252,13 @@ class SSH:
             remote_command = f"python3 /tmp/transfer.py --moveFiles '{self.FILE_NAME_DELIMITER.join(files)}' --destination {self.spec['postCopyAction']['destination']}"
 
         if remote_command:
-            logger.log(12, f"Running: {remote_command}")
-
-            stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
+            logger.info(f"[{self.spec['hostname']}] - Running: {remote_command}")
+            _, stdout, stderr = self.ssh_client.exec_command(remote_command)
 
             with stdout as stdout_fh:
                 str_stdout = stdout_fh.read().decode("UTF-8")
                 if str_stdout:
-                    logger.info(f"Remote stdout returned:\n{str_stdout}")
+                    self.log_stdout(str_stdout)
 
             with stderr as stderr_fh:
                 str_stderr = stderr_fh.read().decode("UTF-8")
@@ -299,9 +298,7 @@ class SSH:
 
     def do_logwatch(self):
         # Determine if the config requires scanning the entire log, or just from the start_row determine in the init function
-        start_row = (
-            self.log_watch_start_row if "tail" not in self.spec["logWatch"] or self.spec["logWatch"]["tail"] else 0
-        )
+        start_row = self.log_watch_start_row if "tail" in self.spec["logWatch"] and self.spec["logWatch"]["tail"] else 0
         logger.log(12, f"Starting logwatch from row {start_row}")
 
         # Open the remote log file and parse each line for the pattern
@@ -317,3 +314,10 @@ class SSH:
                         return 0
 
         return 1
+
+    def log_stdout(self, str_stdout):
+        logger.info("Remote stdout returned:")
+        logger.info("###########")
+        for line in str_stdout.splitlines():
+            print(f"REMOTE OUTPUT: {line}")
+        logger.info("###########")

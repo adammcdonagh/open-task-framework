@@ -3,7 +3,7 @@
   "source": {
     "hostname": "{{ HOST_A }}",
     "directory": "/tmp/testFiles/src",
-    "fileRegex": ".*\\.txt",
+    "fileRegex": "test2.txt",
     "protocol": {
       "name": "ssh",
       "credentials": {

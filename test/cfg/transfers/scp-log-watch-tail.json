@@ -7,7 +7,7 @@
     "logWatch": {
       "timeout": 15,
       "directory": "/tmp/testFiles/src",
-      "log": "log{{ YYYY }}Watch.log",
+      "log": "log{{ YYYY }}Watch1.log",
       "contentRegex": "someText",
       "tail": true
     },

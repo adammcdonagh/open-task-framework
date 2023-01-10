@@ -19,7 +19,8 @@ class TransferScriptTest(unittest.TestCase):
 
     list = None
 
-    def setUp(self):
+    @classmethod
+    def setupClass(self):
         # This all relies on both the docker containers being set up, as well as the directories existing
         # The easiest way to do this is via VSCode tasks, running the "Create test files" task
 
@@ -27,7 +28,9 @@ class TransferScriptTest(unittest.TestCase):
         if not os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/dest"):
             raise Exception("Destination directory does not exist. Ensure that setup has been run properly")
 
-        self.tearDown()
+        # Delete any existing files in the destination directory
+        for file in os.listdir(f"{self.BASE_DIRECTORY}/ssh_1/src"):
+            os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/{file}")
 
     def test_scp_basic(self):
 
@@ -39,36 +42,46 @@ class TransferScriptTest(unittest.TestCase):
 
         self.assertEqual(self.run_task_run("scp-basic")["returncode"], 0)
 
-    def test_scp_basic_pca_delete(self):
+    def test_scp_basic_pull(self):
 
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
-        # File will be delteted after transfer
 
         # Create a test file
         write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
+        self.assertEqual(self.run_task_run("scp-basic-pull")["returncode"], 0)
+
+    def test_scp_basic_pca_delete(self):
+
+        # Required files for this test:
+        # ssh_1 : test/testFiles/ssh_1/src/test1.txt
+        # File will be delteted after transfer
+
+        # Create a test file
+        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test1.txt", content="test1234")
 
         self.assertEqual(self.run_task_run("scp-basic-pca-delete")["returncode"], 0)
 
         # Verify the file has disappeared
-        self.assertFalse(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt"))
+        self.assertFalse(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/test1.txt"))
 
     def test_scp_basic_pca_move(self):
 
         # Required files for this test:
-        # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
+        # ssh_1 : test/testFiles/ssh_1/src/test2.txt
         # File will be moved after transfer
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test2.txt", content="test1234")
 
         self.assertEqual(self.run_task_run("scp-basic-pca-move")["returncode"], 0)
 
         # Verify the file has disappeared
-        self.assertFalse(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt"))
+        self.assertFalse(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/test2.txt"))
 
         # Verify the file has been moved
-        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/{self.MOVED_FILES_DIR}/test.txt"))
+        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/{self.MOVED_FILES_DIR}/test2.txt"))
 
     def test_scp_source_file_conditions(self):
 
@@ -163,7 +176,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Write the matching pattern into the log, but before it runs.. This should
         # make the task fail because the pattern isn't written after the task starts
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log", content="someText\n")
+        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log", content="someText\n")
         task_result = self.run_task_run("scp-log-watch-tail")
         self.assertEqual(task_result["returncode"], 1)
 
@@ -171,7 +184,7 @@ class TransferScriptTest(unittest.TestCase):
         t = threading.Timer(
             5,
             write_test_file,
-            [f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log"],
+            [f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log"],
             {"content": "someText\n", "mode": "a"},
         )
         t.start()
@@ -199,7 +212,8 @@ class TransferScriptTest(unittest.TestCase):
             "stderr": result.stderr.decode("utf-8"),
         }
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         # Delete the fileWatch.txt file if it exists
         if os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.txt"):
             os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.txt")
@@ -209,3 +223,6 @@ class TransferScriptTest(unittest.TestCase):
         year = datetime.datetime.now().year
         if os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log"):
             os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log")
+
+        if os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log"):
+            os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log")
