@@ -20,9 +20,12 @@ class TransferScriptTest(unittest.TestCase):
     list = None
 
     @classmethod
-    def setupClass(self):
+    def setUpClass(self):
         # This all relies on both the docker containers being set up, as well as the directories existing
         # The easiest way to do this is via VSCode tasks, running the "Create test files" task
+
+        # Create dummy variable file
+        write_test_file("/tmp/variable_lookup.txt", content=f"{self.RANDOM}")
 
         # Check that the dest directory exists, if not then we just fail here
         if not os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/dest"):
@@ -120,6 +123,9 @@ class TransferScriptTest(unittest.TestCase):
         # ssh_1 : test/testFiles/ssh_1/src/.*\.log
         # File should not exist to start with
 
+        # Create the source file
+        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.log", content="01234567890")
+
         # Filewatch configured to wait 15 seconds before giving up. Expect it to fail
         self.assertEqual(self.run_task_run("scp-file-watch")["returncode"], 1)
 
@@ -133,8 +139,9 @@ class TransferScriptTest(unittest.TestCase):
 
         self.assertEqual(self.run_task_run("scp-file-watch")["returncode"], 0)
 
-        # Delete the fileWatch.txt file
+        # Delete the fileWatch.txt and log file
         os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.txt")
+        os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.log")
 
     def test_scp_log_watch(self):
 
@@ -226,3 +233,6 @@ class TransferScriptTest(unittest.TestCase):
 
         if os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log"):
             os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log")
+
+        if os.path.exists("/tmp/variable_lookup.txt"):
+            os.remove("/tmp/variable_lookup.txt")

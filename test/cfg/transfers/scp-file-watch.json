@@ -3,7 +3,7 @@
   "source": {
     "hostname": "{{ HOST_A }}",
     "directory": "/tmp/testFiles/src",
-    "fileRegex": ".*\\.log",
+    "fileRegex": "fileWatch\\.log",
     "fileWatch": {
       "timeout": 15,
       "directory": "/tmp/testFiles/src",
