@@ -85,7 +85,7 @@ class Transfer:
                     time.sleep(actual_sleep_seconds)
 
             if found_log_entry:
-                logging.info("Found pattern in log file")
+                logger.info("Found pattern in log file")
             else:
                 return self.return_result(1, f"No log entry found after {timeout_seconds} seconds")
 
@@ -124,7 +124,7 @@ class Transfer:
                 )
 
                 if remote_files:
-                    logging.info("Filewatch found remote file(s)")
+                    logger.info("Filewatch found remote file(s)")
                     break
                 else:
                     remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
@@ -222,9 +222,9 @@ class Transfer:
             else:
                 return self.return_result(1, "No remote files could be found to transfer")
         else:
-            logging.info("Found the following file(s) that match all requirements:")
+            logger.info("Found the following file(s) that match all requirements:")
             for file in remote_files:
-                logging.info(f" * {file}")
+                logger.info(f" * {file}")
 
             # If there's a destination file spec, then we need to transfer the files
             if dest_file_spec:
@@ -242,14 +242,14 @@ class Transfer:
                     if transfer_result != 0:
                         return self.return_result(1, "Remote transfer errored")
 
-                    logging.info("Transfer completed successfully")
+                    logger.info("Transfer completed successfully")
 
                 else:
                     transfer_result = self.dest_remote_handler.pull_files(remote_files)
                     if transfer_result != 0:
                         return self.return_result(1, "Remote PULL transfer errored")
 
-                    logging.info("Transfer completed successfully")
+                    logger.info("Transfer completed successfully")
 
                 # Handle any ownership and permissions changes
                 if dest_file_spec["protocol"]["name"] == "ssh":
@@ -257,7 +257,7 @@ class Transfer:
                     if move_result != 0:
                         return self.return_result(1, "Error moving file into final location")
             else:
-                logging.info("Performing filewatch only")
+                logger.info("Performing filewatch only")
 
             if "postCopyAction" in source_file_spec:
 

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Create dummy variable for lookup command
+echo "file_variable" > /tmp/variable_lookup.txt
+
 # Get current script directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

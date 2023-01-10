@@ -7,6 +7,7 @@ from opentaskpy.config.schemas import validate_json
 from glob import glob
 from opentaskpy.taskhandlers.transfer import Transfer
 import logging
+import importlib
 import jinja2
 from jinja2 import Template
 
@@ -14,16 +15,42 @@ CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
 GLOBAL_VERBOSITY = 1
 MAX_DEPTH = 5
 
+logger = None
+
 
 def delta_days(value, days):
     return value + datetime.timedelta(days)
 
 
-def template_lookup(plugin):
-    logging.log(11, "got call to lookup function")
+def template_lookup(plugin, **kwargs):
+    logger.log(11, f"Got call to lookup function {plugin} with kwargs {kwargs}")
+
+    # Import the plugin if its not already loaded
+    if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
+        # Check the module is loadable
+        try:
+            importlib.import_module(f"opentaskpy.plugins.lookup.{plugin}")
+        except ModuleNotFoundError:
+            logger.log(
+                11, f"Module not found: opentaskpy.plugins.lookup.{plugin}. Looking in plugins directory instead"
+            )
+            pass
+
+    # If we haven't loaded the plugin yet, then look in the cfg/plugins directory and see if we can find it
+    if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
+        plugin_path = f"{CONFIG_PATH}/plugins/{plugin}.py"
+        if os.path.isfile(plugin_path):
+            spec = importlib.util.spec_from_file_location(f"opentaskpy.plugins.lookup.{plugin}", plugin_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            sys.modules[f"opentaskpy.plugins.lookup.{plugin}"] = module
+
+    # Run the run function of the imported module
+    return getattr(sys.modules[f"opentaskpy.plugins.lookup.{plugin}"], "run")(**kwargs)
 
 
 def main():
+    global logger
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--taskId", help="Name of the JSON config to run", type=str, required=True)
@@ -36,19 +63,28 @@ def main():
         global CONFIG_PATH
         CONFIG_PATH = args.configDir
 
-    logging.basicConfig(format="%(asctime)s — %(name)s — %(levelname)s — %(message)s", level=logging.INFO)
+    logging_level = logging.INFO
+    if args.verbosity == 3:
+        logging_level = logging.DEBUG
+    elif args.verbosity == 2:
+        logging_level = 11
+    elif args.verbosity == 1:
+        logging_level = 12
+
     logging.addLevelName(11, "VERBOSE2")
     logging.addLevelName(12, "VERBOSE1")
 
-    logger = logging.getLogger()
-    logger.log(11, f"Log verbosity: {args.verbosity}")
+    logging.basicConfig(
+        format="%(asctime)s — %(name)s — %(levelname)s — %(message)s",
+        level=logging_level,
+        handlers=[logging.StreamHandler()],
+    )
 
-    if args.verbosity == 3:
-        logger.setLevel(logging.DEBUG)
-    elif args.verbosity == 2:
-        logger.setLevel(11)
-    elif args.verbosity == 1:
-        logger.setLevel(12)
+    logger = logging.getLogger()
+    logger.setLevel(logging_level)
+
+    logger = logging.getLogger(__name__)
+    logger.log(11, f"Log verbosity: {args.verbosity}")
 
     # Force Jinja2 to log undefined variables
     LoggingUndefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)  # noqa
@@ -66,7 +102,7 @@ def main():
     for file_type in file_types:
         variable_configs.extend(glob(f"{CONFIG_PATH}/**/variables{file_type}", recursive=True))
     if not variable_configs:
-        logging.error("Couldn't find any variables.(json|json.j2) files")
+        logger.error("Couldn't find any variables.(json|json.j2) files")
         sys.exit(1)
     else:
         for variable_file in variable_configs:
@@ -77,7 +113,7 @@ def main():
     # Load configuration
     json_config = glob(f"{CONFIG_PATH}/**/{args.taskId}.json", recursive=True)
     if not json_config or len(json_config) != 1:
-        logging.error(f"Couldn't find task with name: {args.taskId}")
+        logger.error(f"Couldn't find task with name: {args.taskId}")
         sys.exit(1)
     else:
         found_file = json_config[0]
@@ -119,7 +155,7 @@ def main():
 
                 current_depth += 1
                 if current_depth >= MAX_DEPTH:
-                    logging.error(
+                    logger.error(
                         "Reached max depth of recursive template evaluation. Please check the task as variable definitions for infinite recursion"
                     )
                     sys.exit(1)
@@ -129,7 +165,7 @@ def main():
             template = template_env.from_string(json_content)
             rendered_template = template.render(global_variables)
             active_task_definition = json.loads(rendered_template)
-            logging.log(12, f"Evalated task definition: {json.dumps(active_task_definition)}")
+            logger.log(12, f"Evalated task definition: {json.dumps(active_task_definition)}")
 
     # Loop though every attribute and check for variables to evaluate
     # for key in active_task_definition.keys():

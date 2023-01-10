@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 opentaskpy = {editable = true, path = "."}
+requests = "*"
 
 [dev-packages]
 flake8 = "*"

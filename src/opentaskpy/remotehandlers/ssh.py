@@ -4,7 +4,7 @@ import sys
 import re
 from paramiko import SSHClient, AutoAddPolicy
 
-logger = logging.getLogger("opentaskpy.remotehandlers.ssh")
+logger = logging.getLogger(__name__)
 
 SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
 
@@ -115,7 +115,7 @@ class SSH:
         # Create/validate staging directory exists on destination
         remote_command = f"test -e {destination_directory} || mkdir -p {destination_directory}"
         logger.info(f"Validating staging dir via SSH: {remote_command}")
-        stdin, stdout, stderr = dest_remote_handler.ssh_client.exec_command(remote_command)
+        _, stdout, stderr = dest_remote_handler.ssh_client.exec_command(remote_command)
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
@@ -123,8 +123,8 @@ class SSH:
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr:
-                logger.error(f"Remote stderr returned:\n{str_stderr}")
+            if str_stderr and len(str_stderr) > 0:
+                logger.info(f"Remote stderr returned:\n{str_stderr}")
 
         remote_rc = stdout.channel.recv_exit_status()
         logger.info(f"Got return code {remote_rc} from SSH command")
@@ -132,7 +132,7 @@ class SSH:
         remote_command = f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
         logger.info(f"Transferring files via SCP: {remote_command}")
 
-        stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
+        _, stdout, stderr = self.ssh_client.exec_command(remote_command)
 
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
@@ -141,8 +141,8 @@ class SSH:
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr:
-                logger.error(f"Remote stderr returned:\n{str_stderr}")
+            if str_stderr and len(str_stderr) > 0:
+                logger.info(f"Remote stderr returned:\n{str_stderr}")
 
         remote_rc = stdout.channel.recv_exit_status()
         logger.info(f"Got return code {remote_rc} from SCP command")
@@ -160,7 +160,7 @@ class SSH:
         # Create/validate staging directory exists
         remote_command = f"test -e {destination_directory} || mkdir -p {destination_directory}"
         logger.info(f"Validating staging dir via SSH: {remote_command}")
-        stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
+        _, stdout, stderr = self.ssh_client.exec_command(remote_command)
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
@@ -168,8 +168,8 @@ class SSH:
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr:
-                logger.error(f"Remote stderr returned:\n{str_stderr}")
+            if str_stderr and len(str_stderr) > 0:
+                logger.info(f"Remote stderr returned:\n{str_stderr}")
 
         remote_rc = stdout.channel.recv_exit_status()
         logger.info(f"Got return code {remote_rc} from SSH command")
@@ -190,8 +190,8 @@ class SSH:
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr:
-                logger.error(f"Remote stderr returned:\n{str_stderr}")
+            if str_stderr and len(str_stderr) > 0:
+                logger.info(f"Remote stderr returned:\n{str_stderr}")
 
         remote_rc = stdout.channel.recv_exit_status()
         logger.info(f"Got return code {remote_rc} from SCP command")
@@ -237,8 +237,8 @@ class SSH:
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr:
-                logger.error(f"Remote stderr returned:\n{str_stderr}")
+            if str_stderr and len(str_stderr) > 0:
+                logger.info(f"Remote stderr returned:\n{str_stderr}")
 
         remote_rc = stdout.channel.recv_exit_status()
         logger.info(f"Got return code {remote_rc} from SSH move command")
@@ -262,8 +262,8 @@ class SSH:
 
             with stderr as stderr_fh:
                 str_stderr = stderr_fh.read().decode("UTF-8")
-                if str_stderr:
-                    logger.error(f"Remote stderr returned:\n{str_stderr}")
+                if str_stderr and len(str_stderr) > 0:
+                    logger.info(f"Remote stderr returned:\n{str_stderr}")
 
             remote_rc = stdout.channel.recv_exit_status()
             logger.info(f"Got return code {remote_rc} from SSH post copy action command")

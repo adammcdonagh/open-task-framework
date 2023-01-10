@@ -11,8 +11,12 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "args": [
-        "./test",
-        "test*.py"
+        "-t",
+        "scp-basic",
+        "-v",
+        "2",
+        "-c",
+        "test/cfg"
       ],
       "justMyCode": false
     },
@@ -27,7 +31,7 @@
         "-t",
         "scp-basic",
         "-v",
-        "2",
+        "3",
         "-c",
         "test/cfg"
       ],
