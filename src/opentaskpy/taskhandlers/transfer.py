@@ -1,7 +1,8 @@
 import logging
 import time
 from os import environ
-from opentaskpy.remotehandlers.ssh import SSH
+from opentaskpy.taskhandlers.taskhandler import TaskHandler
+from opentaskpy.remotehandlers.ssh import SSHTransfer
 from math import ceil, floor
 from opentaskpy import exceptions
 
@@ -9,15 +10,18 @@ logger = logging.getLogger("opentaskpy.taskhandlers.transfer")
 
 # Full transfers expect that the remote host has a base install of python3
 # We transfer over the wrapper script to the remote host and trigger it, which is responsible
-# for doing the majority of the hard work
+# for doing some of the more complex work, rather than triggering a tonne of shell commands
 
 
-class Transfer:
+class Transfer(TaskHandler):
     def __init__(self, task_id, transfer_definition):
         self.task_id = task_id
         self.transfer_definition = transfer_definition
         self.source_remote_handler = None
+        # TODO: #1 Handle multiple destinations
         self.dest_remote_handler = None
+        self.source_file_spec = None
+        self.dest_file_spec = None
 
     def return_result(self, status, message=None, exception=None):
         if message:
@@ -40,31 +44,43 @@ class Transfer:
 
         return status == 0
 
+    def _set_remote_handlers(self):
+        # Based on the transfer definition, determine what to do first
+        self.source_file_spec = self.transfer_definition["source"]
+        self.dest_file_spec = (
+            self.transfer_definition["destination"] if "destination" in self.transfer_definition else None
+        )
+        # Based on the source protocol pick the appropriate remote handler
+        if self.source_file_spec["protocol"]["name"] == "ssh":
+            self.source_remote_handler = SSHTransfer(self.source_file_spec, remote_spec=self.dest_file_spec)
+        # Based on the destination protocol pick the appropriate remote handler
+        if self.dest_file_spec and self.dest_file_spec["protocol"]["name"] == "ssh":
+            self.dest_remote_handler = SSHTransfer(self.dest_file_spec, remote_spec=self.source_file_spec)
+
     def run(self):
         logger.info("Running transfer")
         environ["OTF_TASK_ID"] = self.task_id
 
-        # Based on the transfer definition, determine what to do first
-        source_file_spec = self.transfer_definition["source"]
-        dest_file_spec = self.transfer_definition["destination"] if "destination" in self.transfer_definition else None
-        # Based on the source protocol pick the appropriate remote handler
-        if source_file_spec["protocol"]["name"] == "ssh":
-            self.source_remote_handler = SSH(source_file_spec, remote_spec=dest_file_spec)
+        self._set_remote_handlers()
 
         # If log watching, do that first
-        if "logWatch" in source_file_spec:
+        if "logWatch" in self.source_file_spec:
             logger.info(
-                f"Performing a log watch of {source_file_spec['logWatch']['directory']}/{source_file_spec['logWatch']['log']}"
+                f"Performing a log watch of {self.source_file_spec['logWatch']['directory']}/{self.source_file_spec['logWatch']['log']}"
             )
 
             if self.source_remote_handler.init_logwatch() != 0:
                 return self.return_result(1, "Logwatch init failed", exception=exceptions.LogWatchInitError)
 
             timeout_seconds = (
-                60 if "timeout" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["timeout"]
+                60
+                if "timeout" not in self.source_file_spec["logWatch"]
+                else self.source_file_spec["logWatch"]["timeout"]
             )
             sleep_seconds = (
-                10 if "sleepTime" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["sleepTime"]
+                10
+                if "sleepTime" not in self.source_file_spec["logWatch"]
+                else self.source_file_spec["logWatch"]["sleepTime"]
             )
 
             # Now we start the loop to monitor the log file
@@ -98,14 +114,18 @@ class Transfer:
                 )
 
         # If filewatching, do that next
-        if "fileWatch" in source_file_spec:
+        if "fileWatch" in self.source_file_spec:
 
             # Setup a loop for the filewatch
             timeout_seconds = (
-                60 if "timeout" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["timeout"]
+                60
+                if "timeout" not in self.source_file_spec["fileWatch"]
+                else self.source_file_spec["fileWatch"]["timeout"]
             )
             sleep_seconds = (
-                10 if "sleepTime" not in source_file_spec["fileWatch"] else source_file_spec["fileWatch"]["sleepTime"]
+                10
+                if "sleepTime" not in self.source_file_spec["fileWatch"]
+                else self.source_file_spec["fileWatch"]["sleepTime"]
             )
 
             start_time = time.time()
@@ -113,14 +133,14 @@ class Transfer:
 
             # Determine if we're doing a plain filewatch, or looking for a different file to what we are transferring
             watch_directory = (
-                source_file_spec["fileWatch"]["directory"]
-                if "directory" in source_file_spec["fileWatch"]
-                else source_file_spec["directory"]
+                self.source_file_spec["fileWatch"]["directory"]
+                if "directory" in self.source_file_spec["fileWatch"]
+                else self.source_file_spec["directory"]
             )
             watch_file_pattern = (
-                source_file_spec["fileWatch"]["fileRegex"]
-                if "fileRegex" in source_file_spec["fileWatch"]
-                else source_file_spec["fileRegex"]
+                self.source_file_spec["fileWatch"]["fileRegex"]
+                if "fileRegex" in self.source_file_spec["fileWatch"]
+                else self.source_file_spec["fileRegex"]
             )
 
             logger.info(f"Performing a file watch on {watch_directory}/{watch_file_pattern}")
@@ -152,8 +172,8 @@ class Transfer:
 
             if (
                 remote_files
-                and "watchOnly" in source_file_spec["fileWatch"]
-                and source_file_spec["fileWatch"]["watchOnly"]
+                and "watchOnly" in self.source_file_spec["fileWatch"]
+                and self.source_file_spec["fileWatch"]["watchOnly"]
             ):
                 return self.return_result("0", "Just performing filewatch")
             elif not remote_files:
@@ -166,23 +186,23 @@ class Transfer:
         remote_files = self.source_remote_handler.list_files()
 
         # Loop through the returned files to see if they match the file age and size spec (if defined)
-        if "conditionals" in source_file_spec and remote_files:
+        if "conditionals" in self.source_file_spec and remote_files:
             for remote_file in list(remote_files):
                 logger.info(f"Checking {remote_file}")
 
                 # Check to see if there's a size condition
                 meets_condition = True
 
-                if "size" in source_file_spec["conditionals"]:
+                if "size" in self.source_file_spec["conditionals"]:
                     logger.log(12, "Checking file size")
                     min_size = (
-                        source_file_spec["conditionals"]["size"]["gt"]
-                        if "gt" in source_file_spec["conditionals"]["size"]
+                        self.source_file_spec["conditionals"]["size"]["gt"]
+                        if "gt" in self.source_file_spec["conditionals"]["size"]
                         else None
                     )
                     max_size = (
-                        source_file_spec["conditionals"]["size"]["lt"]
-                        if "lt" in source_file_spec["conditionals"]["size"]
+                        self.source_file_spec["conditionals"]["size"]["lt"]
+                        if "lt" in self.source_file_spec["conditionals"]["size"]
                         else None
                     )
 
@@ -196,16 +216,16 @@ class Transfer:
                         logger.info(f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]")
                         meets_condition = False
 
-                if "age" in source_file_spec["conditionals"]:
+                if "age" in self.source_file_spec["conditionals"]:
                     min_age = (
                         None
-                        if "gt" not in source_file_spec["conditionals"]["age"]
-                        else source_file_spec["conditionals"]["age"]["gt"]
+                        if "gt" not in self.source_file_spec["conditionals"]["age"]
+                        else self.source_file_spec["conditionals"]["age"]["gt"]
                     )
                     max_age = (
                         None
-                        if "lt" not in source_file_spec["conditionals"]["age"]
-                        else source_file_spec["conditionals"]["age"]["lt"]
+                        if "lt" not in self.source_file_spec["conditionals"]["age"]
+                        else self.source_file_spec["conditionals"]["age"]["lt"]
                     )
 
                     file_modified_time = remote_files[remote_file]["modified_time"]
@@ -225,7 +245,7 @@ class Transfer:
                     remote_files.pop(remote_file)
 
         if not remote_files:
-            if "error" in source_file_spec and not source_file_spec["error"]:
+            if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,
                     "No remote files could be found to transfer. But not erroring due to config",
@@ -241,14 +261,10 @@ class Transfer:
                 logger.info(f" * {file}")
 
             # If there's a destination file spec, then we need to transfer the files
-            if dest_file_spec:
-
-                # This is where the transfer actually needs to happen
-                if dest_file_spec["protocol"]["name"] == "ssh":
-                    self.dest_remote_handler = SSH(dest_file_spec, remote_spec=source_file_spec)
+            if self.dest_file_spec:
 
                 # Handle the push or pull transfer types
-                if "transferType" not in dest_file_spec or dest_file_spec["transferType"] == "push":
+                if "transferType" not in self.dest_file_spec or self.dest_file_spec["transferType"] == "push":
 
                     transfer_result = self.source_remote_handler.transfer_files(
                         remote_files, dest_remote_handler=self.dest_remote_handler
@@ -270,7 +286,7 @@ class Transfer:
                     logger.info("Transfer completed successfully")
 
                 # Handle any ownership and permissions changes
-                if dest_file_spec["protocol"]["name"] == "ssh":
+                if self.dest_file_spec["protocol"]["name"] == "ssh":
                     move_result = self.dest_remote_handler.move_files_to_final_location(remote_files)
                     if move_result != 0:
                         return self.return_result(
@@ -279,7 +295,7 @@ class Transfer:
             else:
                 logger.info("Performing filewatch only")
 
-            if "postCopyAction" in source_file_spec:
+            if "postCopyAction" in self.source_file_spec:
 
                 pca_result = self.source_remote_handler.handle_post_copy_action(remote_files)
                 if pca_result != 0:

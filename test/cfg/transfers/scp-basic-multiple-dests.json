@@ -1,0 +1,26 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "{{ HOST_A }}",
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": ".*\\.txt",
+    "protocol": {
+      "name": "ssh",
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  },
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
+      }
+    }
+  ]
+}
