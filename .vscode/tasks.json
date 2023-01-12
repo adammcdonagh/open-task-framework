@@ -34,6 +34,19 @@
       }
     },
     {
+      "label": "Create test files - without containers",
+      "type": "shell",
+      "command": "./test/createTestFiles.sh",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Create test volume dirs"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
       "label": "Create test files",
       "type": "shell",
       "command": "./test/createTestFiles.sh",

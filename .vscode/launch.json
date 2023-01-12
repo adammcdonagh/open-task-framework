@@ -9,6 +9,7 @@
       "type": "python",
       "request": "launch",
       "program": "${file}",
+      "preLaunchTask": "Create test files - without containers",
       "console": "integratedTerminal",
       "args": [
         "-t",

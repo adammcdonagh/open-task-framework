@@ -3,6 +3,7 @@ import time
 from os import environ
 from opentaskpy.remotehandlers.ssh import SSH
 from math import ceil, floor
+from opentaskpy import exceptions
 
 logger = logging.getLogger("opentaskpy.taskhandlers.transfer")
 
@@ -18,7 +19,7 @@ class Transfer:
         self.source_remote_handler = None
         self.dest_remote_handler = None
 
-    def return_result(self, status, message=None):
+    def return_result(self, status, message=None, exception=None):
         if message:
             if status == 0:
                 logger.info(message)
@@ -32,7 +33,12 @@ class Transfer:
         if self.dest_remote_handler:
             logger.log(12, "Closing dest connection")
             self.dest_remote_handler.tidy()
-        return status
+
+        # Throw an exception if we have one
+        if exception:
+            raise exception(message)
+
+        return status == 0
 
     def run(self):
         logger.info("Running transfer")
@@ -52,7 +58,7 @@ class Transfer:
             )
 
             if self.source_remote_handler.init_logwatch() != 0:
-                return self.return_result(1, "Logwatch init failed")
+                return self.return_result(1, "Logwatch init failed", exception=exceptions.LogWatchInitError)
 
             timeout_seconds = (
                 60 if "timeout" not in source_file_spec["logWatch"] else source_file_spec["logWatch"]["timeout"]
@@ -87,7 +93,9 @@ class Transfer:
             if found_log_entry:
                 logger.info("Found pattern in log file")
             else:
-                return self.return_result(1, f"No log entry found after {timeout_seconds} seconds")
+                return self.return_result(
+                    1, f"No log entry found after {timeout_seconds} seconds", exception=exceptions.LogWatchTimeoutError
+                )
 
         # If filewatching, do that next
         if "fileWatch" in source_file_spec:
@@ -149,7 +157,9 @@ class Transfer:
             ):
                 return self.return_result("0", "Just performing filewatch")
             elif not remote_files:
-                return self.return_result(1, f"No files found after {timeout_seconds} seconds")
+                return self.return_result(
+                    1, f"No files found after {timeout_seconds} seconds", exception=exceptions.RemoteFileNotFoundError
+                )
 
         # Determine what needs to be transferred
 
@@ -217,10 +227,14 @@ class Transfer:
         if not remote_files:
             if "error" in source_file_spec and not source_file_spec["error"]:
                 return self.return_result(
-                    0, "No remote files could be found to transfer. But not erroring due to config"
+                    0,
+                    "No remote files could be found to transfer. But not erroring due to config",
+                    exception=exceptions.FilesDoNotMeetConditionsError,
                 )
             else:
-                return self.return_result(1, "No remote files could be found to transfer")
+                return self.return_result(
+                    1, "No remote files could be found to transfer", exception=exceptions.FilesDoNotMeetConditionsError
+                )
         else:
             logger.info("Found the following file(s) that match all requirements:")
             for file in remote_files:
@@ -240,14 +254,18 @@ class Transfer:
                         remote_files, dest_remote_handler=self.dest_remote_handler
                     )
                     if transfer_result != 0:
-                        return self.return_result(1, "Remote transfer errored")
+                        return self.return_result(
+                            1, "Remote transfer errored", exception=exceptions.RemoteTransferError
+                        )
 
                     logger.info("Transfer completed successfully")
 
                 else:
                     transfer_result = self.dest_remote_handler.pull_files(remote_files)
                     if transfer_result != 0:
-                        return self.return_result(1, "Remote PULL transfer errored")
+                        return self.return_result(
+                            1, "Remote PULL transfer errored", exception=exceptions.RemoteTransferError
+                        )
 
                     logger.info("Transfer completed successfully")
 
@@ -255,7 +273,9 @@ class Transfer:
                 if dest_file_spec["protocol"]["name"] == "ssh":
                     move_result = self.dest_remote_handler.move_files_to_final_location(remote_files)
                     if move_result != 0:
-                        return self.return_result(1, "Error moving file into final location")
+                        return self.return_result(
+                            1, "Error moving file into final location", exception=exceptions.RemoteTransferError
+                        )
             else:
                 logger.info("Performing filewatch only")
 
@@ -263,6 +283,8 @@ class Transfer:
 
                 pca_result = self.source_remote_handler.handle_post_copy_action(remote_files)
                 if pca_result != 0:
-                    return self.return_result(1, "Error performing post copy action")
+                    return self.return_result(
+                        1, "Error performing post copy action", exception=exceptions.RemoteTransferError
+                    )
 
             return self.return_result(0)
