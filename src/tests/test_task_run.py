@@ -231,6 +231,23 @@ class TransferScriptTest(unittest.TestCase):
         task_runner = task_run.TaskRun("scp-basic", "test/cfg")
         self.assertEqual(task_runner.run(), True)
 
+    def test_scp_basic_10_files(self):
+
+        # Required files for this test:
+        # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
+
+        # Create 10 test files
+        for i in range(10):
+            write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test{i}.txt", content="test1234")
+
+        # Use the TaskRun class to trigger the job properly
+        task_runner = task_run.TaskRun("scp-basic", "test/cfg")
+        self.assertEqual(task_runner.run(), True)
+
+        # Check that the files were all transferred
+        for i in range(10):
+            self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test{i}.txt"))
+
     def test_scp_basic_pull(self):
 
         # Required files for this test:
