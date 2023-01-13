@@ -5,7 +5,7 @@ from jsonschema.exceptions import ValidationError
 # TODO: Validate the rest of the schema
 transfer_schema = {
     "type": "object",
-    "properties": {"type": {"type": "string"}, "source": {"type": "object"}, "destination": {"type": "object"}},
+    "properties": {"type": {"type": "string"}, "source": {"type": "object"}, "destination": {"type": "array"}},
     "required": ["type", "source"],
 }
 

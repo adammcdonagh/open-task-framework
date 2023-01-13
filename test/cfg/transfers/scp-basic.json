@@ -11,14 +11,16 @@
       }
     }
   },
-  "destination": {
-    "hostname": "{{ HOST_B }}",
-    "directory": "/tmp/testFiles/dest",
-    "protocol": {
-      "name": "ssh",
-      "credentials": {
-        "username": "{{ SSH_USERNAME }}"
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
       }
     }
-  }
+  ]
 }

@@ -21,6 +21,34 @@
           "username": "{{ SSH_USERNAME }}"
         }
       }
+    },
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "rename": {
+        "pattern": "^(.*)\\.txt$",
+        "sub": "\\1-2.txt"
+      },
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
+      }
+    },
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "rename": {
+        "pattern": "^(.*)\\.txt$",
+        "sub": "\\1-3.txt"
+      },
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
+      }
     }
   ]
 }

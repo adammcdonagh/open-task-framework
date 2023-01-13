@@ -15,16 +15,18 @@
       "destination": "/tmp/testFiles/archive"
     }
   },
-  "destination": {
-    "hostname": "{{ HOST_B }}",
-    "directory": "/tmp/testFiles/dest",
-    "transferType": "pull",
-    "protocol": {
-      "name": "ssh",
-      "credentials": {
-        "username": "{{ SSH_USERNAME }}",
-        "transferUsername": "{{ SSH_USERNAME }}"
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "transferType": "pull",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}",
+          "transferUsername": "{{ SSH_USERNAME }}"
+        }
       }
     }
-  }
+  ]
 }

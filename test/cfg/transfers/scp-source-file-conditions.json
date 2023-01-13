@@ -21,18 +21,20 @@
       }
     }
   },
-  "destination": {
-    "hostname": "{{ HOST_B }}",
-    "directory": "/tmp/testFiles/dest",
-    "permissions": {
-      "group": "operator"
-    },
-    "mode": "0644",
-    "protocol": {
-      "name": "ssh",
-      "credentials": {
-        "username": "{{ SSH_USERNAME }}"
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "permissions": {
+        "group": "operator"
+      },
+      "mode": "0644",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
       }
     }
-  }
+  ]
 }

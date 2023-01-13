@@ -243,6 +243,11 @@ class TransferScriptTest(unittest.TestCase):
         task_runner = task_run.TaskRun("scp-basic-multiple-dests", "test/cfg")
         self.assertEqual(task_runner.run(), True)
 
+        # Check the files were copied to all 3 destinations
+        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test.txt"))
+        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test-2.txt"))
+        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test-3.txt"))
+
     def test_scp_basic_10_files(self):
 
         # Required files for this test:

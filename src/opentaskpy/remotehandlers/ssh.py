@@ -14,11 +14,10 @@ class SSHTransfer(RemoteTransferHandler):
 
     FILE_NAME_DELIMITER = "|||"
 
-    def __init__(self, spec, remote_spec=None):
+    def __init__(self, spec):
         self.spec = spec
         self.ssh_client = None
         self.sftp_connection = None
-        self.remote_spec = remote_spec
         self.log_watch_start_row = 0
 
         # We need to copy the required remote scripts to the source and destination (if applicable) hosts
@@ -63,10 +62,10 @@ class SSHTransfer(RemoteTransferHandler):
             logger.debug(f"Closing SSH connection to {self.spec['hostname']}")
             self.ssh_client.close()
 
-    def get_staging_directory(self):
+    def get_staging_directory(self, remote_spec):
         return (
-            self.remote_spec["stagingDirectory"]
-            if "stagingDirectory" in self.remote_spec
+            remote_spec["stagingDirectory"]
+            if "stagingDirectory" in remote_spec
             else f"~/otf/{os.environ['OTF_TASK_ID']}/"
         )
 
@@ -94,16 +93,16 @@ class SSHTransfer(RemoteTransferHandler):
 
         return remote_files
 
-    def transfer_files(self, files, dest_remote_handler=None):
+    def transfer_files(self, files, remote_spec, dest_remote_handler=None):
         # Construct an SCP command to transfer the files to the destination server
         remote_user = (
-            self.remote_spec["protocol"]["credentials"]["transferUsername"]
-            if "transferUsername" in self.remote_spec["protocol"]["credentials"]
-            else self.remote_spec["protocol"]["credentials"]["username"]
+            remote_spec["protocol"]["credentials"]["transferUsername"]
+            if "transferUsername" in remote_spec["protocol"]["credentials"]
+            else remote_spec["protocol"]["credentials"]["username"]
         )
-        remote_host = self.remote_spec["hostname"]
+        remote_host = remote_spec["hostname"]
         # Handle staging directory if there is one
-        destination_directory = self.get_staging_directory()
+        destination_directory = self.get_staging_directory(remote_spec)
 
         # Create/validate staging directory exists on destination
         remote_command = f"test -e {destination_directory} || mkdir -p {destination_directory}"
@@ -142,13 +141,13 @@ class SSHTransfer(RemoteTransferHandler):
 
         return remote_rc
 
-    def pull_files(self, files):
+    def pull_files(self, files, remote_spec):
         # Construct an SCP command to transfer the files from the source server
         source_user = self.spec["protocol"]["credentials"]["transferUsername"]
-        source_host = self.remote_spec["hostname"]
+        source_host = remote_spec["hostname"]
 
         # Handle staging directory if there is one
-        destination_directory = self.get_staging_directory()
+        destination_directory = self.get_staging_directory(self.spec)
 
         # Create/validate staging directory exists
         remote_command = f"test -e {destination_directory} || mkdir -p {destination_directory}"
@@ -197,7 +196,7 @@ class SSHTransfer(RemoteTransferHandler):
         file_names_str = ""
         files_with_directory = []
         for file in list(files):
-            files_with_directory.append(f"{self.get_staging_directory()}{os.path.basename(file)}")
+            files_with_directory.append(f"{self.get_staging_directory(self.spec)}{os.path.basename(file)}")
         file_names_str = self.FILE_NAME_DELIMITER.join(files_with_directory).strip()
 
         # Next step is to move the file to it's final resting place with the correct permissions and ownership

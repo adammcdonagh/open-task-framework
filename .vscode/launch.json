@@ -39,6 +39,23 @@
       "justMyCode": false
     },
     {
+      "name": "Python: Transfer - Multiple",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "scp-basic-multiple-dests",
+        "-v",
+        "3",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Transfer - File Conditions 1",
       "type": "python",
       "request": "launch",

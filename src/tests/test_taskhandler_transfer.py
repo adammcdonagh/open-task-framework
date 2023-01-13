@@ -17,11 +17,13 @@ class TaskHandlerTransferTest(unittest.TestCase):
             "fileRegex": ".*taskhandler.*\\.txt",
             "protocol": {"name": "ssh", "credentials": {"username": "application"}},
         },
-        "destination": {
-            "hostname": "172.16.0.12",
-            "directory": "/tmp/testFiles/dest",
-            "protocol": {"name": "ssh", "credentials": {"username": "application"}},
-        },
+        "destination": [
+            {
+                "hostname": "172.16.0.12",
+                "directory": "/tmp/testFiles/dest",
+                "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+            },
+        ],
     }
 
     @classmethod
@@ -35,8 +37,12 @@ class TaskHandlerTransferTest(unittest.TestCase):
         transfer_obj._set_remote_handlers()
 
         # Validate some things were set as expected
-        self.assertEqual(transfer_obj.source_remote_handler.__class__.__name__, "SSH")
-        self.assertEqual(transfer_obj.dest_remote_handler.__class__.__name__, "SSH")
+        self.assertEqual(transfer_obj.source_remote_handler.__class__.__name__, "SSHTransfer")
+        # dest_remote_handler should be an array
+        self.assertTrue(isinstance(transfer_obj.dest_remote_handlers, list))
+        self.assertEqual(len(transfer_obj.dest_remote_handlers), 1)
+        #  of SSHTransfer objects
+        self.assertEqual(transfer_obj.dest_remote_handlers[0].__class__.__name__, "SSHTransfer")
 
     def test_scp_basic(self):
 
