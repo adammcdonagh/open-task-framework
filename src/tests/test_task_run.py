@@ -191,6 +191,11 @@ class TransferScriptTest(unittest.TestCase):
 
         self.assertEqual(self.run_task_run("scp-basic")["returncode"], 0)
 
+    def test_execution_basic_binary(self):
+        # Use the "binary" to trigger the job with command line arguments
+
+        self.assertEqual(self.run_task_run("df")["returncode"], 0)
+
     def test_binary_invalid_config_file(self):
         # Use the "binary" to trigger the job with command line arguments
 
@@ -218,6 +223,18 @@ class TransferScriptTest(unittest.TestCase):
     #################
     """
 
+    def test_execution_basic(self):
+
+        # Use the TaskRun class to trigger the job properly
+        task_runner = task_run.TaskRun("df", "test/cfg")
+        self.assertTrue(task_runner.run())
+
+    def test_execution_fail(self):
+
+        # Use the TaskRun class to trigger the job properly
+        task_runner = task_run.TaskRun("fail-command", "test/cfg")
+        self.assertFalse(task_runner.run())
+
     def test_scp_basic(self):
 
         # Required files for this test:
@@ -228,7 +245,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
     def test_scp_basic_multiple_dests(self):
 
@@ -240,7 +257,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic-multiple-dests", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
         # Check the files were copied to all 3 destinations
         self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test.txt"))
@@ -258,7 +275,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
         # Check that the files were all transferred
         for i in range(10):
@@ -273,7 +290,7 @@ class TransferScriptTest(unittest.TestCase):
         write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
         task_runner = task_run.TaskRun("scp-basic-pull", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
     def test_scp_basic_pca_delete(self):
 
@@ -285,7 +302,7 @@ class TransferScriptTest(unittest.TestCase):
         write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test1.txt", content="test1234")
 
         task_runner = task_run.TaskRun("scp-basic-pca-delete", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
         # Verify the file has disappeared
         self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/test1.txt"))
@@ -300,7 +317,7 @@ class TransferScriptTest(unittest.TestCase):
         write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test2.txt", content="test1234")
 
         task_runner = task_run.TaskRun("scp-basic-pca-move", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
         # Verify the file has disappeared
         self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/test2.txt"))
@@ -328,7 +345,7 @@ class TransferScriptTest(unittest.TestCase):
         os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
         # Modify the file to be older than 10 minutes and try again
         os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 601, time.time() - 601))
@@ -379,7 +396,7 @@ class TransferScriptTest(unittest.TestCase):
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
 
         task_runner = task_run.TaskRun("scp-file-watch", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
         # Delete the fileWatch.txt and log file
         os.remove(f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.txt")
@@ -414,7 +431,7 @@ class TransferScriptTest(unittest.TestCase):
         t.start()
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
         task_runner = task_run.TaskRun("scp-log-watch", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
     def test_scp_log_watch_tail(self):
         # Required files for this test:
@@ -441,7 +458,7 @@ class TransferScriptTest(unittest.TestCase):
         t.start()
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
         task_runner = task_run.TaskRun("scp-log-watch-tail", "test/cfg")
-        self.assertEqual(task_runner.run(), True)
+        self.assertTrue(task_runner.run())
 
     def run_task_run(self, task, verbose="2", config="test/cfg"):
         # We need to run the bin/task-run script to test this

@@ -122,7 +122,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                log_stdout(str_stdout)
+                log_stdout(str_stdout, remote_host)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -140,7 +140,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                log_stdout(str_stdout)
+                log_stdout(str_stdout, self.spec["hostname"])
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -168,7 +168,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                log_stdout(str_stdout)
+                log_stdout(str_stdout, self.spec["hostname"])
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -190,7 +190,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                log_stdout(str_stdout)
+                log_stdout(str_stdout, self.spec["hostname"])
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -331,12 +331,12 @@ class SSHTransfer(RemoteTransferHandler):
         return 1
 
 
-def log_stdout(self, str_stdout, hostname):
-    logger.info(f"[{self.spec['hostname']}] Remote stdout returned:")
-    logger.info(f"[{self.spec['hostname']}] ###########")
+def log_stdout(str_stdout, hostname):
+    logger.info(f"[{hostname}] Remote stdout returned:")
+    logger.info(f"[{hostname}] ###########")
     for line in str_stdout.splitlines():
-        print(f"[{self.spec['hostname']}] REMOTE OUTPUT: {line}")
-    logger.info(f"[{self.spec['hostname']}] ###########")
+        print(f"[{hostname}] REMOTE OUTPUT: {line}")
+    logger.info(f"[{hostname}] ###########")
 
 
 class SSHExecution(RemoteExecutionHandler):
@@ -378,7 +378,7 @@ class SSHExecution(RemoteExecutionHandler):
             with stdout as stdout_fh:
                 str_stdout = stdout_fh.read().decode("UTF-8")
                 if str_stdout:
-                    self.log_stdout(str_stdout, self.remote_host)
+                    log_stdout(str_stdout, self.remote_host)
 
             with stderr as stderr_fh:
                 str_stderr = stderr_fh.read().decode("UTF-8")

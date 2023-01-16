@@ -2,9 +2,10 @@ import os
 import sys
 import datetime
 import json
-from opentaskpy.config.schemas import validate_json
+from opentaskpy.config.schemas import validate_transfer_json, validate_execution_json
 from glob import glob
 from opentaskpy.taskhandlers.transfer import Transfer
+from opentaskpy.taskhandlers.execution import Execution
 import logging
 import importlib
 import jinja2
@@ -165,7 +166,7 @@ class TaskRun:
             # Hand off to the transfer module
             self.logger.log(12, "Transfer")
             # Validate the schema
-            if not validate_json(active_task_definition):
+            if not validate_transfer_json(active_task_definition):
                 self.logger.error("JSON format does not match schema")
                 return False
 
@@ -176,7 +177,16 @@ class TaskRun:
         elif active_task_definition["type"] == "execution":
             # Hand off to the execuiton module
             self.logger.log(12, "Execution")
-            raise NotImplementedError
+
+            # Validate the schema
+            if not validate_execution_json(active_task_definition):
+                self.logger.error("JSON format does not match schema")
+                return False
+
+            execution = Execution(self.task_id, active_task_definition)
+
+            return execution.run()
+
         elif active_task_definition["type"] == "batch":
             # Hand off to the batch module
             self.logger.log(12, "Batch")

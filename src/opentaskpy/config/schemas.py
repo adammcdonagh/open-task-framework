@@ -9,10 +9,32 @@ transfer_schema = {
     "required": ["type", "source"],
 }
 
+execution_schema = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "hosts": {"type": "array"},
+        "username": {"type": "string"},
+        "directory": {"type": "string"},
+        "command": {"type": "string"},
+        "protocol": {"type": "object"},
+    },
+    "required": ["type", "hosts", "username", "directory", "command", "protocol"],
+}
 
-def validate_json(json_data):
+
+def validate_transfer_json(json_data):
     try:
         validate(instance=json_data, schema=transfer_schema)
+    except ValidationError as err:
+        print(err.message)
+        return False
+    return True
+
+
+def validate_execution_json(json_data):
+    try:
+        validate(instance=json_data, schema=execution_schema)
     except ValidationError as err:
         print(err.message)
         return False
