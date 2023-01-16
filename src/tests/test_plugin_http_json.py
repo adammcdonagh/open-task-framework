@@ -1,4 +1,5 @@
 import unittest
+
 from opentaskpy.plugins.lookup.http_json import run
 
 

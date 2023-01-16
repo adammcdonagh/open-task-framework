@@ -1,6 +1,7 @@
-import unittest
 import os
-from tests.file_helper import write_test_file, list_test_files
+import unittest
+
+from tests.file_helper import list_test_files, write_test_file
 
 
 class FileHelperTest(unittest.TestCase):

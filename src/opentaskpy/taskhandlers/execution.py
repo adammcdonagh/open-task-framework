@@ -1,6 +1,7 @@
 import logging
-from os import environ
 from concurrent.futures import ThreadPoolExecutor, wait
+from os import environ
+
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 

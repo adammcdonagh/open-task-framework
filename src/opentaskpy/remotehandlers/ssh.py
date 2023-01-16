@@ -1,8 +1,13 @@
 import logging
 import os
 import re
-from paramiko import SSHClient, AutoAddPolicy
-from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler, RemoteExecutionHandler
+
+from paramiko import AutoAddPolicy, SSHClient
+
+from opentaskpy.remotehandlers.remotehandler import (
+    RemoteExecutionHandler,
+    RemoteTransferHandler,
+)
 
 logger = logging.getLogger(__name__)
 

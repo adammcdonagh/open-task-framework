@@ -1,10 +1,11 @@
 import logging
 import time
-from os import environ
-from opentaskpy.taskhandlers.taskhandler import TaskHandler
-from opentaskpy.remotehandlers.ssh import SSHTransfer
 from math import ceil, floor
+from os import environ
+
 from opentaskpy import exceptions
+from opentaskpy.remotehandlers.ssh import SSHTransfer
+from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
 logger = logging.getLogger("opentaskpy.taskhandlers.transfer")
 

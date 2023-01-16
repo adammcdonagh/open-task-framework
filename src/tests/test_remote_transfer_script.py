@@ -1,10 +1,11 @@
-import unittest
-from opentaskpy.remotehandlers.scripts import transfer as transfer
-from tests.file_helper import write_test_file, list_test_files
-import os
-import time
-import shutil
 import grp
+import os
+import shutil
+import time
+import unittest
+
+from opentaskpy.remotehandlers.scripts import transfer as transfer
+from tests.file_helper import list_test_files, write_test_file
 
 
 class TransferScriptTest(unittest.TestCase):

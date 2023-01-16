@@ -1,8 +1,9 @@
-import unittest
-import os
-from tests.file_helper import write_test_file, BASE_DIRECTORY
-from opentaskpy.taskhandlers import execution
 import logging
+import os
+import unittest
+
+from opentaskpy.taskhandlers import execution
+from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 logging_level = 12
 

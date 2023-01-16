@@ -1,5 +1,6 @@
-import unittest
 import os
+import unittest
+
 from opentaskpy.plugins.lookup.file import run
 from tests.file_helper import write_test_file
 

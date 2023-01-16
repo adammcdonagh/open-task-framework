@@ -4,8 +4,8 @@ File lookup plugin.
 Reads the first line of a file and returns it as a string.
 
 """
-import os
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 

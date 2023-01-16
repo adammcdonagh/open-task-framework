@@ -1,7 +1,8 @@
-import unittest
-from tests.file_helper import write_test_file, BASE_DIRECTORY
 import os
+import unittest
+
 from opentaskpy.taskhandlers import transfer
+from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 
 class TaskHandlerTransferTest(unittest.TestCase):

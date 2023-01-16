@@ -1,11 +1,11 @@
 import argparse
-import json
-import os
-import re
-import pwd
 import grp
-import shutil
+import json
 import logging
+import os
+import pwd
+import re
+import shutil
 
 logger = logging.getLogger("opentaskpy.remotehandlers.scripts.transfer")
 

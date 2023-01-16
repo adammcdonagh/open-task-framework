@@ -7,6 +7,7 @@ JSON response from which to extract a value using a provided JSONPath.
 
 """
 import logging
+
 import requests
 from jsonpath_ng import parse
 
