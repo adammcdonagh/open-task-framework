@@ -22,6 +22,12 @@ execution_schema = {
     "required": ["type", "hosts", "username", "directory", "command", "protocol"],
 }
 
+batch_schema = {
+    "type": "object",
+    "properties": {"type": {"type": "string"}, "tasks": {"type": "array"}},
+    "required": ["type", "tasks"],
+}
+
 
 def validate_transfer_json(json_data):
     try:
@@ -35,6 +41,15 @@ def validate_transfer_json(json_data):
 def validate_execution_json(json_data):
     try:
         validate(instance=json_data, schema=execution_schema)
+    except ValidationError as err:
+        print(err.message)
+        return False
+    return True
+
+
+def validate_batch_json(json_data):
+    try:
+        validate(instance=json_data, schema=batch_schema)
     except ValidationError as err:
         print(err.message)
         return False

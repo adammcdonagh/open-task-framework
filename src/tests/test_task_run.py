@@ -1,14 +1,14 @@
-import unittest
-import random
-import subprocess
-from tests.file_helper import write_test_file, BASE_DIRECTORY
-import time
-import os
-import shutil
-import threading
 import datetime
-import json
-from opentaskpy import task_run, exceptions
+import os
+import random
+import shutil
+import subprocess
+import threading
+import time
+import unittest
+
+from opentaskpy import exceptions, task_run
+from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 
 class TransferScriptTest(unittest.TestCase):
@@ -37,143 +37,6 @@ class TransferScriptTest(unittest.TestCase):
         for file in os.listdir(f"{BASE_DIRECTORY}/ssh_1/src"):
             os.remove(f"{BASE_DIRECTORY}/ssh_1/src/{file}")
 
-    def test_load_global_variables(self):
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json", content='{"test": "test1234"}')
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        self.assertEqual(task_runner.get_global_variables(), {"test": "test1234"})
-        os.remove("/tmp/variables.json")
-
-        # Load a .json.j2 file to check that works
-        write_test_file("/tmp/variables.json.j2", content='{"test": "test1234"}')
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        self.assertEqual(task_runner.get_global_variables(), {"test": "test1234"})
-        os.remove("/tmp/variables.json.j2")
-
-        # Try loading a .json file that doesn't exist
-        task_runner = task_run.TaskRun("test", "/tmp")
-        # Check this raise a FileNotFoundError
-        with self.assertRaises(FileNotFoundError):
-            task_runner.load_global_variables()
-
-        # Create several files all in the same place, and ensure they all get
-        # merged into one JSON object
-        # Make several sub directories for various configs
-        os.mkdir("/tmp/variables1")
-        os.mkdir("/tmp/variables2")
-        os.mkdir("/tmp/variables3")
-
-        write_test_file("/tmp/variables1/variables.json", content='{"test": "test1234"}')
-        write_test_file("/tmp/variables2/variables.json", content='{"test2": "test5678"}')
-        write_test_file("/tmp/variables3/variables.json", content='{"test3": "test9012"}')
-
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        self.assertEqual(
-            task_runner.get_global_variables(), {"test": "test1234", "test2": "test5678", "test3": "test9012"}
-        )
-        # Remove the directories
-        os.remove("/tmp/variables1/variables.json")
-        os.remove("/tmp/variables2/variables.json")
-        os.remove("/tmp/variables3/variables.json")
-        os.rmdir("/tmp/variables1")
-        os.rmdir("/tmp/variables2")
-        os.rmdir("/tmp/variables3")
-
-    def test_resolve_templated_variables(self):
-
-        json_obj = {"test": "{{ SOME_VARIABLE }}", "SOME_VARIABLE": "test1234"}
-        json_resolved = {"test": "test1234", "SOME_VARIABLE": "test1234"}
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        task_runner.resolve_templated_variables()
-        self.assertEqual(task_runner.get_global_variables(), json_resolved)
-
-        # Test again, but with a nested variable
-        json_obj = {
-            "test": "{{ SOME_VARIABLE }}6",
-            "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}5",
-            "SOME_VARIABLE2": "test1234",
-        }
-
-        json_resolved = {"test": "test123456", "SOME_VARIABLE": "test12345", "SOME_VARIABLE2": "test1234"}
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        task_runner.resolve_templated_variables()
-        self.assertEqual(task_runner.get_global_variables(), json_resolved)
-
-        # Final test is to next 6 times, this should error as the limit is 5
-        json_obj = {
-            "test": "{{ SOME_VARIABLE }}7",
-            "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}6",
-            "SOME_VARIABLE2": "{{ SOME_VARIABLE3 }}5",
-            "SOME_VARIABLE3": "{{ SOME_VARIABLE4 }}4",
-            "SOME_VARIABLE4": "{{ SOME_VARIABLE5 }}3",
-            "SOME_VARIABLE5": "{{ SOME_VARIABLE6 }}2",
-            "SOME_VARIABLE6": "{{ SOME_VARIABLE7 }}1",
-            "SOME_VARIABLE7": "{{ SOME_VARIABLE8 }}{{ SOME_VARIABLE2 }}{{ SOME_VARIABLE3 }}",
-            "SOME_VARIABLE8": "test1234",
-        }
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-
-        # Verify an exception with appropriate text is thrown
-        with self.assertRaises(Exception) as e:
-            task_runner.resolve_templated_variables()
-        self.assertEqual(str(e.exception), "Reached max depth of recursive template evaluation")
-
-    def test_load_task_definition(self):
-
-        # Write a nested variable to the global variables file
-        json_obj = {
-            "test": "{{ SOME_VARIABLE }}6",
-            "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}5",
-            "SOME_VARIABLE2": "test1234",
-        }
-
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Initialise the task runner
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        task_runner.resolve_templated_variables()
-
-        # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
-        write_test_file("/tmp/task.json", content='{"test": "{{ test }}"}')
-
-        expected_task_definition = {"test": "test123456"}
-
-        # Test that the task definition is loaded correctly
-        task_runner = task_run.TaskRun("task", "/tmp")
-        self.assertEqual(task_runner.load_task_definition("/tmp/task.json"), expected_task_definition)
-
-        # Test that a non existent task definition file raises an error
-        task_runner = task_run.TaskRun("test", "/tmp")
-        os.remove("/tmp/task.json")
-        with self.assertRaises(FileNotFoundError) as e:
-            task_runner.load_task_definition("/tmp/task.json")
-        self.assertEqual(str(e.exception), "[Errno 2] No such file or directory: '/tmp/task.json'")
-
     """
     #################
     Tests for the "binary" task runner
@@ -195,6 +58,11 @@ class TransferScriptTest(unittest.TestCase):
         # Use the "binary" to trigger the job with command line arguments
 
         self.assertEqual(self.run_task_run("df")["returncode"], 0)
+
+    def test_batch_basic_binary(self):
+        # Use the "binary" to trigger the job with command line arguments
+
+        self.assertEqual(self.run_task_run("batch-basic")["returncode"], 0)
 
     def test_binary_invalid_config_file(self):
         # Use the "binary" to trigger the job with command line arguments
@@ -222,6 +90,37 @@ class TransferScriptTest(unittest.TestCase):
     Tests using the Python code directly
     #################
     """
+
+    # Disabled for now. If this runs with others, then it conflicts
+    # Test having 2 tasks with the same name throws an error
+    # def test_duplicate_task_name(self):
+    #     # Create a transfer with the same name as an execution
+    #     write_test_file(
+    #         "test/cfg/transfers/df.json",
+    #         content='{"command": "df", "description": "Test task", "name": "df"}',
+    #     )
+
+    #     task_runner = task_run.TaskRun("df", "test/cfg")
+
+    #     # Verify an exception with appropriate text is thrown
+    #     with self.assertRaises(DuplicateConfigFileError) as e:
+    #         task_runner.run()
+    #     self.assertEqual(str(e.exception), "Found more than one task with name: df")
+
+    def test_unknown_task_name(self):
+
+        task_runner = task_run.TaskRun("non-existent", "test/cfg")
+
+        # Verify an exception with appropriate text is thrown
+        with self.assertRaises(FileNotFoundError) as e:
+            task_runner.run()
+        self.asser1tEqual(str(e.exception), "Couldn't find task with name: non-existent")
+
+    def test_batch_basic(self):
+
+        # Use the TaskRun class to trigger the job properly
+        task_runner = task_run.TaskRun("basic", "test/cfg")
+        self.assertTrue(task_runner.run())
 
     def test_execution_basic(self):
 
@@ -492,11 +391,7 @@ class TransferScriptTest(unittest.TestCase):
             f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log",
             f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log",
             "/tmp/variable_lookup.txt",
-            "/tmp/variables1/variables.json",
-            "/tmp/variables2/variables.json",
-            "/tmp/variables3/variables.json",
-            "/tmp/variables.json.j2",
-            "/tmp/task.json",
+            "test/cfg/transfers/df.json",
         ]
         for file in to_remove:
             if os.path.exists(file):

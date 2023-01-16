@@ -377,6 +377,9 @@ class SSHExecution(RemoteExecutionHandler):
         try:
             self.connect()
 
+            # Command needs the directory to be changed to appended to it
+            command = f"cd {self.spec['directory']} && {command}"
+
             logger.info(f"[{self.remote_host}] Executing command: {command}")
             _, stdout, stderr = self.ssh_client.exec_command(command)
             # Log the stdout and stderr

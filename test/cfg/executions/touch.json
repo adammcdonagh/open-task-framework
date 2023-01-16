@@ -1,0 +1,15 @@
+{
+  "type": "execution",
+  "hosts": [
+    "{{ HOST_A }}"
+  ],
+  "username": "{{ SSH_USERNAME }}",
+  "directory": "/tmp/testFiles/src",
+  "command": "touch touchedFile.txt",
+  "protocol": {
+    "name": "ssh",
+    "credentials": {
+      "username": "{{ SSH_USERNAME }}"
+    }
+  }
+}

@@ -122,6 +122,23 @@
         "test/cfg"
       ],
       "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Basic",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-basic",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
     }
   ]
 }
