@@ -1,12 +1,10 @@
 import unittest
-from tests.file_helper import write_test_file
+from tests.file_helper import write_test_file, BASE_DIRECTORY
 import os
 from opentaskpy.taskhandlers import transfer
 
 
 class TaskHandlerTransferTest(unittest.TestCase):
-
-    BASE_DIRECTORY = "test/testFiles"
 
     # Create a task definition
     scp_task_definition = {
@@ -47,7 +45,7 @@ class TaskHandlerTransferTest(unittest.TestCase):
     def test_scp_basic(self):
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.taskhandler.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.taskhandler.txt", content="test1234")
 
         # Create a transfer object
         transfer_obj = transfer.Transfer("scp-basic", self.scp_task_definition)
@@ -55,14 +53,14 @@ class TaskHandlerTransferTest(unittest.TestCase):
         # Run the transfer and expect a true status
         self.assertTrue(transfer_obj.run())
         # Check the destination file exists
-        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test.taskhandler.txt"))
+        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test.taskhandler.txt"))
 
     @classmethod
     def tearDownClass(self):
 
         to_remove = [
-            f"{self.BASE_DIRECTORY}/ssh_1/src/test.taskhandler.txt",
-            f"{self.BASE_DIRECTORY}/ssh_2/dest/test.taskhandler.txt",
+            f"{BASE_DIRECTORY}/ssh_1/src/test.taskhandler.txt",
+            f"{BASE_DIRECTORY}/ssh_2/dest/test.taskhandler.txt",
         ]
         for file in to_remove:
             if os.path.exists(file):

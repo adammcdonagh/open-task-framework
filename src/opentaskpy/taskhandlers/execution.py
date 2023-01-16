@@ -1,5 +1,6 @@
 import logging
 from os import environ
+from concurrent.futures import ThreadPoolExecutor, wait
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
@@ -45,3 +46,40 @@ class Execution(TaskHandler):
         environ["OTF_TASK_ID"] = self.task_id
 
         self._set_remote_handlers()
+
+        # This is where we could potentially be waiting for a while. So,
+        # for each remote handler, we should spawn a new thread to run
+        # the command. Then we can wait for all threads to complete.
+
+        overall_result = True
+        ex = None
+
+        with ThreadPoolExecutor(len(self.remote_handlers)) as executor:
+
+            futures = [
+                executor.submit(self._execute, self.execution_definition, remote_handler)
+                for remote_handler in self.remote_handlers
+            ]
+
+            wait(futures)
+
+            # Check the results
+            for future in futures:
+                try:
+                    result = future.result()
+                    if not result:
+                        overall_result = False
+                except Exception as e:
+                    overall_result = False
+                    ex = e
+                    logger.error("Thread returned exception")
+
+        if overall_result:
+            return self.return_result(0, "All executions completed successfully")
+        else:
+            return self.return_result(1, "Execution(s) failed", ex)
+
+    def _execute(self, spec, remote_handler):
+        result = remote_handler.execute(spec["command"])
+        logger.info(f"[{remote_handler.remote_host}] Execution returned {result}")
+        return result

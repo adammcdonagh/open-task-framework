@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import re
 from paramiko import SSHClient, AutoAddPolicy
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler, RemoteExecutionHandler
@@ -20,40 +19,45 @@ class SSHTransfer(RemoteTransferHandler):
         self.sftp_connection = None
         self.log_watch_start_row = 0
 
-        # We need to copy the required remote scripts to the source and destination (if applicable) hosts
-        hostname = spec["hostname"]
-        logger.info(f"Validating source remote host: {hostname}")
+        client = SSHClient()
+        client.set_missing_host_key_policy(AutoAddPolicy())
+        self.ssh_client = client
 
+    def connect(self, hostname, ssh_client=None):
+        is_remote_host = False
+        if ssh_client is not None:
+            is_remote_host = True
+        else:
+            ssh_client = self.ssh_client
+
+        if ssh_client.get_transport() and ssh_client.get_transport().is_active():
+            logger.debug(f"SSH connection to {hostname} already active")
+            return
         try:
-            client = SSHClient()
-            client.set_missing_host_key_policy(AutoAddPolicy())
-            client.connect(
+            ssh_client.connect(
                 hostname,
                 username=self.spec["protocol"]["credentials"]["username"],
                 timeout=5,
             )
-            _, stdout, _ = client.exec_command("uname -a")
+            _, stdout, _ = ssh_client.exec_command("uname -a")
             with stdout as stdout_fh:
                 logger.log(11, f"Remote uname: {stdout_fh.read().decode('UTF-8')}")
 
             # Transfer over the transfer.py script
             local_script = f"{os.path.dirname(os.path.realpath(__file__))}/scripts/transfer.py"
 
-            sftp = client.open_sftp()
+            sftp = ssh_client.open_sftp()
             sftp.put(local_script, "/tmp/transfer.py")
 
-            self.ssh_client = client
-            self.sftp_connection = sftp
-        except Exception as ex:
-            logger.error(f"Exception while setting up remote SSH client: {ex}")
-
-        if not self.ssh_client or not self.sftp_connection:
-            logger.error(f"Failed to set up SSH client to {hostname}")
-            sys.exit(1)
+            if not is_remote_host:
+                self.sftp_connection = sftp
+        except Exception as e:
+            logger.error(f"Unable to connect to {hostname}: {e}")
+            raise e
 
     def tidy(self):
         # Remove remote scripts
-        if self.ssh_client:
+        if self.sftp_connection:
             file_list = self.sftp_connection.listdir("/tmp")
             if "transfer.py" in file_list:
                 self.sftp_connection.remove("/tmp/transfer.py")
@@ -76,6 +80,7 @@ class SSHTransfer(RemoteTransferHandler):
 
     def list_files(self, directory=None, file_pattern=None):
 
+        self.connect(self.spec["hostname"])
         if not directory:
             directory = self.spec["directory"]
         if not file_pattern:
@@ -94,6 +99,12 @@ class SSHTransfer(RemoteTransferHandler):
         return remote_files
 
     def transfer_files(self, files, remote_spec, dest_remote_handler=None):
+        self.connect(self.spec["hostname"])
+
+        # If we are given a destination handler, make sure we connect to the host
+        if dest_remote_handler:
+            self.connect(remote_spec["hostname"], dest_remote_handler.ssh_client)
+
         # Construct an SCP command to transfer the files to the destination server
         remote_user = (
             remote_spec["protocol"]["credentials"]["transferUsername"]
@@ -111,7 +122,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                self.log_stdout(str_stdout)
+                log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -129,7 +140,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                self.log_stdout(str_stdout)
+                log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -142,6 +153,7 @@ class SSHTransfer(RemoteTransferHandler):
         return remote_rc
 
     def pull_files(self, files, remote_spec):
+        self.connect(self.spec["hostname"])
         # Construct an SCP command to transfer the files from the source server
         source_user = self.spec["protocol"]["credentials"]["transferUsername"]
         source_host = remote_spec["hostname"]
@@ -156,7 +168,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                self.log_stdout(str_stdout)
+                log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -173,12 +185,12 @@ class SSHTransfer(RemoteTransferHandler):
         remote_command = f"scp {SSH_OPTIONS} {files_str.strip()} {destination_directory}"
         logger.info(f"Transferring files via SCP: {remote_command}")
 
-        stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)
+        _, stdout, stderr = self.ssh_client.exec_command(remote_command)
 
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                self.log_stdout(str_stdout)
+                log_stdout(str_stdout)
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
@@ -191,6 +203,8 @@ class SSHTransfer(RemoteTransferHandler):
         return remote_rc
 
     def move_files_to_final_location(self, files):
+
+        self.connect(self.spec["hostname"])
 
         # Convert all the source file names into the filename with the destination directory as a prefix
         file_names_str = ""
@@ -225,18 +239,20 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
-                self.log_stdout(str_stdout)
+                log_stdout(str_stdout, self.spec["hostname"])
 
         with stderr as stderr_fh:
             str_stderr = stderr_fh.read().decode("UTF-8")
             if str_stderr and len(str_stderr) > 0:
-                logger.info(f"Remote stderr returned:\n{str_stderr}")
+                logger.info(f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}")
 
         remote_rc = stdout.channel.recv_exit_status()
-        logger.info(f"Got return code {remote_rc} from SSH move command")
+        logger.info(f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH move command")
         return remote_rc
 
     def handle_post_copy_action(self, files):
+        self.connect(self.spec["hostname"])
+
         remote_command = None
         if self.spec["postCopyAction"]["action"] == "delete":
             remote_command = f"python3 /tmp/transfer.py --deleteFiles '{self.FILE_NAME_DELIMITER.join(files)}'"
@@ -250,18 +266,20 @@ class SSHTransfer(RemoteTransferHandler):
             with stdout as stdout_fh:
                 str_stdout = stdout_fh.read().decode("UTF-8")
                 if str_stdout:
-                    self.log_stdout(str_stdout)
+                    log_stdout(str_stdout, self.spec["hostname"])
 
             with stderr as stderr_fh:
                 str_stderr = stderr_fh.read().decode("UTF-8")
                 if str_stderr and len(str_stderr) > 0:
-                    logger.info(f"Remote stderr returned:\n{str_stderr}")
+                    logger.info(f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}")
 
             remote_rc = stdout.channel.recv_exit_status()
-            logger.info(f"Got return code {remote_rc} from SSH post copy action command")
+            logger.info(f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH post copy action command")
             return remote_rc
 
     def init_logwatch(self):
+        self.connect(self.spec["hostname"])
+
         # There are 2 options for logwatches. One is to watch for new entries, the other is to scan the entire log.
         # Default if not specified is to watch for new entries
 
@@ -272,10 +290,10 @@ class SSHTransfer(RemoteTransferHandler):
         try:
             _ = self.sftp_connection.lstat(f"{log_file}")
         except FileNotFoundError:
-            logger.error(f"Log file {log_file} does not exist")
+            logger.error(f"[{self.spec['hostname']}] Log file {log_file} does not exist")
             return 1
         except PermissionError:
-            logger.error(f"Log file {log_file} cannot be accessed")
+            logger.error(f"[{self.spec['hostname']}] Log file {log_file} cannot be accessed")
             return 1
 
         # Open the existing file and determine the number of rows
@@ -283,15 +301,18 @@ class SSHTransfer(RemoteTransferHandler):
             rows = 0
             for rows, _ in enumerate(log_fh):  # noqa #B007
                 pass
-            logger.log(12, f"Found {rows+1} lines in log")
+            logger.log(12, f"[{self.spec['hostname']}] Found {rows+1} lines in log")
             self.log_watch_start_row = rows + 1
 
         return 0
 
     def do_logwatch(self):
+
+        self.connect(self.spec["hostname"])
+
         # Determine if the config requires scanning the entire log, or just from the start_row determine in the init function
         start_row = self.log_watch_start_row if "tail" in self.spec["logWatch"] and self.spec["logWatch"]["tail"] else 0
-        logger.log(12, f"Starting logwatch from row {start_row}")
+        logger.log(12, f"[{self.spec['hostname']}] Starting logwatch from row {start_row}")
 
         # Open the remote log file and parse each line for the pattern
         log_file = f"{self.spec['logWatch']['directory']}/{self.spec['logWatch']['log']}"
@@ -300,53 +321,77 @@ class SSHTransfer(RemoteTransferHandler):
             for i, line in enumerate(log_fh):
                 # We need to start after the previous line in the log
                 if i >= start_row:
-                    logger.log(11, f"Log line: {line.strip()}")
+                    logger.log(11, f"[{self.spec['hostname']}] Log line: {line.strip()}")
                     if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
-                        logger.log(12, f"Found matching line in log: {line.strip()} on line: {i+1}")
+                        logger.log(
+                            12, f"[{self.spec['hostname']}] Found matching line in log: {line.strip()} on line: {i+1}"
+                        )
                         return 0
 
         return 1
 
-    def log_stdout(self, str_stdout):
-        logger.info("Remote stdout returned:")
-        logger.info("###########")
-        for line in str_stdout.splitlines():
-            print(f"REMOTE OUTPUT: {line}")
-        logger.info("###########")
+
+def log_stdout(self, str_stdout, hostname):
+    logger.info(f"[{self.spec['hostname']}] Remote stdout returned:")
+    logger.info(f"[{self.spec['hostname']}] ###########")
+    for line in str_stdout.splitlines():
+        print(f"[{self.spec['hostname']}] REMOTE OUTPUT: {line}")
+    logger.info(f"[{self.spec['hostname']}] ###########")
 
 
 class SSHExecution(RemoteExecutionHandler):
-    def __init__(self, spec):
+    def tidy(self):
+        logger.debug(f"[{self.remote_host}] Closing SSH connection")
+        self.ssh_client.close()
+
+    def __init__(self, remote_host, spec):
+        self.remote_host = remote_host
         self.spec = spec
         self.ssh_client = None
-        self.log_watch_start_row = 0
 
-        hostname = spec["hostname"]
-        logger.info(f"Validating source remote host: {hostname}")
+        self.remote_host = remote_host
 
+        client = SSHClient()
+        client.set_missing_host_key_policy(AutoAddPolicy())
+
+        self.ssh_client = client
+
+    def connect(self):
+        self.ssh_client.connect(
+            self.remote_host,
+            username=self.spec["protocol"]["credentials"]["username"],
+            timeout=5,
+        )
+        _, stdout, _ = self.ssh_client.exec_command("uname -a")
+        with stdout as stdout_fh:
+            logger.log(11, f"Remote uname: {stdout_fh.read().decode('UTF-8')}")
+
+    def execute(self, command):
+
+        # Establish the SSH connection
         try:
-            client = SSHClient()
-            client.set_missing_host_key_policy(AutoAddPolicy())
-            client.connect(
-                hostname,
-                username=self.spec["protocol"]["credentials"]["username"],
-                timeout=5,
-            )
-            _, stdout, _ = client.exec_command("uname -a")
+            self.connect()
+
+            logger.info(f"[{self.remote_host}] Executing command: {command}")
+            _, stdout, stderr = self.ssh_client.exec_command(command)
+            # Log the stdout and stderr
             with stdout as stdout_fh:
-                logger.log(11, f"Remote uname: {stdout_fh.read().decode('UTF-8')}")
+                str_stdout = stdout_fh.read().decode("UTF-8")
+                if str_stdout:
+                    self.log_stdout(str_stdout, self.remote_host)
 
-            # Transfer over the transfer.py script
-            local_script = f"{os.path.dirname(os.path.realpath(__file__))}/scripts/transfer.py"
+            with stderr as stderr_fh:
+                str_stderr = stderr_fh.read().decode("UTF-8")
+                if str_stderr and len(str_stderr) > 0:
+                    logger.info(f"[{self.remote_host}] Remote stderr returned:\n{str_stderr}")
 
-            sftp = client.open_sftp()
-            sftp.put(local_script, "/tmp/transfer.py")
-
-            self.ssh_client = client
-            self.sftp_connection = sftp
-        except Exception as ex:
-            logger.error(f"Exception while setting up remote SSH client: {ex}")
-
-        if not self.ssh_client or not self.sftp_connection:
-            logger.error(f"Failed to set up SSH client to {hostname}")
-            sys.exit(1)
+            # Get the return code
+            remote_rc = stdout.channel.recv_exit_status()
+            if remote_rc != 0:
+                logger.error(f"[{self.remote_host}] Got return code {remote_rc} from SSH command")
+                return False
+            else:
+                return True
+        except Exception as e:
+            logger.error(f"[{self.remote_host}] Exception caught: {e}")
+            return False

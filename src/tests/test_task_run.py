@@ -1,7 +1,7 @@
 import unittest
 import random
 import subprocess
-from tests.file_helper import write_test_file
+from tests.file_helper import write_test_file, BASE_DIRECTORY
 import time
 import os
 import shutil
@@ -16,7 +16,6 @@ class TransferScriptTest(unittest.TestCase):
     # Create a variable with a random number
     RANDOM = random.randint(10000, 99999)
     FILE_PREFIX = "unittest_task_run"
-    BASE_DIRECTORY = "test/testFiles"
     MOVED_FILES_DIR = "archive"
     DELIMITER = ","
 
@@ -31,12 +30,12 @@ class TransferScriptTest(unittest.TestCase):
         write_test_file("/tmp/variable_lookup.txt", content=f"{self.RANDOM}")
 
         # Check that the dest directory exists, if not then we just fail here
-        if not os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/dest"):
+        if not os.path.exists(f"{BASE_DIRECTORY}/ssh_1/dest"):
             raise Exception("Destination directory does not exist. Ensure that setup has been run properly")
 
         # Delete any existing files in the destination directory
-        for file in os.listdir(f"{self.BASE_DIRECTORY}/ssh_1/src"):
-            os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/{file}")
+        for file in os.listdir(f"{BASE_DIRECTORY}/ssh_1/src"):
+            os.remove(f"{BASE_DIRECTORY}/ssh_1/src/{file}")
 
     def test_load_global_variables(self):
 
@@ -188,7 +187,7 @@ class TransferScriptTest(unittest.TestCase):
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
         self.assertEqual(self.run_task_run("scp-basic")["returncode"], 0)
 
@@ -225,7 +224,7 @@ class TransferScriptTest(unittest.TestCase):
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic", "test/cfg")
@@ -237,16 +236,16 @@ class TransferScriptTest(unittest.TestCase):
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic-multiple-dests", "test/cfg")
         self.assertEqual(task_runner.run(), True)
 
         # Check the files were copied to all 3 destinations
-        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test.txt"))
-        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test-2.txt"))
-        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test-3.txt"))
+        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test.txt"))
+        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test-2.txt"))
+        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test-3.txt"))
 
     def test_scp_basic_10_files(self):
 
@@ -255,7 +254,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Create 10 test files
         for i in range(10):
-            write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test{i}.txt", content="test1234")
+            write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test{i}.txt", content="test1234")
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic", "test/cfg")
@@ -263,7 +262,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Check that the files were all transferred
         for i in range(10):
-            self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_2/dest/test{i}.txt"))
+            self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test{i}.txt"))
 
     def test_scp_basic_pull(self):
 
@@ -271,7 +270,7 @@ class TransferScriptTest(unittest.TestCase):
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
         task_runner = task_run.TaskRun("scp-basic-pull", "test/cfg")
         self.assertEqual(task_runner.run(), True)
@@ -283,13 +282,13 @@ class TransferScriptTest(unittest.TestCase):
         # File will be delteted after transfer
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test1.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test1.txt", content="test1234")
 
         task_runner = task_run.TaskRun("scp-basic-pca-delete", "test/cfg")
         self.assertEqual(task_runner.run(), True)
 
         # Verify the file has disappeared
-        self.assertFalse(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/test1.txt"))
+        self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/test1.txt"))
 
     def test_scp_basic_pca_move(self):
 
@@ -298,16 +297,16 @@ class TransferScriptTest(unittest.TestCase):
         # File will be moved after transfer
 
         # Create a test file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/test2.txt", content="test1234")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test2.txt", content="test1234")
 
         task_runner = task_run.TaskRun("scp-basic-pca-move", "test/cfg")
         self.assertEqual(task_runner.run(), True)
 
         # Verify the file has disappeared
-        self.assertFalse(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/src/test2.txt"))
+        self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/test2.txt"))
 
         # Verify the file has been moved
-        self.assertTrue(os.path.exists(f"{self.BASE_DIRECTORY}/ssh_1/{self.MOVED_FILES_DIR}/test2.txt"))
+        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/{self.MOVED_FILES_DIR}/test2.txt"))
 
     def test_scp_source_file_conditions(self):
 
@@ -317,7 +316,7 @@ class TransferScriptTest(unittest.TestCase):
         # File must be older than 60 seconds and less than 600
 
         # Write a 11 byte long file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="01234567890")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="01234567890")
 
         # This should fail, because the file is too new
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
@@ -326,21 +325,21 @@ class TransferScriptTest(unittest.TestCase):
         self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
 
         # Modify the file to be older than 1 minute and try again
-        os.utime(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
+        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         self.assertEqual(task_runner.run(), True)
 
         # Modify the file to be older than 10 minutes and try again
-        os.utime(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 601, time.time() - 601))
+        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 601, time.time() - 601))
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
             task_runner.run()
         self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
 
         # Write a 9 byte long file - we need to change the age again
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678")
-        os.utime(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678")
+        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
@@ -348,8 +347,8 @@ class TransferScriptTest(unittest.TestCase):
         self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
 
         # Write a 21 byte long file - we need to change the age again
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678901234567890")
-        os.utime(f"{self.BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678901234567890")
+        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
@@ -363,7 +362,7 @@ class TransferScriptTest(unittest.TestCase):
         # File should not exist to start with
 
         # Create the source file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.log", content="01234567890")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.log", content="01234567890")
 
         # Filewatch configured to wait 15 seconds before giving up. Expect it to fail
         task_runner = task_run.TaskRun("scp-file-watch", "test/cfg")
@@ -374,7 +373,7 @@ class TransferScriptTest(unittest.TestCase):
         # This time, we run it again, but after 5 seconds, create the file
         # Create a thread that will run write_test_file after 5 seconds
         t = threading.Timer(
-            5, write_test_file, [f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.txt"], {"content": "01234567890"}
+            5, write_test_file, [f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.txt"], {"content": "01234567890"}
         )
         t.start()
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
@@ -383,8 +382,8 @@ class TransferScriptTest(unittest.TestCase):
         self.assertEqual(task_runner.run(), True)
 
         # Delete the fileWatch.txt and log file
-        os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.txt")
-        os.remove(f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.log")
+        os.remove(f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.txt")
+        os.remove(f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.log")
 
     def test_scp_log_watch(self):
 
@@ -401,7 +400,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # This time, we run it again with the file created and populated. It should fail because the file dosent contain the expected text
         # Write the file
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log", content="NOT_THE_RIGHT_PATTERN")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log", content="NOT_THE_RIGHT_PATTERN")
 
         task_runner = task_run.TaskRun("scp-log-watch", "test/cfg")
         with self.assertRaises(exceptions.LogWatchTimeoutError) as cm:
@@ -410,7 +409,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # This time we run again, but populate the file after 5 seconds
         t = threading.Timer(
-            5, write_test_file, [f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log"], {"content": "someText"}
+            5, write_test_file, [f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log"], {"content": "someText"}
         )
         t.start()
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
@@ -426,7 +425,7 @@ class TransferScriptTest(unittest.TestCase):
 
         # Write the matching pattern into the log, but before it runs.. This should
         # make the task fail because the pattern isn't written after the task starts
-        write_test_file(f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log", content="someText\n")
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log", content="someText\n")
         task_runner = task_run.TaskRun("scp-log-watch-tail", "test/cfg")
         with self.assertRaises(exceptions.LogWatchTimeoutError) as cm:
             task_runner.run()
@@ -436,7 +435,7 @@ class TransferScriptTest(unittest.TestCase):
         t = threading.Timer(
             5,
             write_test_file,
-            [f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log"],
+            [f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log"],
             {"content": "someText\n", "mode": "a"},
         )
         t.start()
@@ -471,10 +470,10 @@ class TransferScriptTest(unittest.TestCase):
         year = datetime.datetime.now().year
 
         to_remove = [
-            f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.log",
-            f"{self.BASE_DIRECTORY}/ssh_1/src/fileWatch.txt",
-            f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log",
-            f"{self.BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log",
+            f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.log",
+            f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.txt",
+            f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log",
+            f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log",
             "/tmp/variable_lookup.txt",
             "/tmp/variables1/variables.json",
             "/tmp/variables2/variables.json",

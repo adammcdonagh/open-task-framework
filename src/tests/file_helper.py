@@ -1,6 +1,8 @@
 import os
 from re import match
 
+BASE_DIRECTORY = "test/testFiles"
+
 
 def write_test_file(file_name, content=None, length=0, mode="w"):
     with open(file_name, mode) as f:
