@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 import unittest
 
 # import opentaskpy
@@ -7,7 +8,7 @@ from opentaskpy.config.loader import ConfigLoader
 
 # from opentaskpy.taskhandlers.batch import Batch
 from opentaskpy.taskhandlers import batch, execution
-from tests.file_helper import BASE_DIRECTORY
+from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 logging_level = 12
 
@@ -55,11 +56,20 @@ class TaskHandlerBatchTest(unittest.TestCase):
         ],
     }
 
+    # Create a variable with a random number
+    RANDOM = random.randint(10000, 99999)
+
     @classmethod
     def setUpClass(self):
+
         self.tearDownClass()
 
+        write_test_file("/tmp/variable_lookup.txt", content=f"{self.RANDOM}")
+
     def test_basic_batch(self):
+
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
         # We need a config loader object, so that the batch class can load in the configs for
         # the sub tasks
@@ -84,6 +94,7 @@ class TaskHandlerBatchTest(unittest.TestCase):
             f"{BASE_DIRECTORY}/ssh_2/dest/execution.txt",
             f"{BASE_DIRECTORY}/ssh_1/src/execution.test.fail.txt",
             f"{BASE_DIRECTORY}/ssh_1/dest/execution.invalidhost.txt",
+            "/tmp/variable_lookup.txt",
         ]
         for file in to_remove:
             if os.path.exists(file):

@@ -139,6 +139,23 @@
         "test/cfg"
       ],
       "justMyCode": false
+    },
+    {
+      "name": "Python: Execution - Basic - df - 2 hosts",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "df",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
     }
   ]
 }

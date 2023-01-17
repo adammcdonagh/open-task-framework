@@ -62,6 +62,9 @@ class TransferScriptTest(unittest.TestCase):
     def test_batch_basic_binary(self):
         # Use the "binary" to trigger the job with command line arguments
 
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
         self.assertEqual(self.run_task_run("batch-basic")["returncode"], 0)
 
     def test_binary_invalid_config_file(self):
@@ -118,8 +121,11 @@ class TransferScriptTest(unittest.TestCase):
 
     def test_batch_basic(self):
 
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
         # Use the TaskRun class to trigger the job properly
-        task_runner = task_run.TaskRun("basic", "test/cfg")
+        task_runner = task_run.TaskRun("batch-basic", "test/cfg")
         self.assertTrue(task_runner.run())
 
     def test_execution_basic(self):
