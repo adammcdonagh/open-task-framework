@@ -62,7 +62,14 @@ class Execution(TaskHandler):
                 for remote_handler in self.remote_handlers
             ]
 
-            wait(futures)
+            while True:
+                # Sleep 5 seconds for each loop
+                logger.info("Waiting for threads to complete...")
+                wait(futures, timeout=5, return_when="FIRST_COMPLETED")
+
+                # Break once all threads are done
+                if all(future.done() for future in futures):
+                    break
 
             # Check the results
             for future in futures:
