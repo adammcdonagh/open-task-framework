@@ -66,17 +66,17 @@ class Batch(TaskHandler):
                 retry_on_rerun = DEFAULT_TASK_RETRY_ON_RERUN
 
             # If this task has no dependencies, then it can sit at the top level of the tree
-            if "dependencies" not in task:
-                self.task_order_tree[order_id] = {
-                    "task_id": task["task_id"],
-                    "task": task_definition,
-                    "task_handler": task_handler,
-                    "timeout": timeout,
-                    "continue_on_fail": continue_on_fail,
-                    "retry_on_rerun": retry_on_rerun,
-                    "status": "NOT_STARTED",
-                    "children": [],
-                }
+            # if "dependencies" not in task:
+            self.task_order_tree[order_id] = {
+                "task_id": task["task_id"],
+                "batch_task_spec": task,
+                "task": task_definition,
+                "task_handler": task_handler,
+                "timeout": timeout,
+                "continue_on_fail": continue_on_fail,
+                "retry_on_rerun": retry_on_rerun,
+                "status": "NOT_STARTED",
+            }
 
         # Debug to show the structure of the tree
         logger.debug(f"Task order tree: {self.task_order_tree}")
@@ -97,7 +97,7 @@ class Batch(TaskHandler):
 
         return status == 0
 
-    def run(self):
+    def run(self, kill_event=None):
         logger.info("Running batch")
         environ["OTF_TASK_ID"] = self.task_id
 
@@ -115,14 +115,19 @@ class Batch(TaskHandler):
                 logger.log(12, f"Checking task {order_id} ({batch_task['task_id']})")
 
                 # Check if there are dependencies for this task that have not yet completed, if so then we skip it
-                if "dependencies" in task:
-                    for dependency in task["dependencies"]:
+                if "dependencies" in batch_task["batch_task_spec"]:
+                    all_dependencies_complete = True
+                    for dependency in batch_task["batch_task_spec"]["dependencies"]:
                         if self.task_order_tree[dependency]["status"] != "COMPLETED":
                             logger.log(
                                 12,
                                 f"Skipping task {order_id} ({batch_task['task_id']}) as dependency {dependency} has not completed",
                             )
+                            all_dependencies_complete = False
                             continue
+                        logger.info(f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed")
+                    if not all_dependencies_complete:
+                        continue
 
                 # Check if the task has already been triggered
                 if batch_task["status"] == "NOT_STARTED":
@@ -135,7 +140,7 @@ class Batch(TaskHandler):
                     # Start the thread
                     thread.start()
 
-                    logging.info(f"Spawned thread for task {order_id} ({batch_task['task_id']})")
+                    logger.info(f"Spawned thread for task {order_id} ({batch_task['task_id']})")
                     batch_task["status"] = "RUNNING"
                     batch_task["start_time"] = time.time()
                     batch_task["thread"] = thread
@@ -148,15 +153,22 @@ class Batch(TaskHandler):
                         time.time() - batch_task["start_time"] > batch_task["timeout"]
                         and batch_task["thread"].is_alive()
                     ):
-                        logging.error(f"Task {order_id} ({batch_task['task_id']}) has timed out")
+                        logger.error(f"Task {order_id} ({batch_task['task_id']}) has timed out")
                         batch_task["status"] = "TIMED_OUT"
                         # Send event to the thread to kill it
                         batch_task["kill_event"].set()
+                        # Wait for the thread to return
                         batch_task["thread"].join()
                         batch_task["result"] = False
 
                 if batch_task["status"] == "COMPLETED":
-                    logging.info(f"Task {order_id} ({batch_task['task_id']}) has completed")
+                    batch_task["thread"].join()
+                    logger.info(f"Task {order_id} ({batch_task['task_id']}) has completed")
+
+                # Handle instances where we timed out or failed, and we should continue on fail
+                if batch_task["status"] in ["TIMED_OUT", "FAILED"] and batch_task["continue_on_fail"]:
+                    logger.info(f"Task {order_id} ({batch_task['task_id']}) has failed, but continuing on fail")
+                    batch_task["status"] = "COMPLETED"
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done
             running_tasks = [task for task in self.task_order_tree.values() if task["status"] == "RUNNING"]
@@ -166,10 +178,21 @@ class Batch(TaskHandler):
             # Sleep 5 seconds before checking again
             time.sleep(5)
 
+            # Check if we have been asked to kill the batch
+            if kill_event and kill_event.is_set():
+                logger.info("Kill event received, stopping threads")
+                for order_id, batch_task in self.task_order_tree.items():
+                    if batch_task["status"] == "RUNNING":
+                        batch_task["kill_event"].set()
+                        batch_task["thread"].join()
+                        batch_task["status"] = "KILLED"
+
         # Check if any tasks have failed
-        failed_tasks = [task for task in self.task_order_tree.values() if task["status"] == "FAILED"]
+        failed_tasks = [task for task__ in self.task_order_tree.values() if task__["status"] != "COMPLETED"]
         if len(failed_tasks) > 0:
             overall_result = False
+
+        logger.info(f"Batch completed with result {overall_result}")
 
         return overall_result
 
@@ -183,13 +206,15 @@ class Batch(TaskHandler):
                 if batch_task["executing_thread"] is None:
                     logger.log(12, f"Spawning task handler for {batch_task['task_id']}")
                     # Spawn the task as it's own thread
-                    batch_task["executing_thread"] = executor.submit(self._execute, batch_task["task_handler"])
+                    batch_task["executing_thread"] = [executor.submit(self._execute, batch_task["task_handler"], event)]
                 else:
                     logger.log(12, f"Checking task handler for {batch_task['task_id']}")
                     # Check to see if the thread is still alive
-                    if not batch_task["executing_thread"].running():
+                    if not batch_task["executing_thread"][0].running() and batch_task["status"] != "TIMED_OUT":
                         # Get the returncode from the thread
-                        batch_task["result"] = batch_task["executing_thread"].result(timeout=1)
+
+                        batch_task["result"] = batch_task["executing_thread"][0].result()
+
                         if batch_task["result"]:
                             batch_task["status"] = "COMPLETED"
                         else:
@@ -199,16 +224,20 @@ class Batch(TaskHandler):
                         # Check if we have been asked to kill the thread
                         if event.is_set():
                             logger.log(12, f"Killing task handler for {batch_task['task_id']}")
-                            # Kill the thread
-                            batch_task["executing_thread"].cancel()
+                            # Kill the thread and all it's child processes
+                            batch_task["executing_thread"][0].cancel()
+                            executor.shutdown(wait=False)
+
                             break
+
                         # Wait for the thread to complete
                         logger.log(12, f"Waiting for task handler for {batch_task['task_id']}")
                         wait(batch_task["executing_thread"], timeout=5)
 
             batch_task["end_time"] = time.time()
 
-    def _execute(self, remote_handler):
-        result = remote_handler.run()
+    def _execute(self, remote_handler, event=None):
+
+        result = remote_handler.run(kill_event=event)
         logger.info(f"[{remote_handler.task_id}] Returned {result}")
         return result

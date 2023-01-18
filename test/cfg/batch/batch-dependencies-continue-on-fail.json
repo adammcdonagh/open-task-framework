@@ -1,0 +1,19 @@
+{
+  "type": "batch",
+  "tasks": [
+    {
+      "order_id": 1,
+      "task_id": "sleep-300",
+      "timeout": 6,
+      "continue_on_fail": true
+    },
+    {
+      "order_id": 2,
+      "task_id": "scp-basic",
+      "timeout": 60,
+      "dependencies": [
+        1
+      ]
+    }
+  ]
+}

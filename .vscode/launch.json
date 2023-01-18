@@ -141,6 +141,72 @@
       "justMyCode": false
     },
     {
+      "name": "Python: Batch - Parallel",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-parallel",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Timeout",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-basic-timeout",
+        "-v",
+        "3",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Dependencies",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies",
+        "-v",
+        "3",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Continue on fail",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-continue-on-fail",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Execution - Basic - df - 2 hosts",
       "type": "python",
       "request": "launch",

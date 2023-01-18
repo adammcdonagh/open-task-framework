@@ -42,7 +42,7 @@ class Execution(TaskHandler):
             for host in self.execution_definition["hosts"]:
                 self.remote_handlers.append(SSHExecution(host, self.execution_definition))
 
-    def run(self):
+    def run(self, kill_event=None):
         logger.info("Running execution")
         environ["OTF_TASK_ID"] = self.task_id
 
@@ -63,9 +63,25 @@ class Execution(TaskHandler):
             ]
 
             while True:
-                # Sleep 5 seconds for each loop
-                logger.info("Waiting for threads to complete...")
-                wait(futures, timeout=5, return_when="FIRST_COMPLETED")
+                try:
+                    # Sleep 5 seconds for each loop
+                    wait(futures, timeout=5)
+                    logger.info("Waiting for threads to complete...")
+
+                except TimeoutError:
+                    pass
+
+                if kill_event and kill_event.is_set():
+                    logger.info("Kill event received, stopping threads")
+
+                    # Before we terminate everything locally, we need to make sure that the processes
+                    # on the remote hosts are terminated as well
+                    for remote_handler in self.remote_handlers:
+                        logger.info(f"Killing remote processes on {remote_handler.remote_host}")
+                        remote_handler.kill()
+
+                    executor.shutdown(wait=False)
+                    return self.return_result(1, "Execution(s) failed - Kill signal received")
 
                 # Break once all threads are done
                 if all(future.done() for future in futures):

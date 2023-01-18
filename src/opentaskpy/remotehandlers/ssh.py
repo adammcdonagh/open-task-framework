@@ -1,6 +1,8 @@
 import logging
 import os
+import random
 import re
+import time
 
 from paramiko import AutoAddPolicy, SSHClient
 
@@ -337,14 +339,17 @@ class SSHTransfer(RemoteTransferHandler):
 
 
 def log_stdout(str_stdout, hostname):
-    logger.info(f"[{hostname}] Remote stdout returned:")
-    logger.info(f"[{hostname}] ###########")
+    # logger.info(f"[{hostname}] Remote stdout returned:")
+    # logger.info(f"[{hostname}] ###########")
     for line in str_stdout.splitlines():
         print(f"[{hostname}] REMOTE OUTPUT: {line}")
-    logger.info(f"[{hostname}] ###########")
+    # logger.info(f"[{hostname}] ###########")
 
 
 class SSHExecution(RemoteExecutionHandler):
+
+    ps_regex = r"(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)"
+
     def tidy(self):
         logger.debug(f"[{self.remote_host}] Closing SSH connection")
         self.ssh_client.close()
@@ -353,6 +358,10 @@ class SSHExecution(RemoteExecutionHandler):
         self.remote_host = remote_host
         self.spec = spec
         self.ssh_client = None
+        self.remote_pid = None
+        self.random = random.randint(
+            100000, 999999
+        )  # Random number used to make sure when we kill stuff, we always kill the right thing
 
         self.remote_host = remote_host
 
@@ -362,6 +371,9 @@ class SSHExecution(RemoteExecutionHandler):
         self.ssh_client = client
 
     def connect(self):
+        if self.ssh_client and self.ssh_client.get_transport() and self.ssh_client.get_transport().is_active():
+            return
+
         self.ssh_client.connect(
             self.remote_host,
             username=self.spec["protocol"]["credentials"]["username"],
@@ -369,7 +381,52 @@ class SSHExecution(RemoteExecutionHandler):
         )
         _, stdout, _ = self.ssh_client.exec_command("uname -a")
         with stdout as stdout_fh:
-            logger.log(11, f"Remote uname: {stdout_fh.read().decode('UTF-8')}")
+
+            output = stdout_fh.read().decode("UTF-8")
+            logger.log(11, f"Remote uname: {output}")
+
+    def _get_child_processes(self, parent_pid, process_listing):
+        children = []
+        for line in process_listing:
+            match = re.search(self.ps_regex, line)
+            if match:
+                if int(match.group(3)) == parent_pid:
+                    child_pid = int(match.group(2))
+                    # Never add PID 1 or 0!
+                    if child_pid == 1 or child_pid == 0:
+                        continue
+                    logger.debug(f"Found child process with PID: {child_pid}")
+                    children.append(child_pid)
+                    # Recurse to find the children of this child
+                    children.extend(self._get_child_processes(child_pid, process_listing))
+        return children
+
+    def kill(self):
+        logger.info(f"[{self.remote_host}] Killing remote process")
+
+        self.connect()
+        # We know the top level remote PID, we need to get all the child processes associated with it
+        _, stdout, _ = self.ssh_client.exec_command("ps -ef")
+        process_listing = []
+        # Get the process listing
+        with stdout as stdout_fh:
+            process_listing = stdout_fh.read().decode("UTF-8").splitlines()
+
+        # Now we have this, parse it, find the parent PID, and then all the children
+        children = self._get_child_processes(self.remote_pid, process_listing)
+        children.append(self.remote_pid)
+        logger.info(f"[{self.remote_host}] Found {len(children)} child processes to kill - {children}")
+
+        # Now we have the list of children, kill them
+        command = f"kill {' '.join([str(x) for x in children])}"
+        logger.info(f"[{self.remote_host}] Killing remote processes with command: {command}")
+        _, stdout, _ = self.ssh_client.exec_command(command)
+        # Wait for the command to finish
+        while not stdout.channel.exit_status_ready():
+            time.sleep(0.1)
+
+        # Disconnect SSH
+        self.tidy()
 
     def execute(self, command):
 
@@ -378,15 +435,20 @@ class SSHExecution(RemoteExecutionHandler):
             self.connect()
 
             # Command needs the directory to be changed to appended to it
-            command = f"cd {self.spec['directory']} && {command}"
+            command = f"echo __OTF_TOKEN__$$_{self.random}__; cd {self.spec['directory']} && {command}"
 
             logger.info(f"[{self.remote_host}] Executing command: {command}")
             _, stdout, stderr = self.ssh_client.exec_command(command)
+
             # Log the stdout and stderr
-            with stdout as stdout_fh:
-                str_stdout = stdout_fh.read().decode("UTF-8")
-                if str_stdout:
-                    log_stdout(str_stdout, self.remote_host)
+            for line in iter(lambda: stdout.readline(2048), ""):
+                log_stdout(line, self.remote_host)
+
+                # Check the line for the token and pull out the PID
+                regex = f"__OTF_TOKEN__(\\d+)_{self.random}__"
+                if re.search(regex, line):
+                    self.remote_pid = int(re.search(regex, line).group(1))
+                    logger.info(f"Found remote PID: {self.remote_pid}")
 
             with stderr as stderr_fh:
                 str_stderr = stderr_fh.read().decode("UTF-8")
@@ -395,6 +457,7 @@ class SSHExecution(RemoteExecutionHandler):
 
             # Get the return code
             remote_rc = stdout.channel.recv_exit_status()
+            self.tidy()
             if remote_rc != 0:
                 logger.error(f"[{self.remote_host}] Got return code {remote_rc} from SSH command")
                 return False

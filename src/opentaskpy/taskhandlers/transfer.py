@@ -74,7 +74,7 @@ class Transfer(TaskHandler):
                         f"Unknown protocol {self.dest_file_specs['protocol']['name']}"
                     )
 
-    def run(self):
+    def run(self, kill_event=None):
         logger.info("Running transfer")
         environ["OTF_TASK_ID"] = self.task_id
 
