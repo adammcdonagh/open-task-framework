@@ -38,7 +38,9 @@ class ConfigLoader:
         return value + datetime.timedelta(days)
 
     def template_lookup(self, plugin, **kwargs):
-        self.logger.log(11, f"Got call to lookup function {plugin} with kwargs {kwargs}")
+        self.logger.log(
+            11, f"Got call to lookup function {plugin} with kwargs {kwargs}"
+        )
 
         # Import the plugin if its not already loaded
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
@@ -47,7 +49,8 @@ class ConfigLoader:
                 importlib.import_module(f"opentaskpy.plugins.lookup.{plugin}")
             except ModuleNotFoundError:
                 self.logger.log(
-                    11, f"Module not found: opentaskpy.plugins.lookup.{plugin}. Looking in plugins directory instead"
+                    11,
+                    f"Module not found: opentaskpy.plugins.lookup.{plugin}. Looking in plugins directory instead",
                 )
                 pass
 
@@ -55,20 +58,26 @@ class ConfigLoader:
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
             plugin_path = f"{self.config_dir}/plugins/{plugin}.py"
             if os.path.isfile(plugin_path):
-                spec = importlib.util.spec_from_file_location(f"opentaskpy.plugins.lookup.{plugin}", plugin_path)
+                spec = importlib.util.spec_from_file_location(
+                    f"opentaskpy.plugins.lookup.{plugin}", plugin_path
+                )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 sys.modules[f"opentaskpy.plugins.lookup.{plugin}"] = module
 
         # Run the run function of the imported module
-        return getattr(sys.modules[f"opentaskpy.plugins.lookup.{plugin}"], "run")(**kwargs)
+        return getattr(  # noqa: B009
+            sys.modules[f"opentaskpy.plugins.lookup.{plugin}"], "run"
+        )(**kwargs)
 
     # TASK DEFINITION FIND FILE
     def load_task_definition(self, task_id):
         json_config = glob(f"{self.config_dir}/**/{task_id}.json", recursive=True)
         if not json_config or len(json_config) != 1:
             if len(json_config) > 1:
-                raise DuplicateConfigFileError(f"Found more than one task with name: {task_id}")
+                raise DuplicateConfigFileError(
+                    f"Found more than one task with name: {task_id}"
+                )
 
             raise FileNotFoundError(f"Couldn't find task with name: {task_id}")
 
@@ -93,12 +102,16 @@ class ConfigLoader:
             task_definition = json.loads(rendered_template)
             # Extend or replace any local variables for this task
             if "variables" in task_definition:
-                self.global_variables = self.global_variables | task_definition["variables"]
+                self.global_variables = (
+                    self.global_variables | task_definition["variables"]
+                )
 
             template = self.template_env.from_string(json_content)
             rendered_template = template.render(self.global_variables)
             active_task_definition = json.loads(rendered_template)
-            self.logger.log(12, f"Evalated task definition: {json.dumps(active_task_definition)}")
+            self.logger.log(
+                12, f"Evalated task definition: {json.dumps(active_task_definition)}"
+            )
 
         return active_task_definition
 
@@ -108,7 +121,9 @@ class ConfigLoader:
         variable_configs = []
         file_types = (".json.j2", ".json")
         for file_type in file_types:
-            variable_configs.extend(glob(f"{self.config_dir}/**/variables{file_type}", recursive=True))
+            variable_configs.extend(
+                glob(f"{self.config_dir}/**/variables{file_type}", recursive=True)
+            )
         if not variable_configs:
             # self.logger.error("Couldn't find any variables.(json|json.j2) files")
             raise FileNotFoundError("Couldn't find any variables.(json|json.j2) files")
@@ -129,7 +144,9 @@ class ConfigLoader:
         current_depth = 0
         previous_render = None
 
-        variables_template = self.template_env.from_string(json.dumps(self.global_variables))
+        variables_template = self.template_env.from_string(
+            json.dumps(self.global_variables)
+        )
         variables_template.globals["now"] = datetime.datetime.utcnow
 
         # Define lookup function
@@ -141,7 +158,9 @@ class ConfigLoader:
             previous_render = evaluated_variables
 
             variables_template = self.template_env.from_string(evaluated_variables)
-            evaluated_variables = variables_template.render(json.loads(evaluated_variables))
+            evaluated_variables = variables_template.render(
+                json.loads(evaluated_variables)
+            )
 
             current_depth += 1
             if current_depth >= MAX_DEPTH:

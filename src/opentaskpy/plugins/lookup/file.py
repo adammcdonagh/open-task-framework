@@ -16,7 +16,9 @@ def run(**kwargs):
 
     # Expect a kwarg named file
     if "path" not in kwargs:
-        raise Exception(f"Missing kwarg: 'path' while trying to run lookup plugin '{plugin_name}'")
+        raise Exception(
+            f"Missing kwarg: 'path' while trying to run lookup plugin '{plugin_name}'"
+        )
 
     # Check if the file exists
     if not os.path.isfile(kwargs["path"]):

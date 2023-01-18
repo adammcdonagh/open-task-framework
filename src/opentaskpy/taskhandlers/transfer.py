@@ -87,7 +87,9 @@ class Transfer(TaskHandler):
             )
 
             if self.source_remote_handler.init_logwatch() != 0:
-                return self.return_result(1, "Logwatch init failed", exception=exceptions.LogWatchInitError)
+                return self.return_result(
+                    1, "Logwatch init failed", exception=exceptions.LogWatchInitError
+                )
 
             timeout_seconds = (
                 60
@@ -108,7 +110,9 @@ class Transfer(TaskHandler):
                     found_log_entry = True
                     break
                 else:
-                    remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
+                    remaining_seconds = ceil(
+                        (start_time + timeout_seconds) - time.time()
+                    )
                     if remaining_seconds == 0:
                         break
 
@@ -127,7 +131,9 @@ class Transfer(TaskHandler):
                 logger.info("Found pattern in log file")
             else:
                 return self.return_result(
-                    1, f"No log entry found after {timeout_seconds} seconds", exception=exceptions.LogWatchTimeoutError
+                    1,
+                    f"No log entry found after {timeout_seconds} seconds",
+                    exception=exceptions.LogWatchTimeoutError,
                 )
 
         # If filewatching, do that next
@@ -160,9 +166,13 @@ class Transfer(TaskHandler):
                 else self.source_file_spec["fileRegex"]
             )
 
-            logger.info(f"Performing a file watch on {watch_directory}/{watch_file_pattern}")
+            logger.info(
+                f"Performing a file watch on {watch_directory}/{watch_file_pattern}"
+            )
 
-            while not remote_files and floor(time.time() - start_time) <= timeout_seconds:
+            while (
+                not remote_files and floor(time.time() - start_time) <= timeout_seconds
+            ):
 
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
@@ -172,7 +182,9 @@ class Transfer(TaskHandler):
                     logger.info("Filewatch found remote file(s)")
                     break
                 else:
-                    remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
+                    remaining_seconds = ceil(
+                        (start_time + timeout_seconds) - time.time()
+                    )
                     if remaining_seconds == 0:
                         break
 
@@ -195,7 +207,9 @@ class Transfer(TaskHandler):
                 return self.return_result("0", "Just performing filewatch")
             elif not remote_files:
                 return self.return_result(
-                    1, f"No files found after {timeout_seconds} seconds", exception=exceptions.RemoteFileNotFoundError
+                    1,
+                    f"No files found after {timeout_seconds} seconds",
+                    exception=exceptions.RemoteFileNotFoundError,
                 )
 
         # Determine what needs to be transferred
@@ -226,11 +240,15 @@ class Transfer(TaskHandler):
                     file_size = remote_files[remote_file]["size"]
 
                     if min_size and file_size <= min_size:
-                        logger.info(f"File is too small: Min size: [{min_size} B] Actual size: [{file_size} B]")
+                        logger.info(
+                            f"File is too small: Min size: [{min_size} B] Actual size: [{file_size} B]"
+                        )
                         meets_condition = False
 
                     if max_size and file_size >= max_size:
-                        logger.info(f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]")
+                        logger.info(
+                            f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]"
+                        )
                         meets_condition = False
 
                 if "age" in self.source_file_spec["conditionals"]:
@@ -248,14 +266,21 @@ class Transfer(TaskHandler):
                     file_modified_time = remote_files[remote_file]["modified_time"]
                     file_age = time.time() - file_modified_time
 
-                    logger.log(12, f"Checking file age - Last modified time: {time.ctime(file_modified_time)}")
+                    logger.log(
+                        12,
+                        f"Checking file age - Last modified time: {time.ctime(file_modified_time)}",
+                    )
 
                     if min_age and file_age <= min_age:
-                        logger.info(f"File is too new: Min age: [{min_age} secs] Actual age: [{file_age} secs]")
+                        logger.info(
+                            f"File is too new: Min age: [{min_age} secs] Actual age: [{file_age} secs]"
+                        )
                         meets_condition = False
 
                     if max_age and file_age >= max_age:
-                        logger.info(f"File is too old: Max age: [{max_age} secs] Actual age: [{file_age} secs]")
+                        logger.info(
+                            f"File is too old: Max age: [{max_age} secs] Actual age: [{file_age} secs]"
+                        )
                         meets_condition = False
 
                 if not meets_condition:
@@ -270,7 +295,9 @@ class Transfer(TaskHandler):
                 )
             else:
                 return self.return_result(
-                    1, "No remote files could be found to transfer", exception=exceptions.FilesDoNotMeetConditionsError
+                    1,
+                    "No remote files could be found to transfer",
+                    exception=exceptions.FilesDoNotMeetConditionsError,
                 )
         else:
             logger.info("Found the following file(s) that match all requirements:")
@@ -283,32 +310,50 @@ class Transfer(TaskHandler):
                 # Handle the push transfers first
                 i = 0
                 for dest_file_spec in self.dest_file_specs:
-                    if "transferType" not in dest_file_spec or dest_file_spec["transferType"] == "push":
+                    if (
+                        "transferType" not in dest_file_spec
+                        or dest_file_spec["transferType"] == "push"
+                    ):
                         transfer_result = self.source_remote_handler.transfer_files(
-                            remote_files, dest_file_spec, dest_remote_handler=self.dest_remote_handlers[i]
+                            remote_files,
+                            dest_file_spec,
+                            dest_remote_handler=self.dest_remote_handlers[i],
                         )
                         if transfer_result != 0:
                             return self.return_result(
-                                1, "Remote transfer errored", exception=exceptions.RemoteTransferError
+                                1,
+                                "Remote transfer errored",
+                                exception=exceptions.RemoteTransferError,
                             )
 
                         logger.info("Transfer completed successfully")
 
-                    elif "transferType" in dest_file_spec and dest_file_spec["transferType"] == "pull":
-                        transfer_result = self.dest_remote_handlers[i].pull_files(remote_files, self.source_file_spec)
+                    elif (
+                        "transferType" in dest_file_spec
+                        and dest_file_spec["transferType"] == "pull"
+                    ):
+                        transfer_result = self.dest_remote_handlers[i].pull_files(
+                            remote_files, self.source_file_spec
+                        )
                         if transfer_result != 0:
                             return self.return_result(
-                                1, "Remote PULL transfer errored", exception=exceptions.RemoteTransferError
+                                1,
+                                "Remote PULL transfer errored",
+                                exception=exceptions.RemoteTransferError,
                             )
 
                         logger.info("Transfer completed successfully")
 
                     # Handle any ownership and permissions changes
                     if dest_file_spec["protocol"]["name"] == "ssh":
-                        move_result = self.dest_remote_handlers[i].move_files_to_final_location(remote_files)
+                        move_result = self.dest_remote_handlers[
+                            i
+                        ].move_files_to_final_location(remote_files)
                         if move_result != 0:
                             return self.return_result(
-                                1, "Error moving file into final location", exception=exceptions.RemoteTransferError
+                                1,
+                                "Error moving file into final location",
+                                exception=exceptions.RemoteTransferError,
                             )
                     i += 1
             else:
@@ -316,10 +361,14 @@ class Transfer(TaskHandler):
 
             if "postCopyAction" in self.source_file_spec:
 
-                pca_result = self.source_remote_handler.handle_post_copy_action(remote_files)
+                pca_result = self.source_remote_handler.handle_post_copy_action(
+                    remote_files
+                )
                 if pca_result != 0:
                     return self.return_result(
-                        1, "Error performing post copy action", exception=exceptions.RemoteTransferError
+                        1,
+                        "Error performing post copy action",
+                        exception=exceptions.RemoteTransferError,
                     )
 
             return self.return_result(0)

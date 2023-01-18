@@ -22,7 +22,9 @@ def run(**kwargs):
     expected_kwargs = ["url", "jsonpath"]
     for kwarg in expected_kwargs:
         if kwarg not in kwargs:
-            raise Exception(f"Missing kwarg: '{kwarg}' while trying to run lookup plugin '{plugin_name}'")
+            raise Exception(
+                f"Missing kwarg: '{kwarg}' while trying to run lookup plugin '{plugin_name}'"
+            )
 
     result = None
     try:

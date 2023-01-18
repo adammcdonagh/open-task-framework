@@ -40,7 +40,9 @@ class Execution(TaskHandler):
             # For each host, create a remote handler
             self.remote_handlers = []
             for host in self.execution_definition["hosts"]:
-                self.remote_handlers.append(SSHExecution(host, self.execution_definition))
+                self.remote_handlers.append(
+                    SSHExecution(host, self.execution_definition)
+                )
 
     def run(self, kill_event=None):
         logger.info("Running execution")
@@ -58,7 +60,9 @@ class Execution(TaskHandler):
         with ThreadPoolExecutor(len(self.remote_handlers)) as executor:
 
             futures = [
-                executor.submit(self._execute, self.execution_definition, remote_handler)
+                executor.submit(
+                    self._execute, self.execution_definition, remote_handler
+                )
                 for remote_handler in self.remote_handlers
             ]
 
@@ -77,11 +81,15 @@ class Execution(TaskHandler):
                     # Before we terminate everything locally, we need to make sure that the processes
                     # on the remote hosts are terminated as well
                     for remote_handler in self.remote_handlers:
-                        logger.info(f"Killing remote processes on {remote_handler.remote_host}")
+                        logger.info(
+                            f"Killing remote processes on {remote_handler.remote_host}"
+                        )
                         remote_handler.kill()
 
                     executor.shutdown(wait=False)
-                    return self.return_result(1, "Execution(s) failed - Kill signal received")
+                    return self.return_result(
+                        1, "Execution(s) failed - Kill signal received"
+                    )
 
                 # Break once all threads are done
                 if all(future.done() for future in futures):

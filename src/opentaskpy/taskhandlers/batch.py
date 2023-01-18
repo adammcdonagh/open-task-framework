@@ -40,7 +40,9 @@ class Batch(TaskHandler):
             elif task_definition["type"] == "transfer":
                 task_handler = Transfer(task["task_id"], task_definition)
             elif task_definition["type"] == "batch":
-                task_handler = Batch(task["task_id"], task_definition, self.config_loader)
+                task_handler = Batch(
+                    task["task_id"], task_definition, self.config_loader
+                )
             else:
                 raise Exception("Unknown task type")
 
@@ -125,7 +127,9 @@ class Batch(TaskHandler):
                             )
                             all_dependencies_complete = False
                             continue
-                        logger.info(f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed")
+                        logger.info(
+                            f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
+                        )
                     if not all_dependencies_complete:
                         continue
 
@@ -135,12 +139,16 @@ class Batch(TaskHandler):
                     batch_task["executing_thread"] = None
                     e = threading.Event()
                     thread = threading.Thread(
-                        target=self.task_runner, args=(batch_task, e), name=f"{batch_task['task_id']}_parent"
+                        target=self.task_runner,
+                        args=(batch_task, e),
+                        name=f"{batch_task['task_id']}_parent",
                     )
                     # Start the thread
                     thread.start()
 
-                    logger.info(f"Spawned thread for task {order_id} ({batch_task['task_id']})")
+                    logger.info(
+                        f"Spawned thread for task {order_id} ({batch_task['task_id']})"
+                    )
                     batch_task["status"] = "RUNNING"
                     batch_task["start_time"] = time.time()
                     batch_task["thread"] = thread
@@ -153,7 +161,9 @@ class Batch(TaskHandler):
                         time.time() - batch_task["start_time"] > batch_task["timeout"]
                         and batch_task["thread"].is_alive()
                     ):
-                        logger.error(f"Task {order_id} ({batch_task['task_id']}) has timed out")
+                        logger.error(
+                            f"Task {order_id} ({batch_task['task_id']}) has timed out"
+                        )
                         batch_task["status"] = "TIMED_OUT"
                         # Send event to the thread to kill it
                         batch_task["kill_event"].set()
@@ -163,15 +173,26 @@ class Batch(TaskHandler):
 
                 if batch_task["status"] == "COMPLETED":
                     batch_task["thread"].join()
-                    logger.info(f"Task {order_id} ({batch_task['task_id']}) has completed")
+                    logger.info(
+                        f"Task {order_id} ({batch_task['task_id']}) has completed"
+                    )
 
                 # Handle instances where we timed out or failed, and we should continue on fail
-                if batch_task["status"] in ["TIMED_OUT", "FAILED"] and batch_task["continue_on_fail"]:
-                    logger.info(f"Task {order_id} ({batch_task['task_id']}) has failed, but continuing on fail")
+                if (
+                    batch_task["status"] in ["TIMED_OUT", "FAILED"]
+                    and batch_task["continue_on_fail"]
+                ):
+                    logger.info(
+                        f"Task {order_id} ({batch_task['task_id']}) has failed, but continuing on fail"
+                    )
                     batch_task["status"] = "COMPLETED"
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done
-            running_tasks = [task for task in self.task_order_tree.values() if task["status"] == "RUNNING"]
+            running_tasks = [
+                task
+                for task in self.task_order_tree.values()
+                if task["status"] == "RUNNING"
+            ]
             if len(running_tasks) == 0:
                 break
 
@@ -181,14 +202,18 @@ class Batch(TaskHandler):
             # Check if we have been asked to kill the batch
             if kill_event and kill_event.is_set():
                 logger.info("Kill event received, stopping threads")
-                for order_id, batch_task in self.task_order_tree.items():
+                for _order_id, batch_task in self.task_order_tree.items():
                     if batch_task["status"] == "RUNNING":
                         batch_task["kill_event"].set()
                         batch_task["thread"].join()
                         batch_task["status"] = "KILLED"
 
         # Check if any tasks have failed
-        failed_tasks = [task for task__ in self.task_order_tree.values() if task__["status"] != "COMPLETED"]
+        failed_tasks = [
+            task
+            for task__ in self.task_order_tree.values()
+            if task__["status"] != "COMPLETED"
+        ]
         if len(failed_tasks) > 0:
             overall_result = False
 
@@ -200,20 +225,31 @@ class Batch(TaskHandler):
         # Thread to trigger the task itself
 
         logger.info(f"Running task {batch_task['task_id']}")
-        with ThreadPoolExecutor(max_workers=1, thread_name_prefix=batch_task["task_id"]) as executor:
+        with ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix=batch_task["task_id"]
+        ) as executor:
 
             while True:
                 if batch_task["executing_thread"] is None:
                     logger.log(12, f"Spawning task handler for {batch_task['task_id']}")
                     # Spawn the task as it's own thread
-                    batch_task["executing_thread"] = [executor.submit(self._execute, batch_task["task_handler"], event)]
+                    batch_task["executing_thread"] = [
+                        executor.submit(
+                            self._execute, batch_task["task_handler"], event
+                        )
+                    ]
                 else:
                     logger.log(12, f"Checking task handler for {batch_task['task_id']}")
                     # Check to see if the thread is still alive
-                    if not batch_task["executing_thread"][0].running() and batch_task["status"] != "TIMED_OUT":
+                    if (
+                        not batch_task["executing_thread"][0].running()
+                        and batch_task["status"] != "TIMED_OUT"
+                    ):
                         # Get the returncode from the thread
 
-                        batch_task["result"] = batch_task["executing_thread"][0].result()
+                        batch_task["result"] = batch_task["executing_thread"][
+                            0
+                        ].result()
 
                         if batch_task["result"]:
                             batch_task["status"] = "COMPLETED"
@@ -223,7 +259,9 @@ class Batch(TaskHandler):
                     else:
                         # Check if we have been asked to kill the thread
                         if event.is_set():
-                            logger.log(12, f"Killing task handler for {batch_task['task_id']}")
+                            logger.log(
+                                12, f"Killing task handler for {batch_task['task_id']}"
+                            )
                             # Kill the thread and all it's child processes
                             batch_task["executing_thread"][0].cancel()
                             executor.shutdown(wait=False)
@@ -231,7 +269,9 @@ class Batch(TaskHandler):
                             break
 
                         # Wait for the thread to complete
-                        logger.log(12, f"Waiting for task handler for {batch_task['task_id']}")
+                        logger.log(
+                            12, f"Waiting for task handler for {batch_task['task_id']}"
+                        )
                         wait(batch_task["executing_thread"], timeout=5)
 
             batch_task["end_time"] = time.time()

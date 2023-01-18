@@ -15,5 +15,9 @@ def write_test_file(file_name, content=None, length=0, mode="w"):
 
 
 def list_test_files(directory, file_pattern, delimiter):
-    files = [f"{directory}/{f}" for f in os.listdir(directory) if match(rf"{file_pattern}", f)]
+    files = [
+        f"{directory}/{f}"
+        for f in os.listdir(directory)
+        if match(rf"{file_pattern}", f)
+    ]
     return delimiter.join(files)

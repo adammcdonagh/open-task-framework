@@ -60,11 +60,11 @@ class TaskHandlerBatchTest(unittest.TestCase):
     RANDOM = random.randint(10000, 99999)
 
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
 
-        self.tearDownClass()
+        cls.tearDownClass()
 
-        write_test_file("/tmp/variable_lookup.txt", content=f"{self.RANDOM}")
+        write_test_file("/tmp/variable_lookup.txt", content=f"{cls.RANDOM}")
 
     def test_basic_batch(self):
 
@@ -78,7 +78,9 @@ class TaskHandlerBatchTest(unittest.TestCase):
 
         # Check that the batch_obj contains an execution type task
         # batch_obj.tasks[0] should be an instance of a execution task handler class
-        self.assertIsInstance(batch_obj.task_order_tree[1]["task_handler"], execution.Execution)
+        self.assertIsInstance(
+            batch_obj.task_order_tree[1]["task_handler"], execution.Execution
+        )
 
         # Run the batch and expect a true status
         self.assertTrue(batch_obj.run())
@@ -87,7 +89,7 @@ class TaskHandlerBatchTest(unittest.TestCase):
         self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/touchedFile.txt"))
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
 
         to_remove = [
             f"{BASE_DIRECTORY}/ssh_1/dest/execution.txt",

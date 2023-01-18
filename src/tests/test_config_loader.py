@@ -15,18 +15,20 @@ class ConfigLoaderTest(unittest.TestCase):
     RANDOM = random.randint(10000, 99999)
 
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
 
-        self.tearDownClass()
+        cls.tearDownClass()
         # This all relies on both the docker containers being set up, as well as the directories existing
         # The easiest way to do this is via VSCode tasks, running the "Create test files" task
 
         # Create dummy variable file
-        write_test_file("/tmp/variable_lookup.txt", content=f"{self.RANDOM}")
+        write_test_file("/tmp/variable_lookup.txt", content=f"{cls.RANDOM}")
 
         # Check that the dest directory exists, if not then we just fail here
         if not os.path.exists(f"{BASE_DIRECTORY}/ssh_1/dest"):
-            raise Exception("Destination directory does not exist. Ensure that setup has been run properly")
+            raise Exception(
+                "Destination directory does not exist. Ensure that setup has been run properly"
+            )
 
         # Delete any existing files in the destination directory
         for file in os.listdir(f"{BASE_DIRECTORY}/ssh_1/src"):
@@ -51,7 +53,9 @@ class ConfigLoaderTest(unittest.TestCase):
         expected_task_definition = {"test": "test123456"}
 
         # Test that the task definition is loaded correctly
-        self.assertEqual(config_loader.load_task_definition("task"), expected_task_definition)
+        self.assertEqual(
+            config_loader.load_task_definition("task"), expected_task_definition
+        )
 
         # Test that a non existent task definition file raises an error
         os.remove("/tmp/task.json")
@@ -73,12 +77,20 @@ class ConfigLoaderTest(unittest.TestCase):
         config_loader = ConfigLoader("/tmp")
 
         # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
-        write_test_file("/tmp/task.json", content='{"test": "{{ test }}", "variables": {"NEW_VARIABLE": "NEW_VALUE"}}')
+        write_test_file(
+            "/tmp/task.json",
+            content='{"test": "{{ test }}", "variables": {"NEW_VARIABLE": "NEW_VALUE"}}',
+        )
 
-        expected_task_definition = {"test": "test123456", "variables": {"NEW_VARIABLE": "NEW_VALUE"}}
+        expected_task_definition = {
+            "test": "test123456",
+            "variables": {"NEW_VARIABLE": "NEW_VALUE"},
+        }
 
         # Test that the task definition is loaded correctly
-        self.assertEqual(config_loader.load_task_definition("task"), expected_task_definition)
+        self.assertEqual(
+            config_loader.load_task_definition("task"), expected_task_definition
+        )
 
     def test_load_global_variables(self):
 
@@ -110,13 +122,20 @@ class ConfigLoaderTest(unittest.TestCase):
         os.mkdir("/tmp/variables2")
         os.mkdir("/tmp/variables3")
 
-        write_test_file("/tmp/variables1/variables.json", content='{"test": "test1234"}')
-        write_test_file("/tmp/variables2/variables.json", content='{"test2": "test5678"}')
-        write_test_file("/tmp/variables3/variables.json", content='{"test3": "test9012"}')
+        write_test_file(
+            "/tmp/variables1/variables.json", content='{"test": "test1234"}'
+        )
+        write_test_file(
+            "/tmp/variables2/variables.json", content='{"test2": "test5678"}'
+        )
+        write_test_file(
+            "/tmp/variables3/variables.json", content='{"test3": "test9012"}'
+        )
 
         config_loader = ConfigLoader("/tmp")
         self.assertEqual(
-            config_loader.get_global_variables(), {"test": "test1234", "test2": "test5678", "test3": "test9012"}
+            config_loader.get_global_variables(),
+            {"test": "test1234", "test2": "test5678", "test3": "test9012"},
         )
         # Remove the directories
         os.remove("/tmp/variables1/variables.json")
@@ -146,7 +165,11 @@ class ConfigLoaderTest(unittest.TestCase):
             "SOME_VARIABLE2": "test1234",
         }
 
-        json_resolved = {"test": "test123456", "SOME_VARIABLE": "test12345", "SOME_VARIABLE2": "test1234"}
+        json_resolved = {
+            "test": "test123456",
+            "SOME_VARIABLE": "test12345",
+            "SOME_VARIABLE2": "test1234",
+        }
 
         # Create a JSON file with some test variables in it
         write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
@@ -177,10 +200,12 @@ class ConfigLoaderTest(unittest.TestCase):
         with self.assertRaises(Exception) as e:
             config_loader = ConfigLoader("/tmp")
 
-        self.assertEqual(str(e.exception), "Reached max depth of recursive template evaluation")
+        self.assertEqual(
+            str(e.exception), "Reached max depth of recursive template evaluation"
+        )
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
 
         to_remove = [
             "/tmp/variables1/variables.json",

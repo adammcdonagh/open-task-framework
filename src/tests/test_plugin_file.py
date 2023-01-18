@@ -10,14 +10,18 @@ class FilePluginTest(unittest.TestCase):
         with self.assertRaises(Exception) as ex:
             run()
 
-        self.assertEqual(str(ex.exception), "Missing kwarg: 'path' while trying to run lookup plugin 'file'")
+        self.assertEqual(
+            str(ex.exception),
+            "Missing kwarg: 'path' while trying to run lookup plugin 'file'",
+        )
 
     def test_file_plugin_file_not_found(self):
         with self.assertRaises(FileNotFoundError) as ex:
             run(path="/tmp/does_not_exist.txt")
 
         self.assertEqual(
-            str(ex.exception), "File /tmp/does_not_exist.txt does not exist while trying to run lookup plugin 'file'"
+            str(ex.exception),
+            "File /tmp/does_not_exist.txt does not exist while trying to run lookup plugin 'file'",
         )
 
     def test_file_plugin(self):

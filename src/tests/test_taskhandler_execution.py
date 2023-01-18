@@ -51,16 +51,20 @@ class TaskHandlerExecutionTest(unittest.TestCase):
     }
 
     @classmethod
-    def setUpClass(self):
-        self.tearDownClass()
+    def setUpClass(cls):
+        cls.tearDownClass()
 
     def test_basic_execution(self):
         execution_obj = execution.Execution("df-basic", self.touch_task_definition)
         execution_obj._set_remote_handlers()
 
         # Validate some things were set as expected
-        self.assertEqual(execution_obj.remote_handlers[0].__class__.__name__, "SSHExecution")
-        self.assertEqual(execution_obj.remote_handlers[1].__class__.__name__, "SSHExecution")
+        self.assertEqual(
+            execution_obj.remote_handlers[0].__class__.__name__, "SSHExecution"
+        )
+        self.assertEqual(
+            execution_obj.remote_handlers[1].__class__.__name__, "SSHExecution"
+        )
 
         # Run the execution and expect a true status
         self.assertTrue(execution_obj.run())
@@ -72,14 +76,20 @@ class TaskHandlerExecutionTest(unittest.TestCase):
     def test_basic_execution_cmd_failure(self):
 
         # Write a test file to the source directory
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/execution.test.fail.txt", content="test1234")
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/execution.test.fail.txt", content="test1234"
+        )
 
         execution_obj = execution.Execution("task-fail", self.fail_task_definition)
         execution_obj._set_remote_handlers()
 
         # Validate some things were set as expected
-        self.assertEqual(execution_obj.remote_handlers[0].__class__.__name__, "SSHExecution")
-        self.assertEqual(execution_obj.remote_handlers[1].__class__.__name__, "SSHExecution")
+        self.assertEqual(
+            execution_obj.remote_handlers[0].__class__.__name__, "SSHExecution"
+        )
+        self.assertEqual(
+            execution_obj.remote_handlers[1].__class__.__name__, "SSHExecution"
+        )
 
         # Run the execution and expect a failure
         self.assertFalse(execution_obj.run())
@@ -90,17 +100,25 @@ class TaskHandlerExecutionTest(unittest.TestCase):
         execution_obj._set_remote_handlers()
 
         # Validate some things were set as expected
-        self.assertEqual(execution_obj.remote_handlers[0].__class__.__name__, "SSHExecution")
-        self.assertEqual(execution_obj.remote_handlers[1].__class__.__name__, "SSHExecution")
+        self.assertEqual(
+            execution_obj.remote_handlers[0].__class__.__name__, "SSHExecution"
+        )
+        self.assertEqual(
+            execution_obj.remote_handlers[1].__class__.__name__, "SSHExecution"
+        )
 
         self.assertFalse(execution_obj.run())
 
         # But the remote file should still have been created on the valid host
-        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/dest/execution.invalidhost.txt"))
-        self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/execution.invalidhost.txt"))
+        self.assertTrue(
+            os.path.exists(f"{BASE_DIRECTORY}/ssh_1/dest/execution.invalidhost.txt")
+        )
+        self.assertFalse(
+            os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/execution.invalidhost.txt")
+        )
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
 
         to_remove = [
             f"{BASE_DIRECTORY}/ssh_1/dest/execution.txt",
