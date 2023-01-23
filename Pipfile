@@ -7,6 +7,9 @@ name = "pypi"
 opentaskpy = {editable = true, path = "."}
 requests = "*"
 jsonpath-ng = "*"
+paramiko = "*"
+jinja2 = "*"
+jsonschema = "*"
 
 [dev-packages]
 flake8 = "*"

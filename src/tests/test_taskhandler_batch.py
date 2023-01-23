@@ -7,7 +7,7 @@ import unittest
 from opentaskpy.config.loader import ConfigLoader
 
 # from opentaskpy.taskhandlers.batch import Batch
-from opentaskpy.taskhandlers import batch, execution
+from opentaskpy.taskhandlers import batch, execution, transfer
 from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 logging_level = 12
@@ -37,6 +37,38 @@ class TaskHandlerBatchTest(unittest.TestCase):
             }
         ],
     }
+
+    parallel_batch_definition = {
+        "type": "batch",
+        "tasks": [
+            {
+                "order_id": 1,
+                "task_id": "touch",
+            },
+            {
+                "order_id": 2,
+                "task_id": "scp-basic",
+            },
+        ],
+    }
+
+    dependent_batch_definition = {
+        "type": "batch",
+        "tasks": [
+            {
+                "order_id": 1,
+                "task_id": "touch",
+            },
+            {
+                "order_id": 2,
+                "task_id": "scp-basic",
+                "dependencies": [
+                    1,
+                ],
+            },
+        ],
+    }
+
     touch_task_definition = {
         "type": "execution",
         "hosts": ["172.16.0.11", "172.16.0.12"],
@@ -87,6 +119,52 @@ class TaskHandlerBatchTest(unittest.TestCase):
 
         # Check the execution task was run
         self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/touchedFile.txt"))
+
+    def test_batch_parallel(self):
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
+        # We need a config loader object, so that the batch class can load in the configs for
+        # the sub tasks
+        config_loader = ConfigLoader("test/cfg")
+        batch_obj = batch.Batch(
+            "parallel", self.parallel_batch_definition, config_loader
+        )
+
+        # Check that the batch_obj contains an execution type task
+        # batch_obj.tasks[0] should be an instance of a execution task handler class
+        self.assertIsInstance(
+            batch_obj.task_order_tree[1]["task_handler"], execution.Execution
+        )
+        self.assertIsInstance(
+            batch_obj.task_order_tree[2]["task_handler"], transfer.Transfer
+        )
+
+        # Run the batch and expect a true status
+        self.assertTrue(batch_obj.run())
+
+    def test_batch_dependencies(self):
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
+        # We need a config loader object, so that the batch class can load in the configs for
+        # the sub tasks
+        config_loader = ConfigLoader("test/cfg")
+        batch_obj = batch.Batch(
+            "parallel", self.dependent_batch_definition, config_loader
+        )
+
+        # Check that the batch_obj contains an execution type task
+        # batch_obj.tasks[0] should be an instance of a execution task handler class
+        self.assertIsInstance(
+            batch_obj.task_order_tree[1]["task_handler"], execution.Execution
+        )
+        self.assertIsInstance(
+            batch_obj.task_order_tree[2]["task_handler"], transfer.Transfer
+        )
+
+        # Run the batch and expect a true status
+        self.assertTrue(batch_obj.run())
 
     @classmethod
     def tearDownClass(cls):

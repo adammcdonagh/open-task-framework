@@ -185,9 +185,11 @@
         "-t",
         "batch-dependencies",
         "-v",
-        "3",
+        "1",
         "-c",
-        "test/cfg"
+        "test/cfg",
+        "-r",
+        "job-1234"
       ],
       "justMyCode": false
     },

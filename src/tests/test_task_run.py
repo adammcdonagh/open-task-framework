@@ -119,9 +119,7 @@ class TransferScriptTest(unittest.TestCase):
         # Verify an exception with appropriate text is thrown
         with self.assertRaises(FileNotFoundError) as e:
             task_runner.run()
-        self.asser1tEqual(
-            str(e.exception), "Couldn't find task with name: non-existent"
-        )
+        self.assertEqual(str(e.exception), "Couldn't find task with name: non-existent")
 
     def test_batch_basic(self):
 

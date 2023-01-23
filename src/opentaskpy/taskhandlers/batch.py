@@ -1,9 +1,9 @@
-import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
+import opentaskpy.logging
 from opentaskpy.taskhandlers.execution import Execution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 from opentaskpy.taskhandlers.transfer import Transfer
@@ -15,7 +15,7 @@ DEFAULT_TASK_EXIT_CODE = 0
 
 
 class Batch(TaskHandler):
-    logger = None
+    overall_result = True
 
     def __init__(self, task_id, batch_definition, config_loader):
         self.task_id = task_id
@@ -23,10 +23,9 @@ class Batch(TaskHandler):
         self.config_loader = config_loader
         self.tasks = dict()
         self.task_order_tree = dict()
-
-        self.logger = logging.getLogger(f"{self.task_id}.opentaskpy.taskhandlers.batch")
-        # Set a custom handler to write to a specific file
-        self.logger.addHandler(logging.FileHandler(f"{self.task_id}.log"))
+        self.logger = opentaskpy.logging.init_logging(
+            "opentaskpy.taskhandlers.batch", self.task_id
+        )
 
         # Parse the batch definition and create the appropriate tasks to run
         # in the correct order, based on the dependencies specified
@@ -96,6 +95,7 @@ class Batch(TaskHandler):
                 self.logger.info(message)
             else:
                 self.logger.error(message)
+                self.overall_result = False
 
         # Throw an exception if we have one
         if exception:
@@ -111,8 +111,7 @@ class Batch(TaskHandler):
         # for each task handler, we should spawn a new thread to run
         # the command. Then we can wait for all threads to complete.
 
-        overall_result = True
-
+        ex = None
         while True:
             # Loop through every task in the tree
             for order_id, batch_task in self.task_order_tree.items():
@@ -221,11 +220,14 @@ class Batch(TaskHandler):
             if task__["status"] != "COMPLETED"
         ]
         if len(failed_tasks) > 0:
-            overall_result = False
+            self.overall_result = False
 
-        self.logger.info(f"Batch completed with result {overall_result}")
+        self.logger.info(f"Batch completed with result {self.overall_result}")
 
-        return overall_result
+        if self.overall_result:
+            return self.return_result(0, "All batch tasks completed successfully")
+        else:
+            return self.return_result(1, "Batch failed", ex)
 
     def task_runner(self, batch_task, event):
         # Thread to trigger the task itself
@@ -291,3 +293,10 @@ class Batch(TaskHandler):
         result = remote_handler.run(kill_event=event)
         self.logger.info(f"[{remote_handler.task_id}] Returned {result}")
         return result
+
+    # Destructor to handle when the batch is finished. Make sure the log file
+    # gets renamed as appropriate
+    def __del__(self):
+        self.logger.debug("Batch object deleted")
+        # Ask logger to close the file, and rename is based on the result of the batch
+        self.logger.handlers[0].close(result=self.overall_result)
