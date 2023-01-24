@@ -24,6 +24,8 @@ class TaskRun:
         # Populate the task definition with the global variables
         active_task_definition = self.config_loader.load_task_definition(self.task_id)
 
+        result = False
+
         # Now we've loaded the config, determine what to do with it
         if "type" not in active_task_definition:
             self.logger.error("Invalid task configuration. Cannot continue")
@@ -38,7 +40,7 @@ class TaskRun:
 
             transfer = Transfer(self.task_id, active_task_definition)
 
-            return transfer.run()
+            result = transfer.run()
 
         elif active_task_definition["type"] == "execution":
             # Hand off to the execuiton module
@@ -51,14 +53,16 @@ class TaskRun:
 
             execution = Execution(self.task_id, active_task_definition)
 
-            return execution.run()
+            result = execution.run()
 
         elif active_task_definition["type"] == "batch":
             # Hand off to the batch module
             self.logger.log(12, "Batch")
             batch = Batch(self.task_id, active_task_definition, self.config_loader)
-            return batch.run()
+            result = batch.run()
 
         else:
             self.logger.error("Unknown task type!")
-            return False
+
+        self.logger.info(f"Task completed with result: {result}")
+        return result
