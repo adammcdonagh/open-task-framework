@@ -1,5 +1,4 @@
-import logging
-
+import opentaskpy.logging
 from opentaskpy.config.loader import ConfigLoader
 from opentaskpy.config.schemas import validate_execution_json, validate_transfer_json
 from opentaskpy.taskhandlers.batch import Batch
@@ -11,7 +10,7 @@ GLOBAL_VERBOSITY = 1
 
 class TaskRun:
     def __init__(self, task_id, config_dir):
-        self.logger = logging.getLogger(__name__)
+        self.logger = opentaskpy.logging.init_logging(__name__)
         self.task_id = task_id
         self.config_dir = config_dir
         self.active_task_definition = None

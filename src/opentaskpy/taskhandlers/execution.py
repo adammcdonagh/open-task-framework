@@ -128,4 +128,5 @@ class Execution(TaskHandler):
     def __del__(self):
         self.logger.debug("Execution object deleted")
         # Ask logger to close the file, and rename is based on the result of the execution
-        self.logger.handlers[0].close(result=self.overall_result)
+        if self.logger and self.logger.handlers:
+            self.logger.handlers[0].close(result=self.overall_result)

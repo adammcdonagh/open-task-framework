@@ -10,28 +10,54 @@ LOG_DIRECTORY = (
 )
 
 
-def init_logging(name, task_id):
+def init_logging(name, task_id=None):
 
-    # Create a unique logger object for this task
-    logger = logging.getLogger(f"{name}.{task_id}")
+    # Check if there's a root logger already
+    if not logging.getLogger().hasHandlers():
+        # Set the root logger
+        logging.basicConfig(
+            format=OTF_LOG_FORMAT,
+            level=logging.INFO,
+            handlers=[
+                logging.StreamHandler(),
+            ],
+        )
 
     # Set the log format
     formatter = logging.Formatter(OTF_LOG_FORMAT)
 
+    # Create a unique logger object for this task
+    if not task_id:
+        logger = logging.getLogger(f"{name}")
+    else:
+        logger = logging.getLogger(f"{name}.{task_id}")
+
     # Set verbosity
     logger.setLevel(logging.getLogger().getEffectiveLevel())
+
+    # If the log level is set in the environment, then use that
+    if os.environ.get("OTF_LOG_LEVEL") is not None:
+        logger.setLevel(os.environ.get("OTF_LOG_LEVEL"))
+
+    # If OTF_NO_LOG is set, then don't create the handler
+    if os.environ.get("OTF_NO_LOG") is not None or not task_id:
+        return logger
 
     # Set a custom handler to write to a specific file
     # Get the appropriate timestamp for the log file
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S.%f")
     if os.environ.get("OTF_LOG_RUN_PREFIX") is not None:
         timestamp = os.environ.get("OTF_LOG_RUN_PREFIX")
+    else:
+        os.environ["OTF_LOG_RUN_PREFIX"] = timestamp
 
     directory = f"{LOG_DIRECTORY}"
     if os.environ.get("OTF_RUN_ID") is not None:
         directory = f"{directory}/{os.environ.get('OTF_RUN_ID')}"
         filename = f"{timestamp}_{task_id}_running.log"
     else:
+        if task_id is None:
+            task_id = "no_task_id"
         directory = f"{directory}/{task_id}"
         filename = f"{timestamp}_running.log"
 

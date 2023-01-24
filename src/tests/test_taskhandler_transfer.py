@@ -7,6 +7,9 @@ from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 class TaskHandlerTransferTest(unittest.TestCase):
 
+    os.environ["OTF_NO_LOG"] = "1"
+    os.environ["OTF_LOG_LEVEL"] = "DEBUG"
+
     # Create a task definition
     scp_task_definition = {
         "type": "transfer",
@@ -31,6 +34,7 @@ class TaskHandlerTransferTest(unittest.TestCase):
 
     def test_remote_handler(self):
         # Validate that given a transfer with ssh protocol, that we get a remote handler of type SSH
+
         transfer_obj = transfer.Transfer("scp-basic", self.scp_task_definition)
 
         transfer_obj._set_remote_handlers()

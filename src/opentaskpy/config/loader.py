@@ -1,7 +1,6 @@
 import datetime
 import importlib
 import json
-import logging
 import os
 import sys
 from glob import glob
@@ -9,6 +8,7 @@ from glob import glob
 import jinja2
 from jinja2 import Template
 
+import opentaskpy.logging
 from opentaskpy.exceptions import DuplicateConfigFileError
 
 MAX_DEPTH = 5
@@ -16,7 +16,8 @@ MAX_DEPTH = 5
 
 class ConfigLoader:
     def __init__(self, config_dir):
-        self.logger = logging.getLogger("opentaskpy.config.ConfigLoader")
+
+        self.logger = opentaskpy.logging.init_logging(__name__)
         self.config_dir = config_dir
         self.template_env = None
         self.global_variables = dict()

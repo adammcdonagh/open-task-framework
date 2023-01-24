@@ -382,4 +382,5 @@ class Transfer(TaskHandler):
     def __del__(self):
         self.logger.debug("Transfer object deleted")
         # Ask logger to close the file, and rename is based on the result of the transfer
-        self.logger.handlers[0].close(result=self.overall_result)
+        if self.logger and self.logger.handlers:
+            self.logger.handlers[0].close(result=self.overall_result)
