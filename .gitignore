@@ -4,6 +4,7 @@ __pycache__
 .DS_Store
 # Test stuff
 test/testFiles
+test/testLogs
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
