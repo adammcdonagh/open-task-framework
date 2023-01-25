@@ -170,7 +170,9 @@
         "-v",
         "3",
         "-c",
-        "test/cfg"
+        "test/cfg",
+        "-r",
+        "job-batch-timeout"
       ],
       "justMyCode": false
     },
@@ -190,6 +192,44 @@
         "test/cfg",
         "-r",
         "job-1234"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Dependencies - Fail - No retry",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-fail-no-retry",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-dep-f-nr"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Dependencies - Fail - Retry",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Create test files",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-fail-retry",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-dep-f-r"
       ],
       "justMyCode": false
     },

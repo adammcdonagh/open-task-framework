@@ -5,16 +5,18 @@ import opentaskpy.logging
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
+TASK_TYPE = "E"
+
 
 class Execution(TaskHandler):
     def __init__(self, task_id, execution_definition):
         self.task_id = task_id
         self.execution_definition = execution_definition
         self.remote_handlers = None
-        self.overall_result = True
+        self.overall_result = False
 
         self.logger = opentaskpy.logging.init_logging(
-            "opentaskpy.taskhandlers.execution", self.task_id
+            "opentaskpy.taskhandlers.execution", self.task_id, TASK_TYPE
         )
 
     def return_result(self, status, message=None, exception=None):
@@ -23,7 +25,9 @@ class Execution(TaskHandler):
                 self.logger.info(message)
             else:
                 self.logger.error(message)
-                self.overall_result = False
+
+        if status == 0:
+            self.overall_result = True
 
         # Delete the remote connection objects
         if self.remote_handlers:
@@ -34,6 +38,10 @@ class Execution(TaskHandler):
                     f"[{remote_handler.remote_host}] Closing source connection for {remote_handler}",
                 )
                 remote_handler.tidy()
+
+        # Close the file handler
+        self.logger.info("Closing log file handler")
+        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
         if exception:
@@ -103,15 +111,19 @@ class Execution(TaskHandler):
                     break
 
             # Check the results
+            failures = False
             for future in futures:
                 try:
                     result = future.result()
                     if not result:
-                        self.overall_result = False
+                        failures = True
                 except Exception as e:
                     self.overall_result = False
                     ex = e
                     self.logger.error("Thread returned exception")
+
+            if not failures:
+                self.overall_result = True
 
         if self.overall_result:
             return self.return_result(0, "All executions completed successfully")
@@ -127,6 +139,6 @@ class Execution(TaskHandler):
     # gets renamed as appropriate
     def __del__(self):
         self.logger.debug("Execution object deleted")
-        # Ask logger to close the file, and rename is based on the result of the execution
-        if self.logger and self.logger.handlers:
-            self.logger.handlers[0].close(result=self.overall_result)
+        # Close the file handler
+        self.logger.info("Closing log file handler")
+        opentaskpy.logging.close_log_file(self.logger, self.overall_result)

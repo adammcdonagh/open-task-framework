@@ -11,6 +11,8 @@ from opentaskpy.taskhandlers.taskhandler import TaskHandler
 # We transfer over the wrapper script to the remote host and trigger it, which is responsible
 # for doing some of the more complex work, rather than triggering a tonne of shell commands
 
+TASK_TYPE = "T"
+
 
 class Transfer(TaskHandler):
     def __init__(self, task_id, transfer_definition):
@@ -20,10 +22,10 @@ class Transfer(TaskHandler):
         self.dest_remote_handlers = None
         self.source_file_spec = None
         self.dest_file_specs = None
-        self.overall_result = True
+        self.overall_result = False
 
         self.logger = opentaskpy.logging.init_logging(
-            "opentaskpy.taskhandlers.transfer", self.task_id
+            "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
         )
 
     def return_result(self, status, message=None, exception=None):
@@ -32,7 +34,9 @@ class Transfer(TaskHandler):
                 self.logger.info(message)
             else:
                 self.logger.error(message)
-                self.overall_result = False
+
+        if status == 0:
+            self.overall_result = True
 
         # Delete the remote connection objects
         if self.source_remote_handler:
@@ -42,6 +46,9 @@ class Transfer(TaskHandler):
             for remote_handler in self.dest_remote_handlers:
                 self.logger.log(12, f"Closing dest connection for {remote_handler}")
                 remote_handler.tidy()
+
+        self.logger.info("Closing log file handler")
+        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
         if exception:
@@ -381,6 +388,5 @@ class Transfer(TaskHandler):
     # gets renamed as appropriate
     def __del__(self):
         self.logger.debug("Transfer object deleted")
-        # Ask logger to close the file, and rename is based on the result of the transfer
-        if self.logger and self.logger.handlers:
-            self.logger.handlers[0].close(result=self.overall_result)
+        self.logger.info("Closing log file handler")
+        opentaskpy.logging.close_log_file(self.logger, self.overall_result)

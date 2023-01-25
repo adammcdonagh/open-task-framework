@@ -111,7 +111,7 @@ class ConfigLoader:
             rendered_template = template.render(self.global_variables)
             active_task_definition = json.loads(rendered_template)
             self.logger.log(
-                12, f"Evalated task definition: {json.dumps(active_task_definition)}"
+                12, f"Evaluated task definition: {json.dumps(active_task_definition)}"
             )
 
         return active_task_definition

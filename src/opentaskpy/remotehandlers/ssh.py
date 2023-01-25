@@ -16,6 +16,8 @@ SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
 
 class SSHTransfer(RemoteTransferHandler):
 
+    TASK_TYPE = "T"
+
     FILE_NAME_DELIMITER = "|||"
 
     def __init__(self, spec):
@@ -25,7 +27,7 @@ class SSHTransfer(RemoteTransferHandler):
         self.log_watch_start_row = 0
 
         self.logger = opentaskpy.logging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID")
+            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
         client = SSHClient()
@@ -429,6 +431,7 @@ def log_stdout(str_stdout, hostname, logger):
 
 class SSHExecution(RemoteExecutionHandler):
 
+    TASK_TYPE = "E"
     ps_regex = r"(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)"
 
     def tidy(self):
@@ -447,7 +450,7 @@ class SSHExecution(RemoteExecutionHandler):
         self.remote_host = remote_host
 
         self.logger = opentaskpy.logging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID")
+            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
         client = SSHClient()

@@ -12,10 +12,12 @@ DEFAULT_TASK_TIMEOUT = 300
 DEFAULT_TASK_CONTINUE_ON_FAIL = False
 DEFAULT_TASK_RETRY_ON_RERUN = False
 DEFAULT_TASK_EXIT_CODE = 0
+TASK_TYPE = "B"
+BATCH_TASK_LOG_MARKER = "__OTF_BATCH_TASK_MARKER__"
 
 
 class Batch(TaskHandler):
-    overall_result = True
+    overall_result = False
 
     def __init__(self, task_id, batch_definition, config_loader):
         self.task_id = task_id
@@ -24,9 +26,30 @@ class Batch(TaskHandler):
         self.tasks = dict()
         self.task_order_tree = dict()
 
-        self.logger = opentaskpy.logging.init_logging(
-            "opentaskpy.taskhandlers.batch", self.task_id
+        self.logger = opentaskpy.logging.init_logging(__name__, self.task_id, TASK_TYPE)
+
+        # We need to get the latest log file (if there is one), to determine
+        # where to start from (if we are resuming a batch)
+        previous_log_file = opentaskpy.logging.get_latest_log_file(
+            self.task_id, TASK_TYPE
         )
+        previous_status = dict()
+        if previous_log_file:
+            self.logger.info("Parsing previous log file for log marks")
+
+            # Parse the previous log file to determine where we left off
+            with open(previous_log_file, "r") as f:
+                for line in f:
+                    if BATCH_TASK_LOG_MARKER in line:
+                        log_mark = line.split(f"{BATCH_TASK_LOG_MARKER}: ")[1].strip()
+                        self.logger.info(f"Found log mark: {log_mark}")
+                        # Mark the task with the appropriate status
+                        # Determine which order id this is for
+                        mark_metadata = log_mark.split("::")
+                        order_id = int(mark_metadata[1])
+                        task_status = mark_metadata[4]
+
+                        previous_status[order_id] = task_status
 
         # Parse the batch definition and create the appropriate tasks to run
         # in the correct order, based on the dependencies specified
@@ -37,18 +60,6 @@ class Batch(TaskHandler):
 
             # Add it to the list of tasks
             self.tasks[order_id] = task_definition
-
-            # Create the appropriate task handler based on the task type
-            if task_definition["type"] == "execution":
-                task_handler = Execution(task["task_id"], task_definition)
-            elif task_definition["type"] == "transfer":
-                task_handler = Transfer(task["task_id"], task_definition)
-            elif task_definition["type"] == "batch":
-                task_handler = Batch(
-                    task["task_id"], task_definition, self.config_loader
-                )
-            else:
-                raise Exception("Unknown task type")
 
             # Set the timeout for the task
             timeout = None
@@ -71,8 +82,44 @@ class Batch(TaskHandler):
             else:
                 retry_on_rerun = DEFAULT_TASK_RETRY_ON_RERUN
 
-            # If this task has no dependencies, then it can sit at the top level of the tree
-            # if "dependencies" not in task:
+            # Set the status of the task
+            status = "NOT_STARTED"
+            if order_id in previous_status:
+                # Check whether it should be rerun if it worked last time
+                if retry_on_rerun:
+                    if previous_status[order_id] == "COMPLETED":
+                        # Log something to make it clear that we are rerunning
+                        self.logger.info(
+                            f"Task {task_id} succeeded last time, but is marked to be rerun"
+                        )
+                    status = "NOT_STARTED"
+                elif previous_status[order_id] == "COMPLETED":
+                    self.logger.info(
+                        f"Task {task_id} succeeded last time, and is not marked to be rerun, so marking as complete"
+                    )
+                    # Output the log mark
+                    self._log_task_result(
+                        "COMPLETED",
+                        order_id,
+                        task["task_id"],
+                    )
+                    status = "COMPLETED"
+
+            # Create the task handlers for anything we intend on running
+            task_handler = None
+            if status == "NOT_STARTED":
+                # Create the appropriate task handler based on the task type
+                if task_definition["type"] == "execution":
+                    task_handler = Execution(task["task_id"], task_definition)
+                elif task_definition["type"] == "transfer":
+                    task_handler = Transfer(task["task_id"], task_definition)
+                elif task_definition["type"] == "batch":
+                    task_handler = Batch(
+                        task["task_id"], task_definition, self.config_loader
+                    )
+                else:
+                    raise Exception("Unknown task type")
+
             self.task_order_tree[order_id] = {
                 "task_id": task["task_id"],
                 "batch_task_spec": task,
@@ -81,7 +128,8 @@ class Batch(TaskHandler):
                 "timeout": timeout,
                 "continue_on_fail": continue_on_fail,
                 "retry_on_rerun": retry_on_rerun,
-                "status": "NOT_STARTED",
+                "status": status,
+                "result": None,
             }
 
         # Debug to show the structure of the tree
@@ -97,6 +145,10 @@ class Batch(TaskHandler):
             else:
                 self.logger.error(message)
                 self.overall_result = False
+
+        # Close the file handler
+        self.logger.info("Closing log file handler")
+        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
         if exception:
@@ -177,7 +229,7 @@ class Batch(TaskHandler):
                         batch_task["thread"].join()
                         batch_task["result"] = False
 
-                if batch_task["status"] == "COMPLETED":
+                if batch_task["status"] == "COMPLETED" and "thread" in batch_task:
                     batch_task["thread"].join()
                     self.logger.info(
                         f"Task {order_id} ({batch_task['task_id']}) has completed"
@@ -192,6 +244,7 @@ class Batch(TaskHandler):
                         f"Task {order_id} ({batch_task['task_id']}) has failed, but continuing on fail"
                     )
                     batch_task["status"] = "COMPLETED"
+                    batch_task["result"] = False
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done
             running_tasks = [
@@ -218,10 +271,10 @@ class Batch(TaskHandler):
         failed_tasks = [
             task
             for task__ in self.task_order_tree.values()
-            if task__["status"] != "COMPLETED"
+            if task__["status"] != "COMPLETED" or task__["result"] is False
         ]
-        if len(failed_tasks) > 0:
-            self.overall_result = False
+        if len(failed_tasks) == 0:
+            self.overall_result = True
 
         self.logger.info(f"Batch completed with result {self.overall_result}")
 
@@ -268,6 +321,11 @@ class Batch(TaskHandler):
                             batch_task["status"] = "COMPLETED"
                         else:
                             batch_task["status"] = "FAILED"
+                        self._log_task_result(
+                            batch_task["status"],
+                            batch_task["batch_task_spec"]["order_id"],
+                            batch_task["task_id"],
+                        )
                         break
                     else:
                         # Check if we have been asked to kill the thread
@@ -278,6 +336,11 @@ class Batch(TaskHandler):
                             # Kill the thread and all it's child processes
                             batch_task["executing_thread"][0].cancel()
                             executor.shutdown(wait=False)
+                            self._log_task_result(
+                                "FAILED",
+                                batch_task["batch_task_spec"]["order_id"],
+                                batch_task["task_id"],
+                            )
 
                             break
 
@@ -285,9 +348,14 @@ class Batch(TaskHandler):
                         self.logger.log(
                             12, f"Waiting for task handler for {batch_task['task_id']}"
                         )
-                        wait(batch_task["executing_thread"], timeout=5)
+                        wait(batch_task["executing_thread"], timeout=2)
 
             batch_task["end_time"] = time.time()
+
+    def _log_task_result(self, status, order_id, task_id):
+        self.logger.info(
+            f"{BATCH_TASK_LOG_MARKER}: ORDER_ID::{order_id}::TASK::{task_id}::{status}"
+        )
 
     def _execute(self, remote_handler, event=None):
 
@@ -299,6 +367,4 @@ class Batch(TaskHandler):
     # gets renamed as appropriate
     def __del__(self):
         self.logger.debug("Batch object deleted")
-        # Ask logger to close the file, and rename is based on the result of the batch
-        if self.logger and self.logger.handlers:
-            self.logger.handlers[0].close(result=self.overall_result)
+        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
