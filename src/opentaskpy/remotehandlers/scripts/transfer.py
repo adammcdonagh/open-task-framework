@@ -106,9 +106,20 @@ def move_files(
 
         # Save the existing permissions on the file
         file_stat = os.stat(file)
-        shutil.move(file, f"{destination}/{filename}")
+        # Copy the file, and then remove it
+        shutil.copy(file, f"{destination}/{filename}")
+        os.remove(file)
         # Move doesn't preserve ownership, so we need to do that manually
-        os.chown(f"{destination}/{filename}", file_stat.st_uid, file_stat.st_gid)
+
+        # chown cannot set gid unless the current user is a member of that group
+        # so we need to check if the current user is a member of the group
+        # and if not, set the gid to -1
+        # Check if the current user is a member of the group from file_stat.st_gid
+        set_group = file_stat.st_gid
+        if file_stat.st_gid not in os.getgroups():
+            set_group = -1
+
+        os.chown(f"{destination}/{filename}", file_stat.st_uid, set_group)
         os.chmod(f"{destination}/{filename}", file_stat.st_mode)
 
 

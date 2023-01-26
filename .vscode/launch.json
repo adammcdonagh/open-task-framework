@@ -9,7 +9,7 @@
       "type": "python",
       "request": "launch",
       "program": "${file}",
-      "preLaunchTask": "Create test files - without containers",
+      "preLaunchTask": "Build Test containers - without containers",
       "console": "integratedTerminal",
       "args": [
         "-t",
@@ -25,7 +25,7 @@
       "name": "Python: Transfer - Basic",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -42,7 +42,7 @@
       "name": "Python: Transfer - Multiple",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -59,7 +59,7 @@
       "name": "Python: Transfer - File Conditions 1",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -76,7 +76,7 @@
       "name": "Python: Transfer - File Watch only",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -93,7 +93,7 @@
       "name": "Python: Transfer - Log Watch only",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -110,7 +110,7 @@
       "name": "Python: Transfer - Log Watch tail only",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -127,7 +127,7 @@
       "name": "Python: Batch - Basic",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -144,7 +144,7 @@
       "name": "Python: Batch - Parallel",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -161,7 +161,7 @@
       "name": "Python: Batch - Timeout",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -180,7 +180,7 @@
       "name": "Python: Batch - Dependencies",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -199,7 +199,7 @@
       "name": "Python: Batch - Dependencies - Fail - No retry",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -218,7 +218,7 @@
       "name": "Python: Batch - Dependencies - Fail - Retry",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -237,7 +237,7 @@
       "name": "Python: Batch - Continue on fail",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -252,7 +252,7 @@
       "name": "Python: Execution - Basic - df - 2 hosts",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [

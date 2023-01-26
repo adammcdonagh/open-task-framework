@@ -153,20 +153,20 @@ class TaskHandlerBatchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        if "OTF_LOG_DIRECTORY" in os.environ:
-            del os.environ["OTF_LOG_DIRECTORY"]
-
-        # Clear the prefix too
-        if "OTF_LOG_PREFIX" in os.environ:
-            del os.environ["OTF_LOG_PREFIX"]
-
         cls.tearDownClass()
 
         write_test_file("/tmp/variable_lookup.txt", content=f"{cls.RANDOM}")
 
     def setUp(self):
+        # Ensure all custom env vars are
         if "OTF_LOG_DIRECTORY" in os.environ:
             del os.environ["OTF_LOG_DIRECTORY"]
+        if "OTF_LOG_RUN_PREFIX" in os.environ:
+            del os.environ["OTF_LOG_RUN_PREFIX"]
+        if "OTF_RUN_ID" in os.environ:
+            del os.environ["OTF_RUN_ID"]
+        if "OTF_NO_LOG" in os.environ:
+            del os.environ["OTF_NO_LOG"]
 
     def test_basic_batch(self):
 
