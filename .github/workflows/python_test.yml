@@ -17,12 +17,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
+      - name: Setup test dirs
+        run: |
+          ./test/createTestDirectories.sh && ./test/createTestFiles.sh
       - uses: isbang/compose-action@v1.4.1
         with:
           compose-file: "./test/docker-compose.yml"
-      - name: Setup test env
+      - name: Setup SSH keys
         run: |
-          ./test/createTestDirectories.sh && ./test/createTestFiles.sh &&  \
           ./test/setupSSHKeys.sh
         continue-on-error: true
       - name: Setup upterm session
