@@ -229,6 +229,15 @@ class Batch(TaskHandler):
                         batch_task["thread"].join()
                         batch_task["result"] = False
 
+                    # Check whether the thread is actually still running.
+                    # If it has died uncleanly, then we need to set the appropriate statuses for it
+                    if not batch_task["thread"].is_alive():
+                        self.logger.error(
+                            f"Task {order_id} ({batch_task['task_id']}) has failed"
+                        )
+                        batch_task["status"] = "FAILED"
+                        batch_task["result"] = False
+
                 if batch_task["status"] == "COMPLETED" and "thread" in batch_task:
                     batch_task["thread"].join()
                     self.logger.info(
@@ -359,7 +368,13 @@ class Batch(TaskHandler):
 
     def _execute(self, remote_handler, event=None):
 
-        result = remote_handler.run(kill_event=event)
+        try:
+            result = remote_handler.run(kill_event=event)
+        except Exception as ex:
+            self.logger.error(f"[{remote_handler.task_id}] Failed to run task")
+            self.logger.error(ex)
+            result = False
+
         self.logger.info(f"[{remote_handler.task_id}] Returned {result}")
         return result
 

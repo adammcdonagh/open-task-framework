@@ -33,9 +33,9 @@ jobs:
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         continue-on-error: true
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Test with pytest
         run: |
           pytest
         continue-on-error: true
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
