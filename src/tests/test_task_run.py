@@ -39,6 +39,17 @@ class TransferScriptTest(unittest.TestCase):
         for file in os.listdir(f"{BASE_DIRECTORY}/ssh_1/src"):
             os.remove(f"{BASE_DIRECTORY}/ssh_1/src/{file}")
 
+    def setUp(self):
+        # Ensure all custom env vars are
+        if "OTF_LOG_DIRECTORY" in os.environ:
+            del os.environ["OTF_LOG_DIRECTORY"]
+        if "OTF_LOG_RUN_PREFIX" in os.environ:
+            del os.environ["OTF_LOG_RUN_PREFIX"]
+        if "OTF_RUN_ID" in os.environ:
+            del os.environ["OTF_RUN_ID"]
+        if "OTF_NO_LOG" in os.environ:
+            del os.environ["OTF_NO_LOG"]
+
     """
     #################
     Tests for the "binary" task runner
