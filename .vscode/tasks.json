@@ -52,9 +52,7 @@
       "command": "./test/createTestFiles.sh",
       "dependsOrder": "sequence",
       "dependsOn": [
-        "Configure test users",
-        "Configure SSH keys - host A",
-        "Configure SSH keys - host B"
+        "Configure test users"
       ],
       "group": {
         "kind": "test",

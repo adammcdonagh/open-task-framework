@@ -64,6 +64,9 @@ def init_logging(name, task_id=None, task_type=None):
 
     # Set verbosity
     logger.setLevel(logging.getLogger().getEffectiveLevel())
+    # Ensure the logger is at least at INFO level
+    if logger.getEffectiveLevel() > logging.INFO:
+        logger.setLevel(logging.INFO)
 
     # If the log level is set in the environment, then use that
     if os.environ.get("OTF_LOG_LEVEL") is not None:
@@ -84,6 +87,8 @@ def init_logging(name, task_id=None, task_type=None):
     ):
         logger.addHandler(tfh)
         tfh.setFormatter(formatter)
+
+    logger.info("Logging initialised")
 
     return logger
 

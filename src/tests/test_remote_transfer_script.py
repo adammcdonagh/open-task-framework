@@ -202,28 +202,32 @@ class TransferScriptTest(unittest.TestCase):
 
     def test_move_files_set_owner(self):
 
-        # Try setting the owner. This should fail because you cannot change the owner of a file unless you are root
-        with self.assertRaises(PermissionError):
-            transfer.move_files(
-                self.list,
-                self.DELIMITER,
-                self.MOVED_FILES_DIR,
-                False,
-                "root",
-                None,
-                None,
-                None,
-                None,
-            )
+        # Determine if the current user is root or not
+        is_root = os.getuid() == 0
 
-        # Check that the files were not moved
-        for i in range(10):
-            self.assertTrue(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertFalse(
-                os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-            )
+        # Try setting the owner. This should fail because you cannot change the owner of a file unless you are root
+        if not is_root:
+            with self.assertRaises(PermissionError):
+                transfer.move_files(
+                    self.list,
+                    self.DELIMITER,
+                    self.MOVED_FILES_DIR,
+                    False,
+                    "root",
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+
+            # Check that the files were not moved
+            for i in range(10):
+                self.assertTrue(
+                    os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
+                )
+                self.assertFalse(
+                    os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
+                )
 
         # Now try setting the owner to the current user - Doesn't really make sense, but should work without throwing an exception
         transfer.move_files(
@@ -248,66 +252,68 @@ class TransferScriptTest(unittest.TestCase):
             )
 
     def test_move_files_set_group(self):
+        is_root = os.getuid() == 0
 
         # Try setting the group. This should fail because you cannot change the group of a file if you're not a member of it
-        with self.assertRaises(PermissionError):
+        if not is_root:
+            with self.assertRaises(PermissionError):
+                transfer.move_files(
+                    self.list,
+                    self.DELIMITER,
+                    self.MOVED_FILES_DIR,
+                    False,
+                    None,
+                    "root",
+                    None,
+                    None,
+                    None,
+                )
+
+            # Check that the files were not moved
+            for i in range(10):
+                self.assertTrue(
+                    os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
+                )
+                self.assertFalse(
+                    os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
+                )
+
+            # Now try setting the group to one of the secondary groups of the current user
+            groups = os.getgrouplist(os.environ.get("USER"), os.getgid())
+
+            # Convert group ID to name
+            groups = [grp.getgrgid(group).gr_name for group in groups]
+
             transfer.move_files(
                 self.list,
                 self.DELIMITER,
                 self.MOVED_FILES_DIR,
                 False,
                 None,
-                "root",
+                groups[0],
                 None,
                 None,
                 None,
             )
 
-        # Check that the files were not moved
-        for i in range(10):
-            self.assertTrue(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertFalse(
-                os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-            )
+            # Check the files moved
+            for i in range(10):
+                self.assertFalse(
+                    os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
+                )
+                self.assertTrue(
+                    os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
+                )
 
-        # Now try setting the group to one of the secondary groups of the current user
-        groups = os.getgrouplist(os.environ.get("USER"), os.getgid())
+            # Check the group was set correctly
+            for i in range(10):
+                file_group = os.stat(
+                    f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}"
+                ).st_gid
+                # Convert group ID to name
+                file_group = grp.getgrgid(file_group).gr_name
 
-        # Convert group ID to name
-        groups = [grp.getgrgid(group).gr_name for group in groups]
-
-        transfer.move_files(
-            self.list,
-            self.DELIMITER,
-            self.MOVED_FILES_DIR,
-            False,
-            None,
-            groups[0],
-            None,
-            None,
-            None,
-        )
-
-        # Check the files moved
-        for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertTrue(
-                os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-            )
-
-        # Check the group was set correctly
-        for i in range(10):
-            file_group = os.stat(
-                f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}"
-            ).st_gid
-            # Convert group ID to name
-            file_group = grp.getgrgid(file_group).gr_name
-
-            self.assertEqual(groups[0], file_group)
+                self.assertEqual(groups[0], file_group)
 
     def test_delete_files(self):
 

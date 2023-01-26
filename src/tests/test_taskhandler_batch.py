@@ -153,9 +153,20 @@ class TaskHandlerBatchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
+        if "OTF_LOG_DIRECTORY" in os.environ:
+            del os.environ["OTF_LOG_DIRECTORY"]
+
+        # Clear the prefix too
+        if "OTF_LOG_PREFIX" in os.environ:
+            del os.environ["OTF_LOG_PREFIX"]
+
         cls.tearDownClass()
 
         write_test_file("/tmp/variable_lookup.txt", content=f"{cls.RANDOM}")
+
+    def setUp(self):
+        if "OTF_LOG_DIRECTORY" in os.environ:
+            del os.environ["OTF_LOG_DIRECTORY"]
 
     def test_basic_batch(self):
 
@@ -210,7 +221,7 @@ class TaskHandlerBatchTest(unittest.TestCase):
         # the sub tasks
         config_loader = ConfigLoader("test/cfg")
         batch_obj = batch.Batch(
-            "parallel", self.dependent_batch_definition, config_loader
+            "dependencies-1", self.dependent_batch_definition, config_loader
         )
 
         # Check that the batch_obj contains an execution type task

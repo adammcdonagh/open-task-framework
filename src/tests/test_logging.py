@@ -9,12 +9,22 @@ import opentaskpy.logging
 
 class LoggingTest(unittest.TestCase):
     def setUp(self):
+        # Ensure all custom env vars are
+        if "OTF_LOG_DIRECTORY" in os.environ:
+            del os.environ["OTF_LOG_DIRECTORY"]
+        if "OTF_LOG_RUN_PREFIX" in os.environ:
+            del os.environ["OTF_LOG_RUN_PREFIX"]
+        if "OTF_RUN_ID" in os.environ:
+            del os.environ["OTF_RUN_ID"]
+        if "OTF_NO_LOG" in os.environ:
+            del os.environ["OTF_NO_LOG"]
+
         self.tearDown()
 
     def test_define_log_file_name(self):
         # Pass in different task types and validate that the log file name is correct
         timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{6}"
-        log_path = opentaskpy.logging.LOG_DIRECTORY
+        log_path = "logs"
         expected_result_regex = rf"{log_path}/no_task_id/{timestamp}_B_running.log"
 
         self.assertRegex(
@@ -88,22 +98,35 @@ class LoggingTest(unittest.TestCase):
         # Call init logging function and ensure that the returned logger includes a TaskFileHandler
         # pointing at the correct filename
         timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{6}"
-        log_path = opentaskpy.logging.LOG_DIRECTORY
+        log_path = "logs"
         expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_None_running.log"
         logger = opentaskpy.logging.init_logging(
             "some.class.name1", task_id="some_task_id"
         )
 
-        self.assertRegex(logger.handlers[0].baseFilename, expected_result_regex)
-        # Validate the handler is of type TaskFileHandler
-        self.assertEqual(logger.handlers[0].__class__.__name__, "TaskFileHandler")
+        found_handler = False
+        for log_handler in logger.handlers:
+            if log_handler.__class__.__name__ == "TaskFileHandler":
+                self.assertRegex(log_handler.baseFilename, expected_result_regex)
+                found_handler = True
+                break
+
+        self.assertTrue(found_handler)
 
         # Create a logger with a valid task type
         logger = opentaskpy.logging.init_logging(
             "some.class.name2", task_id="some_task_id", task_type="B"
         )
         expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_B_running.log"
-        self.assertRegex(logger.handlers[0].baseFilename, expected_result_regex)
+        # Find a handler of type TaskFileHandler in the logger
+        found_handler = False
+        for log_handler in logger.handlers:
+            if log_handler.__class__.__name__ == "TaskFileHandler":
+                self.assertRegex(log_handler.baseFilename, expected_result_regex)
+                found_handler = True
+                break
+
+        self.assertTrue(found_handler)
 
         # Disable logging via env variable and ensure there's no handler defined
         os.environ["OTF_NO_LOG"] = "1"
@@ -176,11 +199,22 @@ class LoggingTest(unittest.TestCase):
         )
         logger.info("test")
 
+        # Find a handler of type TaskFileHandler in the logger
+        found_handler = None
+        for log_handler in logger.handlers:
+            print(log_handler)
+            if log_handler.__class__.__name__ == "TaskFileHandler":
+                found_handler = log_handler
+                break
+
+        self.assertIsNotNone(found_handler)
+
         # Now the file should exist, we will close it with a success state and then check it's been renamed
         opentaskpy.logging.close_log_file(logger, True)
+
         # Check the file has been renamed
         self.assertTrue(
-            os.path.exists(logger.handlers[0].baseFilename.replace("_running", ""))
+            os.path.exists(found_handler.baseFilename.replace("_running", ""))
         )
 
         # Now create a new logger and log something to it
@@ -198,7 +232,8 @@ class LoggingTest(unittest.TestCase):
             )
         )
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         # Remove the test log directory
         log_path = "test/testLogs"
         if os.path.exists(log_path):
