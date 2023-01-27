@@ -22,7 +22,7 @@ execution_schema = {
         "command": {"type": "string"},
         "protocol": {"type": "object"},
     },
-    "required": ["type", "hosts", "username", "directory", "command", "protocol"],
+    "required": ["type", "hosts", "directory", "command", "protocol"],
 }
 
 batch_schema = {
