@@ -20,6 +20,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
       - name: Run flake8
         uses: py-actions/flake8@v2
         with:
@@ -37,4 +38,4 @@ jobs:
           ./test/setupSSHKeys.sh
       - name: Test with pytest
         run: |
-          pytest
+          python -m pytest

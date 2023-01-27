@@ -8,7 +8,7 @@ version = "0.0.5"
 authors = [
   { name="Adam McDonagh", email="adam@elitemonkey.net" },
 ]
-license = { file = "LICENSE" }
+license = { text = "GPLv3" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
