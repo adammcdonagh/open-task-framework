@@ -1,5 +1,50 @@
-#[tool.black]
-#line-length = 200
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opentaskpy"
+version = "0.0.5"
+authors = [
+  { name="Adam McDonagh", email="adam@elitemonkey.net" },
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: POSIX",
+]
+keywords = ["automation", "task", "framework", "scheduling", "ssh", "sftp", "remote", "execution", "command"]
+dependencies = [
+  "requests",
+  "jsonpath-ng",
+  "paramiko>=3",
+  "jinja2",
+  "jsonschema"
+]
+description = "A framework for automation execution of commands and transferring files between hosts"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+  "flake8",
+  "black",
+  "flake8-bugbear",
+  "pep8-naming",
+  "flake8-use-fstring",
+  "flake8-black",
+  "isort",
+  "flake8-isort",
+  "pytest"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/adammcdonagh/open-task-framework"
+"Bug Tracker" = "https://github.com/adammcdonagh/open-task-framework/issues"
+
+[project.scripts]
+task-run = "opentaskpy.cli.task_run:main"
 
 [tool.isort]
 profile = 'black'
