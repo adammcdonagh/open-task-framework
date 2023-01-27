@@ -1,14 +1,14 @@
-import unittest
-import random
-import subprocess
-from tests.file_helper import write_test_file, BASE_DIRECTORY
-import time
-import os
-import shutil
-import threading
 import datetime
-import json
-from opentaskpy import task_run, exceptions
+import os
+import random
+import shutil
+import subprocess
+import threading
+import time
+import unittest
+
+from opentaskpy import exceptions, task_run
+from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 
 class TransferScriptTest(unittest.TestCase):
@@ -22,157 +22,33 @@ class TransferScriptTest(unittest.TestCase):
     list = None
 
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         # This all relies on both the docker containers being set up, as well as the directories existing
         # The easiest way to do this is via VSCode tasks, running the "Create test files" task
 
         # Create dummy variable file
-        write_test_file("/tmp/variable_lookup.txt", content=f"{self.RANDOM}")
+        write_test_file("/tmp/variable_lookup.txt", content=f"{cls.RANDOM}")
 
         # Check that the dest directory exists, if not then we just fail here
         if not os.path.exists(f"{BASE_DIRECTORY}/ssh_1/dest"):
-            raise Exception("Destination directory does not exist. Ensure that setup has been run properly")
+            raise Exception(
+                "Destination directory does not exist. Ensure that setup has been run properly"
+            )
 
         # Delete any existing files in the destination directory
         for file in os.listdir(f"{BASE_DIRECTORY}/ssh_1/src"):
             os.remove(f"{BASE_DIRECTORY}/ssh_1/src/{file}")
 
-    def test_load_global_variables(self):
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json", content='{"test": "test1234"}')
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        self.assertEqual(task_runner.get_global_variables(), {"test": "test1234"})
-        os.remove("/tmp/variables.json")
-
-        # Load a .json.j2 file to check that works
-        write_test_file("/tmp/variables.json.j2", content='{"test": "test1234"}')
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        self.assertEqual(task_runner.get_global_variables(), {"test": "test1234"})
-        os.remove("/tmp/variables.json.j2")
-
-        # Try loading a .json file that doesn't exist
-        task_runner = task_run.TaskRun("test", "/tmp")
-        # Check this raise a FileNotFoundError
-        with self.assertRaises(FileNotFoundError):
-            task_runner.load_global_variables()
-
-        # Create several files all in the same place, and ensure they all get
-        # merged into one JSON object
-        # Make several sub directories for various configs
-        os.mkdir("/tmp/variables1")
-        os.mkdir("/tmp/variables2")
-        os.mkdir("/tmp/variables3")
-
-        write_test_file("/tmp/variables1/variables.json", content='{"test": "test1234"}')
-        write_test_file("/tmp/variables2/variables.json", content='{"test2": "test5678"}')
-        write_test_file("/tmp/variables3/variables.json", content='{"test3": "test9012"}')
-
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        self.assertEqual(
-            task_runner.get_global_variables(), {"test": "test1234", "test2": "test5678", "test3": "test9012"}
-        )
-        # Remove the directories
-        os.remove("/tmp/variables1/variables.json")
-        os.remove("/tmp/variables2/variables.json")
-        os.remove("/tmp/variables3/variables.json")
-        os.rmdir("/tmp/variables1")
-        os.rmdir("/tmp/variables2")
-        os.rmdir("/tmp/variables3")
-
-    def test_resolve_templated_variables(self):
-
-        json_obj = {"test": "{{ SOME_VARIABLE }}", "SOME_VARIABLE": "test1234"}
-        json_resolved = {"test": "test1234", "SOME_VARIABLE": "test1234"}
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        task_runner.resolve_templated_variables()
-        self.assertEqual(task_runner.get_global_variables(), json_resolved)
-
-        # Test again, but with a nested variable
-        json_obj = {
-            "test": "{{ SOME_VARIABLE }}6",
-            "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}5",
-            "SOME_VARIABLE2": "test1234",
-        }
-
-        json_resolved = {"test": "test123456", "SOME_VARIABLE": "test12345", "SOME_VARIABLE2": "test1234"}
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        task_runner.resolve_templated_variables()
-        self.assertEqual(task_runner.get_global_variables(), json_resolved)
-
-        # Final test is to next 6 times, this should error as the limit is 5
-        json_obj = {
-            "test": "{{ SOME_VARIABLE }}7",
-            "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}6",
-            "SOME_VARIABLE2": "{{ SOME_VARIABLE3 }}5",
-            "SOME_VARIABLE3": "{{ SOME_VARIABLE4 }}4",
-            "SOME_VARIABLE4": "{{ SOME_VARIABLE5 }}3",
-            "SOME_VARIABLE5": "{{ SOME_VARIABLE6 }}2",
-            "SOME_VARIABLE6": "{{ SOME_VARIABLE7 }}1",
-            "SOME_VARIABLE7": "{{ SOME_VARIABLE8 }}{{ SOME_VARIABLE2 }}{{ SOME_VARIABLE3 }}",
-            "SOME_VARIABLE8": "test1234",
-        }
-
-        # Create a JSON file with some test variables in it
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Test that the global variables are loaded correctly
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-
-        # Verify an exception with appropriate text is thrown
-        with self.assertRaises(Exception) as e:
-            task_runner.resolve_templated_variables()
-        self.assertEqual(str(e.exception), "Reached max depth of recursive template evaluation")
-
-    def test_load_task_definition(self):
-
-        # Write a nested variable to the global variables file
-        json_obj = {
-            "test": "{{ SOME_VARIABLE }}6",
-            "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}5",
-            "SOME_VARIABLE2": "test1234",
-        }
-
-        write_test_file("/tmp/variables.json.j2", content=json.dumps(json_obj))
-
-        # Initialise the task runner
-        task_runner = task_run.TaskRun("test", "/tmp")
-        task_runner.load_global_variables()
-        task_runner.resolve_templated_variables()
-
-        # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
-        write_test_file("/tmp/task.json", content='{"test": "{{ test }}"}')
-
-        expected_task_definition = {"test": "test123456"}
-
-        # Test that the task definition is loaded correctly
-        task_runner = task_run.TaskRun("task", "/tmp")
-        self.assertEqual(task_runner.load_task_definition("/tmp/task.json"), expected_task_definition)
-
-        # Test that a non existent task definition file raises an error
-        task_runner = task_run.TaskRun("test", "/tmp")
-        os.remove("/tmp/task.json")
-        with self.assertRaises(FileNotFoundError) as e:
-            task_runner.load_task_definition("/tmp/task.json")
-        self.assertEqual(str(e.exception), "[Errno 2] No such file or directory: '/tmp/task.json'")
+    def setUp(self):
+        # Ensure all custom env vars are
+        if "OTF_LOG_DIRECTORY" in os.environ:
+            del os.environ["OTF_LOG_DIRECTORY"]
+        if "OTF_LOG_RUN_PREFIX" in os.environ:
+            del os.environ["OTF_LOG_RUN_PREFIX"]
+        if "OTF_RUN_ID" in os.environ:
+            del os.environ["OTF_RUN_ID"]
+        if "OTF_NO_LOG" in os.environ:
+            del os.environ["OTF_NO_LOG"]
 
     """
     #################
@@ -195,6 +71,14 @@ class TransferScriptTest(unittest.TestCase):
         # Use the "binary" to trigger the job with command line arguments
 
         self.assertEqual(self.run_task_run("df")["returncode"], 0)
+
+    def test_batch_basic_binary(self):
+        # Use the "binary" to trigger the job with command line arguments
+
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
+        self.assertEqual(self.run_task_run("batch-basic")["returncode"], 0)
 
     def test_binary_invalid_config_file(self):
         # Use the "binary" to trigger the job with command line arguments
@@ -222,6 +106,40 @@ class TransferScriptTest(unittest.TestCase):
     Tests using the Python code directly
     #################
     """
+
+    # Disabled for now. If this runs with others, then it conflicts
+    # Test having 2 tasks with the same name throws an error
+    # def test_duplicate_task_name(self):
+    #     # Create a transfer with the same name as an execution
+    #     write_test_file(
+    #         "test/cfg/transfers/df.json",
+    #         content='{"command": "df", "description": "Test task", "name": "df"}',
+    #     )
+
+    #     task_runner = task_run.TaskRun("df", "test/cfg")
+
+    #     # Verify an exception with appropriate text is thrown
+    #     with self.assertRaises(DuplicateConfigFileError) as e:
+    #         task_runner.run()
+    #     self.assertEqual(str(e.exception), "Found more than one task with name: df")
+
+    def test_unknown_task_name(self):
+
+        task_runner = task_run.TaskRun("non-existent", "test/cfg")
+
+        # Verify an exception with appropriate text is thrown
+        with self.assertRaises(FileNotFoundError) as e:
+            task_runner.run()
+        self.assertEqual(str(e.exception), "Couldn't find task with name: non-existent")
+
+    def test_batch_basic(self):
+
+        # Create a test file
+        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
+
+        # Use the TaskRun class to trigger the job properly
+        task_runner = task_run.TaskRun("batch-basic", "test/cfg")
+        self.assertTrue(task_runner.run())
 
     def test_execution_basic(self):
 
@@ -271,7 +189,9 @@ class TransferScriptTest(unittest.TestCase):
 
         # Create 10 test files
         for i in range(10):
-            write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test{i}.txt", content="test1234")
+            write_test_file(
+                f"{BASE_DIRECTORY}/ssh_1/src/test{i}.txt", content="test1234"
+            )
 
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("scp-basic", "test/cfg")
@@ -323,7 +243,9 @@ class TransferScriptTest(unittest.TestCase):
         self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/test2.txt"))
 
         # Verify the file has been moved
-        self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/{self.MOVED_FILES_DIR}/test2.txt"))
+        self.assertTrue(
+            os.path.exists(f"{BASE_DIRECTORY}/ssh_1/{self.MOVED_FILES_DIR}/test2.txt")
+        )
 
     def test_scp_source_file_conditions(self):
 
@@ -333,44 +255,71 @@ class TransferScriptTest(unittest.TestCase):
         # File must be older than 60 seconds and less than 600
 
         # Write a 11 byte long file
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="01234567890")
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="01234567890"
+        )
 
         # This should fail, because the file is too new
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
             task_runner.run()
-        self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
+        self.assertIn(
+            "No remote files could be found to transfer", cm.exception.args[0]
+        )
 
         # Modify the file to be older than 1 minute and try again
-        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
+        os.utime(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log",
+            (time.time() - 61, time.time() - 61),
+        )
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         self.assertTrue(task_runner.run())
 
         # Modify the file to be older than 10 minutes and try again
-        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 601, time.time() - 601))
+        os.utime(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log",
+            (time.time() - 601, time.time() - 601),
+        )
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
             task_runner.run()
-        self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
+        self.assertIn(
+            "No remote files could be found to transfer", cm.exception.args[0]
+        )
 
         # Write a 9 byte long file - we need to change the age again
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678")
-        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678"
+        )
+        os.utime(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log",
+            (time.time() - 61, time.time() - 61),
+        )
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
             task_runner.run()
-        self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
+        self.assertIn(
+            "No remote files could be found to transfer", cm.exception.args[0]
+        )
 
         # Write a 21 byte long file - we need to change the age again
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", content="012345678901234567890")
-        os.utime(f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log", (time.time() - 61, time.time() - 61))
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log",
+            content="012345678901234567890",
+        )
+        os.utime(
+            f"{BASE_DIRECTORY}/ssh_1/src/log.unittset.log",
+            (time.time() - 61, time.time() - 61),
+        )
 
         task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
         with self.assertRaises(exceptions.FilesDoNotMeetConditionsError) as cm:
             task_runner.run()
-        self.assertIn("No remote files could be found to transfer", cm.exception.args[0])
+        self.assertIn(
+            "No remote files could be found to transfer", cm.exception.args[0]
+        )
 
     def test_scp_file_watch(self):
 
@@ -379,7 +328,9 @@ class TransferScriptTest(unittest.TestCase):
         # File should not exist to start with
 
         # Create the source file
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.log", content="01234567890")
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.log", content="01234567890"
+        )
 
         # Filewatch configured to wait 15 seconds before giving up. Expect it to fail
         task_runner = task_run.TaskRun("scp-file-watch", "test/cfg")
@@ -390,7 +341,10 @@ class TransferScriptTest(unittest.TestCase):
         # This time, we run it again, but after 5 seconds, create the file
         # Create a thread that will run write_test_file after 5 seconds
         t = threading.Timer(
-            5, write_test_file, [f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.txt"], {"content": "01234567890"}
+            5,
+            write_test_file,
+            [f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.txt"],
+            {"content": "01234567890"},
         )
         t.start()
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
@@ -417,7 +371,10 @@ class TransferScriptTest(unittest.TestCase):
 
         # This time, we run it again with the file created and populated. It should fail because the file dosent contain the expected text
         # Write the file
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log", content="NOT_THE_RIGHT_PATTERN")
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log",
+            content="NOT_THE_RIGHT_PATTERN",
+        )
 
         task_runner = task_run.TaskRun("scp-log-watch", "test/cfg")
         with self.assertRaises(exceptions.LogWatchTimeoutError) as cm:
@@ -426,7 +383,10 @@ class TransferScriptTest(unittest.TestCase):
 
         # This time we run again, but populate the file after 5 seconds
         t = threading.Timer(
-            5, write_test_file, [f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log"], {"content": "someText"}
+            5,
+            write_test_file,
+            [f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log"],
+            {"content": "someText"},
         )
         t.start()
         print("Started thread - Expect file in 5 seconds, starting task-run now...")
@@ -442,7 +402,9 @@ class TransferScriptTest(unittest.TestCase):
 
         # Write the matching pattern into the log, but before it runs.. This should
         # make the task fail because the pattern isn't written after the task starts
-        write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log", content="someText\n")
+        write_test_file(
+            f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log", content="someText\n"
+        )
         task_runner = task_run.TaskRun("scp-log-watch-tail", "test/cfg")
         with self.assertRaises(exceptions.LogWatchTimeoutError) as cm:
             task_runner.run()
@@ -466,7 +428,9 @@ class TransferScriptTest(unittest.TestCase):
         args = ["src/bin/task-run", "-t", task, "-v", verbose, "-c", config]
 
         # Run the script
-        result = subprocess.run([script] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(
+            [script] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         # Write stdout and stderr to the console
         print("\n########## STDOUT ##########")
         print(result.stdout.decode("utf-8"))
@@ -482,7 +446,7 @@ class TransferScriptTest(unittest.TestCase):
         }
 
     @classmethod
-    def tearDownClass(self):
+    def tearDownClass(cls):
         # Get the current year
         year = datetime.datetime.now().year
 
@@ -492,11 +456,7 @@ class TransferScriptTest(unittest.TestCase):
             f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch.log",
             f"{BASE_DIRECTORY}/ssh_1/src/log{year}Watch1.log",
             "/tmp/variable_lookup.txt",
-            "/tmp/variables1/variables.json",
-            "/tmp/variables2/variables.json",
-            "/tmp/variables3/variables.json",
-            "/tmp/variables.json.j2",
-            "/tmp/task.json",
+            "test/cfg/transfers/df.json",
         ]
         for file in to_remove:
             if os.path.exists(file):

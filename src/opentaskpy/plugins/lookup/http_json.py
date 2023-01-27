@@ -6,12 +6,12 @@ This does not support any type of authentication, and just expects a simple
 JSON response from which to extract a value using a provided JSONPath.
 
 """
-import logging
-
 import requests
 from jsonpath_ng import parse
 
-logger = logging.getLogger(__name__)
+import opentaskpy.logging
+
+logger = opentaskpy.logging.init_logging(__name__)
 
 plugin_name = "http_json"
 
@@ -22,7 +22,9 @@ def run(**kwargs):
     expected_kwargs = ["url", "jsonpath"]
     for kwarg in expected_kwargs:
         if kwarg not in kwargs:
-            raise Exception(f"Missing kwarg: '{kwarg}' while trying to run lookup plugin '{plugin_name}'")
+            raise Exception(
+                f"Missing kwarg: '{kwarg}' while trying to run lookup plugin '{plugin_name}'"
+            )
 
     result = None
     try:

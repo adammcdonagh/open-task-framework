@@ -17,7 +17,9 @@ def list_files(pattern, details=False):
     directory = os.path.dirname(pattern)
     files = None
     try:
-        files = [f"{directory}/{f}" for f in os.listdir(directory) if re.match(file_regex, f)]
+        files = [
+            f"{directory}/{f}" for f in os.listdir(directory) if re.match(file_regex, f)
+        ]
     except FileNotFoundError:
         files = []
 
@@ -43,7 +45,17 @@ def delete_files(files, delimiter):
         os.unlink(file)
 
 
-def move_files(files, delimiter, destination, create_dest_dir, owner, group, mode, rename_regex, rename_sub):
+def move_files(
+    files,
+    delimiter,
+    destination,
+    create_dest_dir,
+    owner,
+    group,
+    mode,
+    rename_regex,
+    rename_sub,
+):
     # Split the moveFiles arg into a list
     files = files.split(delimiter)
     for file in list(files):
@@ -71,7 +83,9 @@ def move_files(files, delimiter, destination, create_dest_dir, owner, group, mod
 
             orig_filename = os.path.basename(file)
             orig_dirname = os.path.dirname(file)
-            new_filename = f"{orig_dirname}/{re.sub(rename_regex, rename_sub, orig_filename)}"
+            new_filename = (
+                f"{orig_dirname}/{re.sub(rename_regex, rename_sub, orig_filename)}"
+            )
             logger.info(f"Renaming: {file} to {new_filename}")
             os.rename(file, new_filename)
             file = new_filename
@@ -81,7 +95,9 @@ def move_files(files, delimiter, destination, create_dest_dir, owner, group, mod
             logger.info(f"Creating destination directory: {destination}")
             os.makedirs(destination)
         elif not os.path.exists(destination):
-            logger.error(f"ERROR: Destination directory does not exist: {destination}, and not requested to create it")
+            logger.error(
+                f"ERROR: Destination directory does not exist: {destination}, and not requested to create it"
+            )
             raise FileNotFoundError
 
         # Now we can move the file into it's final location
@@ -90,29 +106,70 @@ def move_files(files, delimiter, destination, create_dest_dir, owner, group, mod
 
         # Save the existing permissions on the file
         file_stat = os.stat(file)
-        shutil.move(file, f"{destination}/{filename}")
+        # Copy the file, and then remove it
+        shutil.copy(file, f"{destination}/{filename}")
+        os.remove(file)
         # Move doesn't preserve ownership, so we need to do that manually
-        os.chown(f"{destination}/{filename}", file_stat.st_uid, file_stat.st_gid)
+
+        # chown cannot set gid unless the current user is a member of that group
+        # so we need to check if the current user is a member of the group
+        # and if not, set the gid to -1
+        # Check if the current user is a member of the group from file_stat.st_gid
+        set_group = file_stat.st_gid
+        if file_stat.st_gid not in os.getgroups():
+            set_group = -1
+
+        os.chown(f"{destination}/{filename}", file_stat.st_uid, set_group)
         os.chmod(f"{destination}/{filename}", file_stat.st_mode)
 
 
 def main():
 
-    logging.basicConfig(format="%(asctime)s — %(name)s — %(levelname)s — %(message)s", level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s — %(name)s — %(levelname)s — %(message)s",
+        level=logging.INFO,
+    )
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l", "--listFiles", help="Regex of files to look for", type=str, required=False)
-    parser.add_argument("-d", "--details", help="Include file details in output", action="store_true", required=False)
     parser.add_argument(
-        "-m", "--moveFiles", help="List of source files to move from one directory to another", required=False
+        "-l", "--listFiles", help="Regex of files to look for", type=str, required=False
     )
-    parser.add_argument("--deleteFiles", help="List of source files to delete as a post copy action", required=False)
-    parser.add_argument("--destination", help="Destination directory to move files into", required=False)
-    parser.add_argument("--owner", help="Owner to set on files to be moved", required=False)
-    parser.add_argument("--group", help="Group to set on files to be moved", required=False)
-    parser.add_argument("--mode", help="Mode to set on files to be moved", required=False)
-    parser.add_argument("--renameRegex", help="Regex expression to apply to filenames", required=False)
-    parser.add_argument("--renameSub", help="Regex substitution to apply to filenames", required=False)
+    parser.add_argument(
+        "-d",
+        "--details",
+        help="Include file details in output",
+        action="store_true",
+        required=False,
+    )
+    parser.add_argument(
+        "-m",
+        "--moveFiles",
+        help="List of source files to move from one directory to another",
+        required=False,
+    )
+    parser.add_argument(
+        "--deleteFiles",
+        help="List of source files to delete as a post copy action",
+        required=False,
+    )
+    parser.add_argument(
+        "--destination", help="Destination directory to move files into", required=False
+    )
+    parser.add_argument(
+        "--owner", help="Owner to set on files to be moved", required=False
+    )
+    parser.add_argument(
+        "--group", help="Group to set on files to be moved", required=False
+    )
+    parser.add_argument(
+        "--mode", help="Mode to set on files to be moved", required=False
+    )
+    parser.add_argument(
+        "--renameRegex", help="Regex expression to apply to filenames", required=False
+    )
+    parser.add_argument(
+        "--renameSub", help="Regex substitution to apply to filenames", required=False
+    )
     parser.add_argument(
         "--delimiter",
         help="Character(s) used to separate filenames",

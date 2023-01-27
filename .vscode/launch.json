@@ -9,7 +9,7 @@
       "type": "python",
       "request": "launch",
       "program": "${file}",
-      "preLaunchTask": "Create test files - without containers",
+      "preLaunchTask": "Build Test containers - without containers",
       "console": "integratedTerminal",
       "args": [
         "-t",
@@ -25,7 +25,7 @@
       "name": "Python: Transfer - Basic",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -42,7 +42,7 @@
       "name": "Python: Transfer - Multiple",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -59,7 +59,7 @@
       "name": "Python: Transfer - File Conditions 1",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -76,7 +76,7 @@
       "name": "Python: Transfer - File Watch only",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -93,7 +93,7 @@
       "name": "Python: Transfer - Log Watch only",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
@@ -110,12 +110,154 @@
       "name": "Python: Transfer - Log Watch tail only",
       "type": "python",
       "request": "launch",
-      "preLaunchTask": "Create test files",
+      "preLaunchTask": "Build Test containers",
       "program": "src/bin/task-run",
       "console": "integratedTerminal",
       "args": [
         "-t",
         "scp-log-watch-tail",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Basic",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-basic",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Parallel",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-parallel",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Timeout",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-basic-timeout",
+        "-v",
+        "3",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-batch-timeout"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Dependencies",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-1234"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Dependencies - Fail - No retry",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-fail-no-retry",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-dep-f-nr"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Dependencies - Fail - Retry",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-fail-retry",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-dep-f-r"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Batch - Continue on fail",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-continue-on-fail",
+        "-c",
+        "test/cfg"
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Execution - Basic - df - 2 hosts",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/bin/task-run",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "df",
         "-v",
         "1",
         "-c",

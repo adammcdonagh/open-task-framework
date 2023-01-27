@@ -1,11 +1,10 @@
 {
   "type": "execution",
   "hosts": [
-    "{{ HOST_A }}",
-    "{{ HOST_B }}"
+    "{{ HOST_A }}"
   ],
-  "directory": "/tmp",
-  "command": "test -e /tmp/does-not-exist",
+  "directory": "/tmp/testFiles/src",
+  "command": "sleep 300",
   "protocol": {
     "name": "ssh",
     "credentials": {

@@ -22,6 +22,7 @@ class RemoteTransferError(Exception):
         # Call the base class constructor
         super().__init__(message)
 
+
 class RemoteFileNotFoundError(Exception):
     def __init__(self, message):
         # Call the base class constructor
@@ -29,6 +30,12 @@ class RemoteFileNotFoundError(Exception):
 
 
 class FilesDoNotMeetConditionsError(Exception):
+    def __init__(self, message):
+        # Call the base class constructor
+        super().__init__(message)
+
+
+class DuplicateConfigFileError(Exception):
     def __init__(self, message):
         # Call the base class constructor
         super().__init__(message)

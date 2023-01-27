@@ -14,20 +14,30 @@ class HttpJsonPluginTest(unittest.TestCase):
         with self.assertRaises(Exception) as ex:
             run(jsonpath="test")
 
-        self.assertEqual(str(ex.exception), "Missing kwarg: 'url' while trying to run lookup plugin 'http_json'")
+        self.assertEqual(
+            str(ex.exception),
+            "Missing kwarg: 'url' while trying to run lookup plugin 'http_json'",
+        )
 
     def test_http_json_plugin_missing_jsonpath(self):
         with self.assertRaises(Exception) as ex:
             run(url="http://test.com")
 
-        self.assertEqual(str(ex.exception), "Missing kwarg: 'jsonpath' while trying to run lookup plugin 'http_json'")
+        self.assertEqual(
+            str(ex.exception),
+            "Missing kwarg: 'jsonpath' while trying to run lookup plugin 'http_json'",
+        )
 
     def test_http_json_plugin(self):
         # Run test with a valid URL and JSONPath
-        result = run(url="https://jsonplaceholder.typicode.com/todos/1", jsonpath="$.userId")
+        result = run(
+            url="https://jsonplaceholder.typicode.com/todos/1", jsonpath="$.userId"
+        )
         self.assertEqual(result, 1)
 
     def test_http_json_plugin_complex(self):
         # A more complex JSONPath
-        result = run(url="https://jsonplaceholder.typicode.com/todos", jsonpath="$[0].title")
+        result = run(
+            url="https://jsonplaceholder.typicode.com/todos", jsonpath="$[0].title"
+        )
         self.assertEqual(result, "delectus aut autem")

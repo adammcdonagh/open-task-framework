@@ -23,6 +23,6 @@
   "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
   "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
   "testLookup": "{{ lookup('file', path='/tmp/variable_lookup.txt') }}",
-  "testLookup2": "{{ lookup('http_json', url='https://api.ipify.org?format=json', jsonpath='$.ip') }}"
+  "testLookup2": "{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}"
   
 }

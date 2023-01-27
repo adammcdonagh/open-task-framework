@@ -4,10 +4,11 @@ File lookup plugin.
 Reads the first line of a file and returns it as a string.
 
 """
-import logging
 import os
 
-logger = logging.getLogger(__name__)
+import opentaskpy.logging
+
+logger = opentaskpy.logging.init_logging(__name__)
 
 plugin_name = "file"
 
@@ -16,7 +17,9 @@ def run(**kwargs):
 
     # Expect a kwarg named file
     if "path" not in kwargs:
-        raise Exception(f"Missing kwarg: 'path' while trying to run lookup plugin '{plugin_name}'")
+        raise Exception(
+            f"Missing kwarg: 'path' while trying to run lookup plugin '{plugin_name}'"
+        )
 
     # Check if the file exists
     if not os.path.isfile(kwargs["path"]):
