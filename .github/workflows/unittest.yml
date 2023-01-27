@@ -15,6 +15,16 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Run flake8
+        uses: py-actions/flake8@v2
+        with:
+          checkName: "Python Lint"
+          plugins: flake8-bugbear pep8-naming flake8-use-fstring flake8-black flake8-isort
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
       - name: Setup test dirs
         run: |
@@ -25,20 +35,6 @@ jobs:
       - name: Setup SSH keys
         run: |
           ./test/setupSSHKeys.sh
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Run flake8
-        uses: julianwachholz/flake8-action@v2.0.2
-        with:
-          checkName: "Python Lint"
-          path: "./"
-          plugins: flake8-bugbear pep8-naming flake8-use-fstring flake8-black flake8-isort
-          config: .flake8
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Test with pytest
         run: |
           pytest
