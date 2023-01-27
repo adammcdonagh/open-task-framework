@@ -18,7 +18,6 @@ execution_schema = {
     "properties": {
         "type": {"type": "string"},
         "hosts": {"type": "array"},
-        "username": {"type": "string"},
         "directory": {"type": "string"},
         "command": {"type": "string"},
         "protocol": {"type": "object"},
