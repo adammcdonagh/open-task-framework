@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
 import opentaskpy.logging
+from opentaskpy import exceptions
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
@@ -59,6 +60,10 @@ class Execution(TaskHandler):
                 self.remote_handlers.append(
                     SSHExecution(host, self.execution_definition)
                 )
+        else:
+            raise exceptions.UnknownProtocolError(
+                f"Unknown protocol {self.execution_definition['protocol']['name']}"
+            )
 
     def run(self, kill_event=None):
         self.logger.info("Running execution")

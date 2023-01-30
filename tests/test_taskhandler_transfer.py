@@ -1,6 +1,7 @@
 import os
 import unittest
 
+from opentaskpy import exceptions
 from opentaskpy.taskhandlers import transfer
 from tests.file_helper import BASE_DIRECTORY, write_test_file
 
@@ -28,9 +29,27 @@ class TaskHandlerTransferTest(unittest.TestCase):
         ],
     }
 
+    fail_invalid_protocol_task_definition = {
+        "type": "transfer",
+        "source": {
+            "hostname": "172.16.0.11",
+            "directory": "/tmp/testFiles/src",
+            "fileRegex": ".*taskhandler.*\\.txt",
+            "protocol": {"name": "nonexistent"},
+        },
+    }
+
     @classmethod
     def setUpClass(cls):
         cls.tearDownClass()
+
+    def test_invalid_protocol(self):
+        transfer_obj = transfer.Transfer(
+            "invalid-protocol", self.fail_invalid_protocol_task_definition
+        )
+        # Expect a UnknownProtocolError exception
+        with self.assertRaises(exceptions.UnknownProtocolError):
+            transfer_obj._set_remote_handlers()
 
     def test_remote_handler(self):
         # Validate that given a transfer with ssh protocol, that we get a remote handler of type SSH

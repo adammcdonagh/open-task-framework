@@ -2,6 +2,7 @@ import logging
 import os
 import unittest
 
+from opentaskpy import exceptions
 from opentaskpy.taskhandlers import execution
 from tests.file_helper import BASE_DIRECTORY, write_test_file
 
@@ -50,9 +51,26 @@ class TaskHandlerExecutionTest(unittest.TestCase):
         "protocol": {"name": "ssh", "credentials": {"username": "application"}},
     }
 
+    fail_invalid_protocol_task_definition = {
+        "type": "execution",
+        "hosts": ["172.16.0.11", "172.16.255.12"],
+        "username": "application",
+        "directory": "/tmp",
+        "command": "touch /tmp/testFiles/dest/execution.invalidhost.txt",
+        "protocol": {"name": "rubbish"},
+    }
+
     @classmethod
     def setUpClass(cls):
         cls.tearDownClass()
+
+    def test_invalid_protocol(self):
+        execution_obj = execution.Execution(
+            "invalid-protocol", self.fail_invalid_protocol_task_definition
+        )
+        # Expect a UnknownProtocolError exception
+        with self.assertRaises(exceptions.UnknownProtocolError):
+            execution_obj._set_remote_handlers()
 
     def test_basic_execution(self):
         execution_obj = execution.Execution("df-basic", self.touch_task_definition)

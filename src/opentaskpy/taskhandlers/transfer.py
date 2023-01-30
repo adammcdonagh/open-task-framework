@@ -1,6 +1,8 @@
 import time
+from importlib import import_module
 from math import ceil, floor
 from os import environ
+from sys import modules
 
 import opentaskpy.logging
 from opentaskpy import exceptions
@@ -71,6 +73,34 @@ class Transfer(TaskHandler):
         # Based on the source protocol pick the appropriate remote handler
         if self.source_file_spec["protocol"]["name"] == "ssh":
             self.source_remote_handler = SSHTransfer(self.source_file_spec)
+
+        # If not SSH, then it's a non-standard protocol, we need to see if it's loadable
+        # load it, and then create the remote handler
+        else:
+            # Get the protocol name
+            addon_protocol = self.source_file_spec["protocol"]["name"]
+            # Remove the class name from the end of addon_protocol
+            addon_package = ".".join(addon_protocol.split(".")[:-1])
+
+            # Import the plugin if its not already loaded
+            if addon_package not in modules:
+                # Check the module is loadable
+                try:
+                    self.logger.log(12, f"Loading addon protocol: {addon_package}")
+                    import_module(addon_package)
+
+                    # Get the imported class relating to addon_protocol
+                    addon_class = getattr(
+                        modules[addon_package], addon_protocol.split(".")[-1]
+                    )
+
+                    # Create the remote handler from this class
+                    self.source_remote_handler = addon_class(self.source_file_spec)
+
+                except ModuleNotFoundError:
+                    raise exceptions.UnknownProtocolError(
+                        f"Unknown protocol {self.source_file_spec['protocol']['name']}"
+                    )
 
         # Based on the destination protocol pick the appropriate remote handler
         if self.dest_file_specs:
@@ -148,6 +178,7 @@ class Transfer(TaskHandler):
                 )
 
         # If filewatching, do that next
+        # TODO: #6 Improve filewatch definition options in JSON
         if "fileWatch" in self.source_file_spec:
 
             # Setup a loop for the filewatch
@@ -188,7 +219,7 @@ class Transfer(TaskHandler):
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
-
+                # TODO: #5 Change all references to remote_files to expect a generato
                 if remote_files:
                     self.logger.info("Filewatch found remote file(s)")
                     break
