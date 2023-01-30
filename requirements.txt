@@ -1,5 +1,5 @@
-jinja2
-jsonpath-ng
-jsonschema
-paramiko
-requests
+jinja2>=3.1
+jsonpath-ng>=1.5
+jsonschema>=4.17
+paramiko>=3.0
+requests>=2.28

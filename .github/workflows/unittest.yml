@@ -24,7 +24,6 @@ jobs:
       - name: Run flake8
         uses: py-actions/flake8@v2
         with:
-          checkName: "Python Lint"
           plugins: flake8-bugbear pep8-naming flake8-use-fstring flake8-black flake8-isort
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
       - name: Setup test dirs
