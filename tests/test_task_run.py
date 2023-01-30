@@ -425,7 +425,15 @@ class TransferScriptTest(unittest.TestCase):
     def run_task_run(self, task, verbose="2", config="test/cfg"):
         # We need to run the bin/task-run script to test this
         script = "python"
-        args = ["src/bin/task-run", "-t", task, "-v", verbose, "-c", config]
+        args = [
+            "src/opentaskpy/cli/task_run.py",
+            "-t",
+            task,
+            "-v",
+            verbose,
+            "-c",
+            config,
+        ]
 
         # Run the script
         result = subprocess.run(
