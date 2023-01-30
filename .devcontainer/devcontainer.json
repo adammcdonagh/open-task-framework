@@ -19,7 +19,7 @@
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "cd src && pip install -e .",
+  "postCreateCommand": "pip install -e . && pip install -e .[dev] && pip install build twine",
   "customizations": {
     "vscode": {
       "extensions": [
