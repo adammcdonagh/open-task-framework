@@ -19,11 +19,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
       - name: Run flake8
         uses: py-actions/flake8@v2
         with:
-          checkName: "Python Lint"
           plugins: flake8-bugbear pep8-naming flake8-use-fstring flake8-black flake8-isort
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
       - name: Setup test dirs
@@ -37,4 +36,4 @@ jobs:
           ./test/setupSSHKeys.sh
       - name: Test with pytest
         run: |
-          pytest
+          python -m pytest

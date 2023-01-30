@@ -255,3 +255,8 @@ Dev and runtime packages are defined via pipenv, with a `requirements.txt` for t
 * Clone this repo
 * pip install pipenv
 * pipenv --python 3.10 && pipenv install && cd src && pipenv install --editable .
+
+### Building and uploading to PyPi
+
+`python3 -m build`
+`python3 -m twine upload --repository testpypi dist/*`

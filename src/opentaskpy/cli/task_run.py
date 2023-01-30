@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 import argparse
 import logging
 import os
@@ -6,7 +8,7 @@ from datetime import datetime
 from opentaskpy import task_run
 from opentaskpy.logging import OTF_LOG_FORMAT
 
-CONFIG_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/../cfg"
+CONFIG_PATH = f"{os.getcwd()}/cfg"
 
 
 def main():
@@ -63,11 +65,13 @@ def main():
 
     # Create the TaskRun object
     task_run_obj = task_run.TaskRun(args.taskId, CONFIG_PATH)
+
     try:
         task_run_obj.run()
     except Exception as e:
         logger.error(f"Error running task: {e}")
-        raise e
+        if logger.getEffectiveLevel() <= 12:
+            raise e
 
 
 if __name__ == "__main__":

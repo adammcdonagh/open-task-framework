@@ -127,7 +127,9 @@ class ConfigLoader:
             )
         if not variable_configs:
             # self.logger.error("Couldn't find any variables.(json|json.j2) files")
-            raise FileNotFoundError("Couldn't find any variables.(json|json.j2) files")
+            raise FileNotFoundError(
+                f"Couldn't find any variables.(json|json.j2) files under {self.config_dir}"
+            )
         else:
             for variable_file in variable_configs:
                 with open(variable_file) as json_file:
