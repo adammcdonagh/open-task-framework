@@ -1,8 +1,7 @@
+import shutil
 import time
-from importlib import import_module
 from math import ceil, floor
-from os import environ
-from sys import modules
+from os import environ, getpid, makedirs, path
 
 import opentaskpy.logging
 from opentaskpy import exceptions
@@ -26,9 +25,13 @@ class Transfer(TaskHandler):
         self.dest_file_specs = None
         self.overall_result = False
 
+        self.local_staging_dir = f"/tmp/staging/{getpid()}"
+
         self.logger = opentaskpy.logging.init_logging(
             "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
         )
+
+        super().__init__()
 
     def return_result(self, status, message=None, exception=None):
         if message:
@@ -49,6 +52,13 @@ class Transfer(TaskHandler):
                 self.logger.log(12, f"Closing dest connection for {remote_handler}")
                 remote_handler.tidy()
 
+        # Remove local staging directory if it exists
+        if path.exists(self.local_staging_dir):
+            self.logger.log(
+                12, f"Removing local staging directory {self.local_staging_dir}"
+            )
+            shutil.rmtree(self.local_staging_dir)
+
         self.logger.info("Closing log file handler")
         opentaskpy.logging.close_log_file(self.logger, self.overall_result)
 
@@ -61,6 +71,7 @@ class Transfer(TaskHandler):
     def _set_remote_handlers(self):
         # Based on the transfer definition, determine what to do first
         self.source_file_spec = self.transfer_definition["source"]
+        source_protocol = self.source_file_spec["protocol"]["name"]
 
         # Create a list of destination file specs
         if (
@@ -71,48 +82,32 @@ class Transfer(TaskHandler):
             self.dest_file_specs = self.transfer_definition["destination"]
 
         # Based on the source protocol pick the appropriate remote handler
-        if self.source_file_spec["protocol"]["name"] == "ssh":
+        if source_protocol == "ssh":
             self.source_remote_handler = SSHTransfer(self.source_file_spec)
 
         # If not SSH, then it's a non-standard protocol, we need to see if it's loadable
         # load it, and then create the remote handler
         else:
-            # Get the protocol name
-            addon_protocol = self.source_file_spec["protocol"]["name"]
-            # Remove the class name from the end of addon_protocol
-            addon_package = ".".join(addon_protocol.split(".")[:-1])
 
-            # Import the plugin if its not already loaded
-            if addon_package not in modules:
-                # Check the module is loadable
-                try:
-                    self.logger.log(12, f"Loading addon protocol: {addon_package}")
-                    import_module(addon_package)
-
-                    # Get the imported class relating to addon_protocol
-                    addon_class = getattr(
-                        modules[addon_package], addon_protocol.split(".")[-1]
-                    )
-
-                    # Create the remote handler from this class
-                    self.source_remote_handler = addon_class(self.source_file_spec)
-
-                except ModuleNotFoundError:
-                    raise exceptions.UnknownProtocolError(
-                        f"Unknown protocol {self.source_file_spec['protocol']['name']}"
-                    )
+            self.source_remote_handler = super()._get_handler_for_protocol(
+                source_protocol, self.source_file_spec
+            )
 
         # Based on the destination protocol pick the appropriate remote handler
         if self.dest_file_specs:
             self.dest_remote_handlers = []
             for dest_file_spec in self.dest_file_specs:
 
+                remote_protocol = dest_file_spec["protocol"]["name"]
+
                 # For each host, create a remote handler
-                if dest_file_spec["protocol"]["name"] == "ssh":
+                if remote_protocol == "ssh":
                     self.dest_remote_handlers.append(SSHTransfer(dest_file_spec))
                 else:
-                    raise exceptions.UnknownProtocolError(
-                        f"Unknown protocol {self.dest_file_specs['protocol']['name']}"
+                    self.dest_remote_handlers.append(
+                        super()._get_handler_for_protocol(
+                            remote_protocol, dest_file_spec
+                        )
                     )
 
     def run(self, kill_event=None):
@@ -349,17 +344,56 @@ class Transfer(TaskHandler):
             # If there's a destination file spec, then we need to transfer the files
             if self.dest_file_specs:
 
-                # Handle the push transfers first
+                # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
+                # If there are, then we need to do a pull transfer first, then a push transfer
+                different_protocols = False
                 i = 0
                 for dest_file_spec in self.dest_file_specs:
                     if (
                         "transferType" not in dest_file_spec
                         or dest_file_spec["transferType"] == "push"
+                        # And the destination and source remote handler classes are the same
+                        and (
+                            self.source_remote_handler.__class__
+                            != self.dest_remote_handlers[i].__class__
+                        )
                     ):
+                        different_protocols = True
+                        i += 1
+                        break
+
+                # If there are differences, download the file locally first
+                # so it's ready to upload to multiple destinations at once
+                if different_protocols or (
+                    "transferType" in dest_file_spec
+                    and dest_file_spec["transferType"] == "proxy"
+                ):
+                    # Create local staging dir
+                    makedirs(self.local_staging_dir, exist_ok=True)
+                    transfer_result = self.source_remote_handler.pull_files_to_worker(
+                        remote_files, self.local_staging_dir
+                    )
+                    if transfer_result != 0:
+                        return self.return_result(
+                            1,
+                            "Pull to worker from remote source errored",
+                            exception=exceptions.RemoteTransferError,
+                        )
+
+                # Handle the push transfers first
+                i = 0
+                for dest_file_spec in self.dest_file_specs:
+                    associated_dest_remote_handler = self.dest_remote_handlers[i]
+                    # If this is a default push transfer, and both source and dest protocols are the same
+                    if (
+                        "transferType" not in dest_file_spec
+                        or dest_file_spec["transferType"] == "push"
+                        # And the destination and source remote handler classes are the same
+                    ) and not different_protocols:
                         transfer_result = self.source_remote_handler.transfer_files(
                             remote_files,
                             dest_file_spec,
-                            dest_remote_handler=self.dest_remote_handlers[i],
+                            dest_remote_handler=associated_dest_remote_handler,
                         )
                         if transfer_result != 0:
                             return self.return_result(
@@ -369,12 +403,39 @@ class Transfer(TaskHandler):
                             )
 
                         self.logger.info("Transfer completed successfully")
+                    # If this is a default push transfer, and source and dest protocols are different
+                    elif (
+                        (
+                            "transferType" in dest_file_spec
+                            and dest_file_spec["transferType"] == "push"
+                        )
+                        and different_protocols
+                    ) or (
+                        "transferType" in dest_file_spec
+                        and dest_file_spec["transferType"] == "proxy"
+                    ):
+                        self.logger.debug(
+                            "Transfer protocols are different, or proxy transfer is requested"
+                        )
+
+                        transfer_result = (
+                            associated_dest_remote_handler.push_files_from_worker(
+                                self.local_staging_dir
+                            )
+                        )
+
+                        if transfer_result != 0:
+                            return self.return_result(
+                                1,
+                                "Push of files to destination errored",
+                                exception=exceptions.RemoteTransferError,
+                            )
 
                     elif (
                         "transferType" in dest_file_spec
                         and dest_file_spec["transferType"] == "pull"
                     ):
-                        transfer_result = self.dest_remote_handlers[i].pull_files(
+                        transfer_result = associated_dest_remote_handler.pull_files(
                             remote_files, self.source_file_spec
                         )
                         if transfer_result != 0:
@@ -398,6 +459,10 @@ class Transfer(TaskHandler):
                                 exception=exceptions.RemoteTransferError,
                             )
                     i += 1
+
+                if different_protocols:
+                    self.logger.debug("Removing local staging directory")
+                    shutil.rmtree(self.local_staging_dir)
             else:
                 self.logger.info("Performing filewatch only")
 

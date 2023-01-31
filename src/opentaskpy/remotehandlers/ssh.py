@@ -1,3 +1,4 @@
+import glob
 import os
 import random
 import re
@@ -92,11 +93,16 @@ class SSHTransfer(RemoteTransferHandler):
             self.ssh_client.close()
 
     def get_staging_directory(self, remote_spec):
-        return (
-            remote_spec["stagingDirectory"]
-            if "stagingDirectory" in remote_spec
-            else f"~/otf/{os.environ['OTF_TASK_ID']}/"
-        )
+        # Get the user's home directory
+        if "stagingDirectory" in remote_spec:
+            return remote_spec["stagingDirectory"]
+        else:
+
+            _, stdout, _ = self.ssh_client.exec_command("echo $HOME")
+            with stdout as stdout_fh:
+                home_dir = stdout_fh.read().decode("UTF-8").strip()
+            
+            return f"{home_dir}/otf/{os.environ['OTF_TASK_ID']}/"
 
     """
     Determine the list of files that match the source definition
@@ -129,6 +135,81 @@ class SSHTransfer(RemoteTransferHandler):
 
         return remote_files
 
+    ###
+    # This function is used when we need to download source files from the source server
+    # onto the worker. These are then later pushed to the destination server
+    ##
+    def pull_files_to_worker(self, files, local_staging_directory):
+        # Connect to the source
+        self.connect(self.spec["hostname"])
+
+        # Create the staging directory locally
+        if not os.path.exists(local_staging_directory):
+            os.makedirs(local_staging_directory)
+
+        # Download the files via SFTP
+        for file in files:
+            self.logger.info(
+                f"[LOCALHOST] Downloading file {file} to {local_staging_directory}"
+            )
+            file_name = os.path.basename(file)
+            self.sftp_connection.get(file, f"{local_staging_directory}/{file_name}")
+
+        return 0
+
+    ###
+    # This function is used when the source files have been downloaded locally and
+    # need to be uploaded to the destination server
+    # This would be expected to be called against the remote handler for the destination server
+    ###
+    def push_files_from_worker(self, local_staging_directory):
+        # Connect to the destination server
+        self.connect(self.spec["hostname"])
+
+        # Handle the staging directory
+        destination_directory = self.get_staging_directory(self.spec)
+
+        # Create/validate staging directory exists on destination
+        remote_command = (
+            f"test -e {destination_directory} || mkdir -p {destination_directory}"
+        )
+
+        self.logger.info(
+            f"[{self.spec['hostname']}] Validating staging dir via SSH: {remote_command}"
+        )
+        _, stdout, stderr = self.ssh_client.exec_command(remote_command)
+        with stdout as stdout_fh:
+            str_stdout = stdout_fh.read().decode("UTF-8")
+            if str_stdout:
+                log_stdout(str_stdout, self.spec["hostname"], self.logger)
+
+        with stderr as stderr_fh:
+            str_stderr = stderr_fh.read().decode("UTF-8")
+            if str_stderr and len(str_stderr) > 0:
+                self.logger.info(
+                    f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
+                )
+
+        remote_rc = stdout.channel.recv_exit_status()
+        self.logger.info(
+            f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH command"
+        )
+
+        # Transfer the files, just use SFTP
+        result = 0
+        # Get list of files in local_staging_directory
+        files = glob.glob(f"{local_staging_directory}/*")
+        for file in files:
+            self.logger.info(f"[LOCALHOST] Transferring file via SFTP: {file}")
+            file_name = os.path.basename(file)
+            try:
+                self.sftp_connection.put(file, f"{destination_directory}{file_name}")
+            except Exception as e:
+                self.logger.error(f"[LOCALHOST] Unable to transfer file via SFTP: {e}")
+                result = 1
+
+        return result
+
     def transfer_files(self, files, remote_spec, dest_remote_handler=None):
         self.connect(self.spec["hostname"])
 
@@ -151,7 +232,7 @@ class SSHTransfer(RemoteTransferHandler):
             f"test -e {destination_directory} || mkdir -p {destination_directory}"
         )
         self.logger.info(
-            f"[{self.spec['hostname']}] Validating staging dir via SSH: {remote_command}"
+            f"[{remote_host}] Validating staging dir via SSH: {remote_command}"
         )
         _, stdout, stderr = dest_remote_handler.ssh_client.exec_command(remote_command)
         with stdout as stdout_fh:
@@ -163,12 +244,12 @@ class SSHTransfer(RemoteTransferHandler):
             str_stderr = stderr_fh.read().decode("UTF-8")
             if str_stderr and len(str_stderr) > 0:
                 self.logger.info(
-                    f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
+                    f"[{remote_host}] Remote stderr returned:\n{str_stderr}"
                 )
 
         remote_rc = stdout.channel.recv_exit_status()
         self.logger.info(
-            f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH command"
+            f"[{remote_host}] Got return code {remote_rc} from SSH command"
         )
 
         remote_command = f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
