@@ -63,12 +63,3 @@ push = true
     'current_version = "{version}"',
     'version = "{version}"'
 ]
-"setup.py" = [
-    "{version}",
-    "{pep440_version}",
-]
-"README.md" = [
-    "{version}",
-    "{pep440_version}",
-]
-"src/opentaskpy/__init__.py" = ["{version}"]
