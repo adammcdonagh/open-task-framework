@@ -405,15 +405,12 @@ class Transfer(TaskHandler):
                         self.logger.info("Transfer completed successfully")
                     # If this is a default push transfer, and source and dest protocols are different
                     elif (
-                        (
-                            "transferType" in dest_file_spec
-                            and dest_file_spec["transferType"] == "push"
-                        )
-                        and different_protocols
-                    ) or (
                         "transferType" in dest_file_spec
-                        and dest_file_spec["transferType"] == "proxy"
-                    ):
+                        and (
+                            dest_file_spec["transferType"] == "push"
+                            or dest_file_spec["transferType"] == "proxy"
+                        )
+                    ) or different_protocols:
                         self.logger.debug(
                             "Transfer protocols are different, or proxy transfer is requested"
                         )

@@ -51,11 +51,16 @@ class SSHTransfer(RemoteTransferHandler):
             )
             return
         try:
-            ssh_client.connect(
-                hostname,
-                username=self.spec["protocol"]["credentials"]["username"],
-                timeout=5,
-            )
+            kwargs = {
+                "hostname": hostname,
+                "username": self.spec["protocol"]["credentials"]["username"],
+                "timeout": 5,
+            }
+            # If a specific key file has been defined, then use that
+            if "keyFile" in self.spec["protocol"]["credentials"]:
+                kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
+
+            ssh_client.connect(**kwargs)
             _, stdout, _ = ssh_client.exec_command("uname -a")
             with stdout as stdout_fh:
                 self.logger.log(
@@ -101,7 +106,7 @@ class SSHTransfer(RemoteTransferHandler):
             _, stdout, _ = self.ssh_client.exec_command("echo $HOME")
             with stdout as stdout_fh:
                 home_dir = stdout_fh.read().decode("UTF-8").strip()
-            
+
             return f"{home_dir}/otf/{os.environ['OTF_TASK_ID']}/"
 
     """
