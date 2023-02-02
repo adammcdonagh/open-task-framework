@@ -6,6 +6,7 @@ from opentaskpy import exceptions
 
 
 class TaskHandler(ABC):
+    @abstractmethod
     def __init__(self):
         pass
 
