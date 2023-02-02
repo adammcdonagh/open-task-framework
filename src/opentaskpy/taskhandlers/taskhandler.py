@@ -22,7 +22,6 @@ class TaskHandler(ABC):
         ...
 
     def _get_handler_for_protocol(self, protocol_name, spec):
-
         # Remove the class name from the end of addon_protocol
         addon_package = ".".join(protocol_name.split(".")[:-1])
 

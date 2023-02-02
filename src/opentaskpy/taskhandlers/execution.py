@@ -33,7 +33,6 @@ class Execution(TaskHandler):
         # Delete the remote connection objects
         if self.remote_handlers:
             for remote_handler in self.remote_handlers:
-
                 self.logger.log(
                     12,
                     f"[{remote_handler.remote_host}] Closing source connection for {remote_handler}",
@@ -78,7 +77,6 @@ class Execution(TaskHandler):
         ex = None
 
         with ThreadPoolExecutor(len(self.remote_handlers)) as executor:
-
             futures = [
                 executor.submit(
                     self._execute, self.execution_definition, remote_handler

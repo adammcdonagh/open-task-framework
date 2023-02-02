@@ -299,7 +299,6 @@ class Batch(TaskHandler):
         with ThreadPoolExecutor(
             max_workers=1, thread_name_prefix=batch_task["task_id"]
         ) as executor:
-
             while True:
                 if batch_task["executing_thread"] is None:
                     self.logger.log(
@@ -367,7 +366,6 @@ class Batch(TaskHandler):
         )
 
     def _execute(self, remote_handler, event=None):
-
         try:
             result = remote_handler.run(kill_event=event)
         except Exception as ex:

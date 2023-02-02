@@ -144,7 +144,6 @@ class LoggingTest(unittest.TestCase):
 
         # loop 1 to 10
         for _ in range(1, 11):
-
             log_file_name = opentaskpy.logging._define_log_file_name(None, "B")
             # Ensure the directory exists, if not, create it
             if not os.path.exists(os.path.dirname(log_file_name)):

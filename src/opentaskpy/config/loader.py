@@ -16,7 +16,6 @@ MAX_DEPTH = 5
 
 class ConfigLoader:
     def __init__(self, config_dir):
-
         self.logger = opentaskpy.logging.init_logging(__name__)
         self.config_dir = config_dir
         self.template_env = None
@@ -90,10 +89,8 @@ class ConfigLoader:
     # POPULATE VARIABLES INSIDE TASK DEFINITION
     # AND LOAD ADDITIONAL VARIABLES FROM TASK DEFINITION
     def _enrich_variables(self, task_definition_file):
-
         active_task_definition = None
         with open(task_definition_file) as json_file:
-
             json_content = json_file.read()
             template = Template(json_content)
             # Render the template without evaluating any variables yet
@@ -140,7 +137,6 @@ class ConfigLoader:
 
     # RESOLVE ANY VARIABLES THAT USE OTHER VARIABLES IN THE VARIABLE FILES
     def _resolve_templated_variables(self):
-
         # We need to evaluate the variables themselves, incase theres any recursion
         # Convert the variables to a JSON string which we can process with the jinja2 templater
         global MAX_DEPTH

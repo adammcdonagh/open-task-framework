@@ -88,7 +88,6 @@ class Transfer(TaskHandler):
         # If not SSH, then it's a non-standard protocol, we need to see if it's loadable
         # load it, and then create the remote handler
         else:
-
             self.source_remote_handler = super()._get_handler_for_protocol(
                 source_protocol, self.source_file_spec
             )
@@ -97,7 +96,6 @@ class Transfer(TaskHandler):
         if self.dest_file_specs:
             self.dest_remote_handlers = []
             for dest_file_spec in self.dest_file_specs:
-
                 remote_protocol = dest_file_spec["protocol"]["name"]
 
                 # For each host, create a remote handler
@@ -175,7 +173,6 @@ class Transfer(TaskHandler):
         # If filewatching, do that next
         # TODO: #6 Improve filewatch definition options in JSON
         if "fileWatch" in self.source_file_spec:
-
             # Setup a loop for the filewatch
             timeout_seconds = (
                 60
@@ -210,7 +207,6 @@ class Transfer(TaskHandler):
             while (
                 not remote_files and floor(time.time() - start_time) <= timeout_seconds
             ):
-
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
@@ -343,7 +339,6 @@ class Transfer(TaskHandler):
 
             # If there's a destination file spec, then we need to transfer the files
             if self.dest_file_specs:
-
                 # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
                 # If there are, then we need to do a pull transfer first, then a push transfer
                 different_protocols = False
@@ -464,7 +459,6 @@ class Transfer(TaskHandler):
                 self.logger.info("Performing filewatch only")
 
             if "postCopyAction" in self.source_file_spec:
-
                 pca_result = self.source_remote_handler.handle_post_copy_action(
                     remote_files
                 )

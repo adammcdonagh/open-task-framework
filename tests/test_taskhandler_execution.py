@@ -22,7 +22,6 @@ logger.setLevel(logging_level)
 
 
 class TaskHandlerExecutionTest(unittest.TestCase):
-
     # Create a task definition
     touch_task_definition = {
         "type": "execution",
@@ -92,7 +91,6 @@ class TaskHandlerExecutionTest(unittest.TestCase):
         self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/execution.txt"))
 
     def test_basic_execution_cmd_failure(self):
-
         # Write a test file to the source directory
         write_test_file(
             f"{BASE_DIRECTORY}/ssh_1/src/execution.test.fail.txt", content="test1234"
@@ -113,7 +111,6 @@ class TaskHandlerExecutionTest(unittest.TestCase):
         self.assertFalse(execution_obj.run())
 
     def test_basic_execution_invalid_host(self):
-
         execution_obj = execution.Execution("task-fail", self.fail_host_task_definition)
         execution_obj._set_remote_handlers()
 
@@ -137,7 +134,6 @@ class TaskHandlerExecutionTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-
         to_remove = [
             f"{BASE_DIRECTORY}/ssh_1/dest/execution.txt",
             f"{BASE_DIRECTORY}/ssh_2/dest/execution.txt",

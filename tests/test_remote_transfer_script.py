@@ -9,7 +9,6 @@ from tests.file_helper import list_test_files, write_test_file
 
 
 class TransferScriptTest(unittest.TestCase):
-
     FILE_PREFIX = "unittest_testfile"
     BASE_DIRECTORY = "/tmp"
     FILE_CONTENT = "test1234"
@@ -20,7 +19,6 @@ class TransferScriptTest(unittest.TestCase):
 
     # Setup, create a random list of files in /tmp to test with
     def setUp(self):
-
         # Ensure cleanup was run before starting
         self.tearDown()
 
@@ -40,7 +38,6 @@ class TransferScriptTest(unittest.TestCase):
             os.mkdir(self.MOVED_FILES_DIR)
 
     def test_list_files_no_details(self):
-
         # Expect a list of 10 files
         list = transfer.list_files(
             f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_.*", False
@@ -70,7 +67,6 @@ class TransferScriptTest(unittest.TestCase):
         self.assertEqual(len(list), 10)
 
     def test_list_files_details(self):
-
         # Expect a list of 10 files
         list = transfer.list_files(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_.*", True)
         self.assertEqual(len(list), 10)
@@ -96,7 +92,6 @@ class TransferScriptTest(unittest.TestCase):
             self.assertGreaterEqual(file["modified_time"], time.time() - 1)
 
     def test_move_files_basic(self):
-
         transfer.move_files(
             self.list, ",", self.MOVED_FILES_DIR, False, None, None, None, None, None
         )
@@ -111,7 +106,6 @@ class TransferScriptTest(unittest.TestCase):
             )
 
     def test_move_files_create_dest_dir_1(self):
-
         # Try moving to a directory that doesn't exist without asking to create one and expect an error
         with self.assertRaises(FileNotFoundError):
             transfer.move_files(
@@ -150,7 +144,6 @@ class TransferScriptTest(unittest.TestCase):
             )
 
     def test_move_files_create_dest_dir_2(self):
-
         # Move the files in there again, now that the directory exists, this should still work
         transfer.move_files(
             self.list,
@@ -178,7 +171,6 @@ class TransferScriptTest(unittest.TestCase):
         shutil.rmtree(f"{self.BASE_DIRECTORY}/created_directory")
 
     def test_move_files_rename(self):
-
         transfer.move_files(
             self.list,
             self.DELIMITER,
@@ -201,7 +193,6 @@ class TransferScriptTest(unittest.TestCase):
             )
 
     def test_move_files_set_owner(self):
-
         # Determine if the current user is root or not
         is_root = os.getuid() == 0
 
@@ -316,7 +307,6 @@ class TransferScriptTest(unittest.TestCase):
                 self.assertEqual(groups[0], file_group)
 
     def test_delete_files(self):
-
         transfer.delete_files(self.list, self.DELIMITER)
 
         # Check that the files were moved

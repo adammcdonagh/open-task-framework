@@ -27,7 +27,6 @@ logger.setLevel(logging_level)
 
 
 class TaskHandlerBatchTest(unittest.TestCase):
-
     # Create a task definition
     basic_batch_definition = {
         "type": "batch",
@@ -152,7 +151,6 @@ class TaskHandlerBatchTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-
         cls.tearDownClass()
 
         write_test_file("/tmp/variable_lookup.txt", content=f"{cls.RANDOM}")
@@ -169,7 +167,6 @@ class TaskHandlerBatchTest(unittest.TestCase):
             del os.environ["OTF_NO_LOG"]
 
     def test_basic_batch(self):
-
         # Create a test file
         write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
@@ -492,7 +489,6 @@ class TaskHandlerBatchTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-
         to_remove = [
             f"{BASE_DIRECTORY}/ssh_1/dest/execution.txt",
             f"{BASE_DIRECTORY}/ssh_2/dest/execution.txt",

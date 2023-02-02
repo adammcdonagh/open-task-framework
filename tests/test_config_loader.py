@@ -11,12 +11,10 @@ GLOBAL_VARIABLES = None
 
 
 class ConfigLoaderTest(unittest.TestCase):
-
     RANDOM = random.randint(10000, 99999)
 
     @classmethod
     def setUpClass(cls):
-
         cls.tearDownClass()
         # This all relies on both the docker containers being set up, as well as the directories existing
         # The easiest way to do this is via VSCode tasks, running the "Create test files" task
@@ -35,7 +33,6 @@ class ConfigLoaderTest(unittest.TestCase):
             os.remove(f"{BASE_DIRECTORY}/ssh_1/src/{file}")
 
     def test_load_task_definition(self):
-
         # Write a nested variable to the global variables file
         json_obj = {
             "test": "{{ SOME_VARIABLE }}6",
@@ -64,7 +61,6 @@ class ConfigLoaderTest(unittest.TestCase):
         self.assertEqual(str(e.exception), "Couldn't find task with name: task")
 
     def test_load_new_variables_from_task_def(self):
-
         # Write a nested variable to the global variables file
         json_obj = {
             "test": "{{ SOME_VARIABLE }}6",
@@ -93,7 +89,6 @@ class ConfigLoaderTest(unittest.TestCase):
         )
 
     def test_load_global_variables(self):
-
         # Create a JSON file with some test variables in it
         write_test_file("/tmp/variables.json", content='{"test": "test1234"}')
 
@@ -146,7 +141,6 @@ class ConfigLoaderTest(unittest.TestCase):
         os.rmdir("/tmp/variables3")
 
     def test_resolve_templated_variables(self):
-
         json_obj = {"test": "{{ SOME_VARIABLE }}", "SOME_VARIABLE": "test1234"}
         json_resolved = {"test": "test1234", "SOME_VARIABLE": "test1234"}
 
@@ -206,7 +200,6 @@ class ConfigLoaderTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-
         to_remove = [
             "/tmp/variables1/variables.json",
             "/tmp/variables2/variables.json",

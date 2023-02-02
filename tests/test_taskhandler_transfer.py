@@ -7,7 +7,6 @@ from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 
 class TaskHandlerTransferTest(unittest.TestCase):
-
     os.environ["OTF_NO_LOG"] = "1"
     os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 
@@ -101,7 +100,6 @@ class TaskHandlerTransferTest(unittest.TestCase):
         )
 
     def test_scp_basic(self):
-
         # Create a test file
         write_test_file(
             f"{BASE_DIRECTORY}/ssh_1/src/test.taskhandler.txt", content="test1234"
@@ -118,7 +116,6 @@ class TaskHandlerTransferTest(unittest.TestCase):
         )
 
     def test_scp_proxy(self):
-
         # Create a test file
         write_test_file(
             f"{BASE_DIRECTORY}/ssh_1/src/test.taskhandler.proxy.txt", content="test1234"
@@ -136,7 +133,6 @@ class TaskHandlerTransferTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-
         to_remove = [
             f"{BASE_DIRECTORY}/ssh_1/src/test.taskhandler.txt",
             f"{BASE_DIRECTORY}/ssh_2/dest/test.taskhandler.txt",

@@ -16,7 +16,6 @@ SSH_OPTIONS = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
 
 
 class SSHTransfer(RemoteTransferHandler):
-
     TASK_TYPE = "T"
 
     FILE_NAME_DELIMITER = "|||"
@@ -102,7 +101,6 @@ class SSHTransfer(RemoteTransferHandler):
         if "stagingDirectory" in remote_spec:
             return remote_spec["stagingDirectory"]
         else:
-
             _, stdout, _ = self.ssh_client.exec_command("echo $HOME")
             with stdout as stdout_fh:
                 home_dir = stdout_fh.read().decode("UTF-8").strip()
@@ -115,7 +113,6 @@ class SSHTransfer(RemoteTransferHandler):
     """
 
     def list_files(self, directory=None, file_pattern=None):
-
         self.connect(self.spec["hostname"])
         if not directory:
             directory = self.spec["directory"]
@@ -350,7 +347,6 @@ class SSHTransfer(RemoteTransferHandler):
         return remote_rc
 
     def move_files_to_final_location(self, files):
-
         self.connect(self.spec["hostname"])
 
         # Convert all the source file names into the filename with the destination directory as a prefix
@@ -472,7 +468,6 @@ class SSHTransfer(RemoteTransferHandler):
         return 0
 
     def do_logwatch(self):
-
         self.connect(self.spec["hostname"])
 
         # Determine if the config requires scanning the entire log, or just from the start_row determine in the init function
@@ -516,7 +511,6 @@ def log_stdout(str_stdout, hostname, logger):
 
 
 class SSHExecution(RemoteExecutionHandler):
-
     TASK_TYPE = "E"
     ps_regex = r"(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)"
 
@@ -562,7 +556,6 @@ class SSHExecution(RemoteExecutionHandler):
         )
         _, stdout, _ = self.ssh_client.exec_command("uname -a")
         with stdout as stdout_fh:
-
             output = stdout_fh.read().decode("UTF-8")
             self.logger.log(11, f"[{self.remote_host}] Remote uname: {output}")
 
@@ -618,7 +611,6 @@ class SSHExecution(RemoteExecutionHandler):
         self.tidy()
 
     def execute(self, command):
-
         # Establish the SSH connection
         try:
             self.connect()

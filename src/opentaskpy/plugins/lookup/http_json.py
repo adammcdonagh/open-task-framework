@@ -17,7 +17,6 @@ plugin_name = "http_json"
 
 
 def run(**kwargs):
-
     # Expect a kwarg named url, and value
     expected_kwargs = ["url", "jsonpath"]
     for kwarg in expected_kwargs:

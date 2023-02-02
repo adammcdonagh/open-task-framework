@@ -12,7 +12,6 @@ from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 
 class TransferScriptTest(unittest.TestCase):
-
     # Create a variable with a random number
     RANDOM = random.randint(10000, 99999)
     FILE_PREFIX = "unittest_task_run"
@@ -124,7 +123,6 @@ class TransferScriptTest(unittest.TestCase):
     #     self.assertEqual(str(e.exception), "Found more than one task with name: df")
 
     def test_unknown_task_name(self):
-
         task_runner = task_run.TaskRun("non-existent", "test/cfg")
 
         # Verify an exception with appropriate text is thrown
@@ -133,7 +131,6 @@ class TransferScriptTest(unittest.TestCase):
         self.assertEqual(str(e.exception), "Couldn't find task with name: non-existent")
 
     def test_batch_basic(self):
-
         # Create a test file
         write_test_file(f"{BASE_DIRECTORY}/ssh_1/src/test.txt", content="test1234")
 
@@ -142,19 +139,16 @@ class TransferScriptTest(unittest.TestCase):
         self.assertTrue(task_runner.run())
 
     def test_execution_basic(self):
-
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("df", "test/cfg")
         self.assertTrue(task_runner.run())
 
     def test_execution_fail(self):
-
         # Use the TaskRun class to trigger the job properly
         task_runner = task_run.TaskRun("fail-command", "test/cfg")
         self.assertFalse(task_runner.run())
 
     def test_scp_basic(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
@@ -166,7 +160,6 @@ class TransferScriptTest(unittest.TestCase):
         self.assertTrue(task_runner.run())
 
     def test_scp_basic_multiple_dests(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
@@ -183,7 +176,6 @@ class TransferScriptTest(unittest.TestCase):
         self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test-3.txt"))
 
     def test_scp_basic_10_files(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
@@ -202,7 +194,6 @@ class TransferScriptTest(unittest.TestCase):
             self.assertTrue(os.path.exists(f"{BASE_DIRECTORY}/ssh_2/dest/test{i}.txt"))
 
     def test_scp_basic_pull(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/.*\.txt
 
@@ -213,7 +204,6 @@ class TransferScriptTest(unittest.TestCase):
         self.assertTrue(task_runner.run())
 
     def test_scp_basic_pca_delete(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/test1.txt
         # File will be delteted after transfer
@@ -228,7 +218,6 @@ class TransferScriptTest(unittest.TestCase):
         self.assertFalse(os.path.exists(f"{BASE_DIRECTORY}/ssh_1/src/test1.txt"))
 
     def test_scp_basic_pca_move(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/test2.txt
         # File will be moved after transfer
@@ -248,7 +237,6 @@ class TransferScriptTest(unittest.TestCase):
         )
 
     def test_scp_source_file_conditions(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/log\..*\.log
         # File must be >10 bytes and less than 20
@@ -322,7 +310,6 @@ class TransferScriptTest(unittest.TestCase):
         )
 
     def test_scp_file_watch(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/.*\.log
         # File should not exist to start with
@@ -357,7 +344,6 @@ class TransferScriptTest(unittest.TestCase):
         os.remove(f"{BASE_DIRECTORY}/ssh_1/src/fileWatch.log")
 
     def test_scp_log_watch(self):
-
         # Required files for this test:
         # ssh_1 : test/testFiles/ssh_1/src/logYYYYWatch.log
         # File should not exist to start with

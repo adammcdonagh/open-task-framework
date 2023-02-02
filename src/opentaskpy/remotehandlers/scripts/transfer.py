@@ -59,7 +59,6 @@ def move_files(
     # Split the moveFiles arg into a list
     files = files.split(delimiter)
     for file in list(files):
-
         file = os.path.expanduser(file)
         logger.info(f"Handling {file}")
 
@@ -80,7 +79,6 @@ def move_files(
 
         # Apply any regex substitution if needed
         if rename_regex:
-
             orig_filename = os.path.basename(file)
             orig_dirname = os.path.dirname(file)
             new_filename = (
@@ -124,7 +122,6 @@ def move_files(
 
 
 def main():
-
     logging.basicConfig(
         format="%(asctime)s — %(name)s — %(levelname)s — %(message)s",
         level=logging.INFO,
