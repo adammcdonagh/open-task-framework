@@ -301,7 +301,7 @@ class Transfer(TaskHandler):
 
                     self.logger.log(
                         12,
-                        f"Checking file age - Last modified time: {time.ctime(file_modified_time)}",
+                        f"Checking file age - Last modified time: {time.ctime(file_modified_time)} - Age in secs: {file_age} secs",
                     )
 
                     if min_age and file_age <= min_age:
@@ -459,9 +459,17 @@ class Transfer(TaskHandler):
                 self.logger.info("Performing filewatch only")
 
             if "postCopyAction" in self.source_file_spec:
-                pca_result = self.source_remote_handler.handle_post_copy_action(
-                    remote_files
-                )
+                try:
+                    pca_result = self.source_remote_handler.handle_post_copy_action(
+                        remote_files
+                    )
+                except Exception as e:
+                    pca_result = 1
+                    return self.return_result(
+                        1,
+                        "Error performing post copy action",
+                        exception=e,
+                    )
                 if pca_result != 0:
                     return self.return_result(
                         1,
