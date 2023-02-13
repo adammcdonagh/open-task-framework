@@ -7,6 +7,8 @@ services:
     restart: always
     hostname: ssh_1
     container_name: ssh_1
+    ports:
+      - "127.0.0.1:2221:22"
     networks:
       test-network:
         ipv4_address: 172.16.0.11
@@ -18,6 +20,8 @@ services:
     restart: always
     hostname: ssh_2
     container_name: ssh_2
+    ports:
+      - "127.0.0.1:2222:22"
     networks:
       test-network:
         ipv4_address: 172.16.0.12

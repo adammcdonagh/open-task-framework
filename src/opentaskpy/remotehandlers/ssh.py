@@ -2,6 +2,7 @@ import glob
 import os
 import random
 import re
+import stat
 import time
 
 from paramiko import AutoAddPolicy, SSHClient
@@ -401,34 +402,81 @@ class SSHTransfer(RemoteTransferHandler):
 
     def handle_post_copy_action(self, files):
         self.connect(self.spec["hostname"])
+        sftp_client = self.ssh_client.open_sftp()
 
-        remote_command = None
         if self.spec["postCopyAction"]["action"] == "delete":
-            remote_command = f"python3 /tmp/transfer.py --deleteFiles '{self.FILE_NAME_DELIMITER.join(files)}'"
-        if self.spec["postCopyAction"]["action"] == "move":
-            remote_command = f"python3 /tmp/transfer.py --moveFiles '{self.FILE_NAME_DELIMITER.join(files)}' --destination {self.spec['postCopyAction']['destination']}"
+            # Loop through each file and use the sftp client to delete the files
 
-        if remote_command:
-            self.logger.info(f"[{self.spec['hostname']}] - Running: {remote_command}")
-            _, stdout, stderr = self.ssh_client.exec_command(remote_command)
-
-            with stdout as stdout_fh:
-                str_stdout = stdout_fh.read().decode("UTF-8")
-                if str_stdout:
-                    log_stdout(str_stdout, self.spec["hostname"], self.logger)
-
-            with stderr as stderr_fh:
-                str_stderr = stderr_fh.read().decode("UTF-8")
-                if str_stderr and len(str_stderr) > 0:
-                    self.logger.info(
-                        f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
+            for file in files:
+                try:
+                    sftp_client.remove(file)
+                except IOError:
+                    self.logger.error(
+                        f"[{self.spec['hostname']}] Could not delete file {file} on source host"
                     )
+                    return 1
 
-            remote_rc = stdout.channel.recv_exit_status()
-            self.logger.info(
-                f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH post copy action command"
-            )
-            return remote_rc
+        if (
+            self.spec["postCopyAction"]["action"] == "move"
+            or self.spec["postCopyAction"]["action"] == "rename"
+        ):
+            # Use the SFTP client, and check that the destination directory exists
+            move_dir = os.path.dirname(self.spec["postCopyAction"]["destination"])
+
+            try:
+                stat_result = sftp_client.stat(move_dir)
+                # If it exists, then we need to ensure its a directory and not just a file
+                if not stat.S_ISDIR(stat_result.st_mode):
+                    self.logger.error(
+                        f"[{self.spec['hostname']}] Destination directory {move_dir} is not a directory on source host"
+                    )
+                    return 1
+            except IOError:
+                self.logger.error(
+                    f"[{self.spec['hostname']}] Destination directory {move_dir} does not exist on source host"
+                )
+                return 1
+
+            # Loop through the files and move them
+            try:
+                for file in files:
+                    # If this is a move, then just move the file
+                    if self.spec["postCopyAction"]["action"] == "move":
+                        self.logger.info(
+                            f"[{self.spec['hostname']}] Moving {file} to {self.spec['postCopyAction']['destination']}"
+                        )
+                        sftp_client.rename(
+                            file, self.spec["postCopyAction"]["destination"]
+                        )
+                    # If this is a rename, then we need to rename the file
+                    if self.spec["postCopyAction"]["action"] == "rename":
+                        # Determine the new file name
+                        new_file_dir = os.path.dirname(
+                            self.spec["postCopyAction"]["destination"]
+                        )
+                        current_file_name = os.path.basename(file)
+
+                        rename_regex = self.spec["postCopyAction"]["pattern"]
+                        rename_sub = self.spec["postCopyAction"]["sub"]
+
+                        new_file_name = re.sub(
+                            rename_regex, rename_sub, current_file_name
+                        )
+
+                        self.logger.info(
+                            f"[{self.spec['hostname']}] Renaming {file} to {new_file_dir}/{new_file_name}"
+                        )
+                        sftp_client.posix_rename(
+                            file, f"{new_file_dir}/{new_file_name}"
+                        )
+            except IOError as e:
+                self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
+                self.logger.error(
+                    f"[{self.spec['hostname']}] Error moving or renaming file {file}"
+                )
+                return 1
+
+            return 0
 
     def init_logwatch(self):
         self.connect(self.spec["hostname"])
