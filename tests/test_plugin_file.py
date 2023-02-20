@@ -1,8 +1,9 @@
 import os
 import unittest
 
+from file_helper import write_test_file
+
 from opentaskpy.plugins.lookup.file import run
-from tests.file_helper import write_test_file
 
 
 class FilePluginTest(unittest.TestCase):

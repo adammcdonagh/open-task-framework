@@ -4,8 +4,9 @@ import random
 import shutil
 import unittest
 
+from file_helper import BASE_DIRECTORY, write_test_file
+
 from opentaskpy.config.loader import ConfigLoader
-from tests.file_helper import BASE_DIRECTORY, write_test_file
 
 GLOBAL_VARIABLES = None
 

@@ -4,8 +4,9 @@ import shutil
 import time
 import unittest
 
+from file_helper import list_test_files, write_test_file
+
 from opentaskpy.remotehandlers.scripts import transfer as transfer
-from tests.file_helper import list_test_files, write_test_file
 
 
 class TransferScriptTest(unittest.TestCase):

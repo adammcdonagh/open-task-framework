@@ -445,8 +445,11 @@ class SSHTransfer(RemoteTransferHandler):
                         self.logger.info(
                             f"[{self.spec['hostname']}] Moving {file} to {self.spec['postCopyAction']['destination']}"
                         )
-                        sftp_client.rename(
-                            file, self.spec["postCopyAction"]["destination"]
+                        # Get the actual file name
+                        file_name = os.path.basename(file)
+                        sftp_client.posix_rename(
+                            file,
+                            f"{self.spec['postCopyAction']['destination']}/{file_name}",
                         )
                     # If this is a rename, then we need to rename the file
                     if self.spec["postCopyAction"]["action"] == "rename":
@@ -476,7 +479,7 @@ class SSHTransfer(RemoteTransferHandler):
                 )
                 return 1
 
-            return 0
+        return 0
 
     def init_logwatch(self):
         self.connect(self.spec["hostname"])
