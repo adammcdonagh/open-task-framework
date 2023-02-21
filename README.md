@@ -258,5 +258,7 @@ Dev and runtime packages are defined via pipenv, with a `requirements.txt` for t
 
 ### Building and uploading to PyPi
 
-`python3 -m build`
-`python3 -m twine upload --repository testpypi dist/*`
+```bash
+python3 -m build
+python3 -m twine upload --repository testpypi dist/*
+```
