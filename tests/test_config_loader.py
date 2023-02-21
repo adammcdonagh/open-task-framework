@@ -12,25 +12,6 @@ GLOBAL_VARIABLES = None
 
 RANDOM = random.randint(10000, 99999)
 
-# @classmethod
-# def setUpClass(cls):
-#     cls.tearDownClass()
-#     # This all relies on both the docker containers being set up, as well as the directories existing
-#     # The easiest way to do this is via VSCode tasks, running the "Create test files" task
-
-#     # Create dummy variable file
-#     write_test_file("{tmpdir}/variable_lookup.txt", content=f"{cls.RANDOM}")
-
-#     # Check that the dest directory exists, if not then we just fail here
-#     if not os.path.exists(f"{BASE_DIRECTORY}/ssh_1/dest"):
-#         raise Exception(
-#             "Destination directory does not exist. Ensure that setup has been run properly"
-#         )
-
-#     # Delete any existing files in the destination directory
-#     for file in os.listdir(f"{BASE_DIRECTORY}/ssh_1/src"):
-#         os.remove(f"{BASE_DIRECTORY}/ssh_1/src/{file}")
-
 
 def test_load_task_definition(tmpdir):
     # Write a nested variable to the global variables file

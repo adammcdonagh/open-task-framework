@@ -164,9 +164,8 @@ def test_get_latest_log_file():
     assert opentaskpy.logging.get_latest_log_file(None, "B") is None
 
 
-def test_close_log_file():
-
-    os.environ["OTF_LOG_DIRECTORY"] = "test/testLogs"
+def test_close_log_file(tmpdir):
+    os.environ["OTF_LOG_DIRECTORY"] = f"{tmpdir}/test/testLogs"
 
     # Create a logger and log something to it
     logger = opentaskpy.logging.init_logging(

@@ -22,9 +22,9 @@ jobs:
           pip install .[dev]
           pip install -e .
       - run: echo "/usr/libexec/docker/cli-plugins" >> $GITHUB_PATH
-      - name: Setup test dirs
-        run: |
-          ./test/createTestDirectories.sh && ./test/createTestFiles.sh
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Test with pytest
         run: |
           python -m pytest --keepalive
+          
