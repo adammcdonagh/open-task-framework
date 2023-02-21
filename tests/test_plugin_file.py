@@ -1,39 +1,34 @@
-import os
-import unittest
-
+import pytest
 from file_helper import write_test_file
+from pytest_shell import fs
 
 from opentaskpy.plugins.lookup.file import run
 
 
-class FilePluginTest(unittest.TestCase):
-    def test_file_plugin_missing_path(self):
-        with self.assertRaises(Exception) as ex:
-            run()
+def test_file_plugin_missing_path():
+    with pytest.raises(Exception) as ex:
+        run()
 
-        self.assertEqual(
-            str(ex.exception),
-            "Missing kwarg: 'path' while trying to run lookup plugin 'file'",
-        )
+    assert (
+        ex.value.args[0]
+        == "Missing kwarg: 'path' while trying to run lookup plugin 'file'"
+    )
 
-    def test_file_plugin_file_not_found(self):
-        with self.assertRaises(FileNotFoundError) as ex:
-            run(path="/tmp/does_not_exist.txt")
 
-        self.assertEqual(
-            str(ex.exception),
-            "File /tmp/does_not_exist.txt does not exist while trying to run lookup plugin 'file'",
-        )
+def test_file_plugin_file_not_found(tmpdir):
+    with pytest.raises(FileNotFoundError) as ex:
+        run(path=f"{tmpdir}/does_not_exist.txt")
 
-    def test_file_plugin(self):
-        # Run test with a valid variable file, and ensure it's read and contains that value
-        file_name = "/tmp/test.variable.txt"
-        content = "test1234"
-        write_test_file(file_name, content)
-        result = run(path=file_name)
-        self.assertEqual(result, content)
+    assert (
+        ex.value.args[0]
+        == f"File {tmpdir}/does_not_exist.txt does not exist while trying to run lookup plugin 'file'"
+    )
 
-    def tearDown(self):
-        # Remove /tmp/test.variable.txt if it exists
-        if os.path.isfile("/tmp/test.variable.txt"):
-            os.remove("/tmp/test.variable.txt")
+
+def test_file_plugin(tmpdir):
+    # Run test with a valid variable file, and ensure it's read and contains that value
+    file_name = f"{tmpdir}/test.variable.txt"
+    content = "test1234"
+    fs.create_files([{file_name: {"content": "test1234"}}])
+    result = run(path=file_name)
+    assert result == content
