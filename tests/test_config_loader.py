@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import shutil
 
 import pytest
 from file_helper import write_test_file

@@ -1,5 +1,4 @@
 import pytest
-from file_helper import write_test_file
 from pytest_shell import fs
 
 from opentaskpy.plugins.lookup.file import run

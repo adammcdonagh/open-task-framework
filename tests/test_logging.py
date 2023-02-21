@@ -137,13 +137,13 @@ def test_get_latest_log_file():
 
     # Run the function to see what it thinks the latest file is,
     # this should return none, because they are all in the _running state to being with
-    assert opentaskpy.logging.get_latest_log_file(None, "B") == None
+    assert opentaskpy.logging.get_latest_log_file(None, "B") is None
 
     # Rename the last created file to remove the _running suffix
     os.rename(last_created_file, last_created_file.replace("_running", ""))
     last_created_file = last_created_file.replace("_running", "")
     # Run the function again and validate that it still returns nothing
-    assert opentaskpy.logging.get_latest_log_file(None, "B") == None
+    assert opentaskpy.logging.get_latest_log_file(None, "B") is None
 
     # Rename this file to _failed
     os.rename(last_created_file, last_created_file.replace("_B", "_B_failed"))
@@ -161,7 +161,7 @@ def test_get_latest_log_file():
     os.rename(log_file_name, log_file_name.replace("_running", ""))
 
     # Run the function again and validate that it returns nothing, as last state is success
-    assert opentaskpy.logging.get_latest_log_file(None, "B") == None
+    assert opentaskpy.logging.get_latest_log_file(None, "B") is None
 
 
 def test_close_log_file():
