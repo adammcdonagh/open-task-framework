@@ -89,6 +89,15 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2):
                 f"{root_dir}/testFiles/ssh_{i}/ssh/authorized_keys",
             )
 
+        # Copy the file into the ssh directory on this host
+        # Curren user's home directory
+        home_dir = os.path.expanduser("~")
+        # Make the .ssh directory if it dosent exist
+        if not os.path.isdir(f"{home_dir}/.ssh"):
+            os.mkdir(f"{home_dir}/.ssh")
+
+        shutil.copy(ssh_private_key_file, f"{home_dir}/.ssh/id_rsa")
+
     # Run the docker exec command to create the user
     # Get the current uid for the running process
     uid = str(os.getuid())

@@ -72,7 +72,7 @@ def test_define_log_file_name(env_vars, tmpdir):
     )
 
 
-def test_init_logging():
+def test_init_logging(env_vars):
     # Call init logging function and ensure that the returned logger includes a TaskFileHandler
     # pointing at the correct filename
     timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{6}"
@@ -112,7 +112,7 @@ def test_init_logging():
     assert len(logger.handlers) == 0
 
 
-def test_get_latest_log_file():
+def test_get_latest_log_file(env_vars):
     # Setup some dummy log files
     log_path = "test/testLogs"
     os.environ["OTF_LOG_DIRECTORY"] = log_path
@@ -164,7 +164,7 @@ def test_get_latest_log_file():
     assert opentaskpy.logging.get_latest_log_file(None, "B") is None
 
 
-def test_close_log_file(tmpdir):
+def test_close_log_file(env_vars, tmpdir):
     os.environ["OTF_LOG_DIRECTORY"] = f"{tmpdir}/test/testLogs"
 
     # Create a logger and log something to it
