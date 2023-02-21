@@ -144,7 +144,7 @@ scp_proxy_task_definition = {
     "source": {
         "hostname": "172.16.0.11",
         "directory": "/tmp/testFiles/src",
-        "fileRegex": ".*taskhandler.*\\.txt",
+        "fileRegex": ".*taskhandler.proxy\\.txt",
         "protocol": {"name": "ssh", "credentials": {"username": "application"}},
     },
     "destination": [
@@ -352,7 +352,7 @@ def test_scp_proxy(root_dir, setup_ssh_keys):
     fs.create_files(
         [
             {
-                f"{root_dir}/testFiles/ssh_1/src/test.taskhandler.txt": {
+                f"{root_dir}/testFiles/ssh_1/src/test.taskhandler.proxy.txt": {
                     "content": "test1234"
                 }
             }
@@ -366,16 +366,3 @@ def test_scp_proxy(root_dir, setup_ssh_keys):
     assert transfer_obj.run()
     # Check the destination file exists
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.proxy.txt")
-
-
-# @classmethod
-# def tearDownClass(cls):
-#     to_remove = [
-#         f"{root_dir}/testFiles/ssh_1/src/test.taskhandler.txt",
-#         f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt",
-#         f"{root_dir}/testFiles/ssh_1/src/test.taskhandler.proxy.txt",
-#         f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.proxy.txt",
-#     ]
-#     for file in to_remove:
-#         if os.path.exists(file):
-#             os.remove(file)

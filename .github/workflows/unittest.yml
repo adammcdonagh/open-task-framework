@@ -26,5 +26,5 @@ jobs:
         uses: lhotari/action-upterm@v1
       - name: Test with pytest
         run: |
-          python -m pytest --keepalive
+          python -m pytest
           
