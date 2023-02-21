@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
 import opentaskpy.logging
+from opentaskpy import exceptions
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
@@ -32,7 +33,6 @@ class Execution(TaskHandler):
         # Delete the remote connection objects
         if self.remote_handlers:
             for remote_handler in self.remote_handlers:
-
                 self.logger.log(
                     12,
                     f"[{remote_handler.remote_host}] Closing source connection for {remote_handler}",
@@ -59,6 +59,10 @@ class Execution(TaskHandler):
                 self.remote_handlers.append(
                     SSHExecution(host, self.execution_definition)
                 )
+        else:
+            raise exceptions.UnknownProtocolError(
+                f"Unknown protocol {self.execution_definition['protocol']['name']}"
+            )
 
     def run(self, kill_event=None):
         self.logger.info("Running execution")
@@ -73,7 +77,6 @@ class Execution(TaskHandler):
         ex = None
 
         with ThreadPoolExecutor(len(self.remote_handlers)) as executor:
-
             futures = [
                 executor.submit(
                     self._execute, self.execution_definition, remote_handler

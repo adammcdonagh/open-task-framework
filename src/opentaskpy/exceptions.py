@@ -39,3 +39,9 @@ class DuplicateConfigFileError(Exception):
     def __init__(self, message):
         # Call the base class constructor
         super().__init__(message)
+
+
+class UnknownProtocolError(Exception):
+    def __init__(self, message):
+        # Call the base class constructor
+        super().__init__(message)

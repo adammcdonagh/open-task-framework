@@ -1,242 +1,254 @@
 import grp
 import os
+import re
 import shutil
 import time
-import unittest
+
+import pytest
+from pytest_shell import fs
 
 from opentaskpy.remotehandlers.scripts import transfer as transfer
-from tests.file_helper import list_test_files, write_test_file
+
+FILE_PREFIX = "unittest_testfile"
+FILE_CONTENT = "test1234"
+MOVED_FILES_DIR = "test_move_files"
+DELIMITER = ","
+
+list = None
 
 
-class TransferScriptTest(unittest.TestCase):
+@pytest.fixture(scope="function")
+def setup(tmpdir):
+    # Write 10 random files to /tmp
+    for i in range(10):
+        fs.create_files([{f"{tmpdir}/{FILE_PREFIX}_{i}": {"content": FILE_CONTENT}}])
 
-    FILE_PREFIX = "unittest_testfile"
-    BASE_DIRECTORY = "/tmp"
-    FILE_CONTENT = "test1234"
-    MOVED_FILES_DIR = "/tmp/test_move_files"
-    DELIMITER = ","
+    global list
+    list = list_test_files(tmpdir, f"{FILE_PREFIX}_.*", delimiter=DELIMITER)
 
-    list = None
+    # If directory doesn't exist, create it
+    if not os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}"):
+        os.mkdir(f"{tmpdir}/{MOVED_FILES_DIR}")
 
-    # Setup, create a random list of files in /tmp to test with
-    def setUp(self):
 
-        # Ensure cleanup was run before starting
-        self.tearDown()
+def test_list_files_no_details(setup, tmpdir):
+    # Expect a list of 10 files
+    list = transfer.list_files(f"{tmpdir}/{FILE_PREFIX}_.*", False)
+    assert len(list) == 10
 
-        # Write 10 random files to /tmp
-        for i in range(10):
-            write_test_file(
-                f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}",
-                content=self.FILE_CONTENT,
-            )
+    # Check that the list of files returned is the same as the list of files we created
+    for i in range(10):
+        assert f"{tmpdir}/{FILE_PREFIX}_{i}" in (list)
 
-        self.list = list_test_files(
-            self.BASE_DIRECTORY, f"{self.FILE_PREFIX}_.*", delimiter=self.DELIMITER
-        )
+    # Expect nothing to be returned
+    list = transfer.list_files(f"{tmpdir}/{FILE_PREFIX}_qwhuidhqwduihqd", False)
+    assert len(list) == 0
 
-        # If directory doesn't exist, create it
-        if not os.path.exists(self.MOVED_FILES_DIR):
-            os.mkdir(self.MOVED_FILES_DIR)
+    # Try a more specific regex
+    list = transfer.list_files(f"{tmpdir}/{FILE_PREFIX}_.*[0-9]", False)
+    assert len(list) == 10
 
-    def test_list_files_no_details(self):
+    # Try again but with character classes
+    list = transfer.list_files(f"{tmpdir}/{FILE_PREFIX}_\\d+", False)
+    assert len(list) == 10
 
-        # Expect a list of 10 files
-        list = transfer.list_files(
-            f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_.*", False
-        )
-        self.assertEqual(len(list), 10)
 
-        # Check that the list of files returned is the same as the list of files we created
-        for i in range(10):
-            self.assertIn(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}", list)
+def test_list_files_details(setup, tmpdir):
+    # Expect a list of 10 files
+    list = transfer.list_files(f"{tmpdir}/{FILE_PREFIX}_.*", True)
+    assert len(list) == 10
 
-        # Expect nothing to be returned
-        list = transfer.list_files(
-            f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_qwhuidhqwduihqd", False
-        )
-        self.assertEqual(len(list), 0)
+    # Check that the list of files returned is the same as the list of files we created
+    for i in range(10):
+        assert f"{tmpdir}/{FILE_PREFIX}_{i}" in (list)
+        # Get that value from the list
+        file = list[f"{tmpdir}/{FILE_PREFIX}_{i}"]
 
-        # Try a more specific regex
-        list = transfer.list_files(
-            f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_.*[0-9]", False
-        )
-        self.assertEqual(len(list), 10)
+        # Check that the file is a dict
+        assert isinstance(file, dict)
 
-        # Try again but with character classes
-        list = transfer.list_files(
-            f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_\\d+", False
-        )
-        self.assertEqual(len(list), 10)
+        # Check that the dict has the keys we expect
+        assert "size" in (file)
+        assert "modified_time" in (file)
 
-    def test_list_files_details(self):
+        # Check that the size is as expected
+        assert file["size"] == len(FILE_CONTENT)
 
-        # Expect a list of 10 files
-        list = transfer.list_files(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_.*", True)
-        self.assertEqual(len(list), 10)
+        # Check the modified time is within 1 second of now
+        assert file["modified_time"] <= time.time()
+        assert file["modified_time"] >= time.time() - 1
 
-        # Check that the list of files returned is the same as the list of files we created
-        for i in range(10):
-            self.assertIn(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}", list)
-            # Get that value from the list
-            file = list[f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}"]
 
-            # Check that the file is a dict
-            self.assertIsInstance(file, dict)
+def test_move_files_basic(setup, tmpdir):
+    transfer.move_files(
+        list, ",", f"{tmpdir}/{MOVED_FILES_DIR}", False, None, None, None, None, None
+    )
 
-            # Check that the dict has the keys we expect
-            self.assertIn("size", file)
-            self.assertIn("modified_time", file)
+    # Check that the files were moved
+    for i in range(10):
+        assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
 
-            # Check that the size is as expected
-            self.assertEqual(file["size"], len(self.FILE_CONTENT))
+        assert os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_{i}")
 
-            # Check the modified time is within 1 second of now
-            self.assertLessEqual(file["modified_time"], time.time())
-            self.assertGreaterEqual(file["modified_time"], time.time() - 1)
 
-    def test_move_files_basic(self):
-
+def test_move_files_create_dest_dir_1(setup, tmpdir):
+    # Try moving to a directory that doesn't exist without asking to create one and expect an error
+    with pytest.raises(FileNotFoundError):
         transfer.move_files(
-            self.list, ",", self.MOVED_FILES_DIR, False, None, None, None, None, None
+            list,
+            DELIMITER,
+            f"{tmpdir}/{MOVED_FILES_DIR}/non_existent_directory",
+            False,
+            None,
+            None,
+            None,
+            None,
+            None,
         )
 
-        # Check that the files were moved
-        for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertTrue(
-                os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-            )
+    # Now move to a directory that doesn't exist and ask to create it
+    transfer.move_files(
+        list,
+        DELIMITER,
+        f"{tmpdir}/{MOVED_FILES_DIR}/created_directory",
+        True,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    # Check that the files were moved
+    for i in range(10):
+        assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
 
-    def test_move_files_create_dest_dir_1(self):
+        assert os.path.exists(
+            f"{tmpdir}/{MOVED_FILES_DIR}/created_directory/{FILE_PREFIX}_{i}"
+        )
 
-        # Try moving to a directory that doesn't exist without asking to create one and expect an error
-        with self.assertRaises(FileNotFoundError):
+
+def test_move_files_create_dest_dir_2(setup, tmpdir):
+    # Move the files in there again, now that the directory exists, this should still work
+    transfer.move_files(
+        list,
+        DELIMITER,
+        f"{tmpdir}/created_directory",
+        True,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+    # Check that the files were moved
+    for i in range(10):
+        assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+        assert os.path.exists(f"{tmpdir}/created_directory/{FILE_PREFIX}_{i}")
+
+    # Remove the created directory
+    shutil.rmtree(f"{tmpdir}/created_directory")
+
+
+def test_move_files_rename(setup, tmpdir):
+    transfer.move_files(
+        list,
+        DELIMITER,
+        f"{tmpdir}/{MOVED_FILES_DIR}",
+        False,
+        None,
+        None,
+        None,
+        f"({FILE_PREFIX})_(.*)",
+        r"\1_renamed_\2",
+    )
+
+    # Check that the files were moved
+    for i in range(10):
+        assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+        assert os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_renamed_{i}")
+
+
+def test_move_files_set_owner(setup, tmpdir):
+    # Determine if the current user is root or not
+    is_root = os.getuid() == 0
+
+    # Try setting the owner. This should fail because you cannot change the owner of a file unless you are root
+    if not is_root:
+        with pytest.raises(PermissionError):
             transfer.move_files(
-                self.list,
-                self.DELIMITER,
-                f"{self.MOVED_FILES_DIR}/non_existent_directory",
+                list,
+                DELIMITER,
+                f"{tmpdir}/{MOVED_FILES_DIR}",
+                False,
+                "root",
+                None,
+                None,
+                None,
+                None,
+            )
+
+        # Check that the files were not moved
+        for i in range(10):
+            assert os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+
+            assert not os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_{i}")
+
+    # Now try setting the owner to the current user - Doesn't really make sense, but should work without throwing an exception
+    transfer.move_files(
+        list,
+        DELIMITER,
+        f"{tmpdir}/{MOVED_FILES_DIR}",
+        False,
+        os.environ.get("USER"),
+        None,
+        None,
+        None,
+        None,
+    )
+
+    # Check the files moved
+    for i in range(10):
+        assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+
+        assert os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_{i}")
+
+
+def test_move_files_set_group(setup, tmpdir):
+    is_root = os.getuid() == 0
+
+    # Try setting the group. This should fail because you cannot change the group of a file if you're not a member of it
+    if not is_root:
+        with pytest.raises(PermissionError):
+            transfer.move_files(
+                list,
+                DELIMITER,
+                f"{tmpdir}/{MOVED_FILES_DIR}",
                 False,
                 None,
-                None,
+                "root",
                 None,
                 None,
                 None,
             )
 
-        # Now move to a directory that doesn't exist and ask to create it
-        transfer.move_files(
-            self.list,
-            self.DELIMITER,
-            f"{self.MOVED_FILES_DIR}/created_directory",
-            True,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        # Check that the files were moved
+        # Check that the files were not moved
         for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertTrue(
-                os.path.exists(
-                    f"{self.MOVED_FILES_DIR}/created_directory/{self.FILE_PREFIX}_{i}"
-                )
-            )
+            assert os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+            assert not os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_{i}")
 
-    def test_move_files_create_dest_dir_2(self):
+        # Now try setting the group to one of the secondary groups of the current user
+        groups = os.getgrouplist(os.environ.get("USER"), os.getgid())
 
-        # Move the files in there again, now that the directory exists, this should still work
-        transfer.move_files(
-            self.list,
-            self.DELIMITER,
-            f"{self.BASE_DIRECTORY}/created_directory",
-            True,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-        # Check that the files were moved
-        for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertTrue(
-                os.path.exists(
-                    f"{self.BASE_DIRECTORY}/created_directory/{self.FILE_PREFIX}_{i}"
-                )
-            )
-
-        # Remove the created directory
-        shutil.rmtree(f"{self.BASE_DIRECTORY}/created_directory")
-
-    def test_move_files_rename(self):
+        # Convert group ID to name
+        groups = [grp.getgrgid(group).gr_name for group in groups]
 
         transfer.move_files(
-            self.list,
-            self.DELIMITER,
-            self.MOVED_FILES_DIR,
+            list,
+            DELIMITER,
+            f"{tmpdir}/{MOVED_FILES_DIR}",
             False,
             None,
-            None,
-            None,
-            f"({self.FILE_PREFIX})_(.*)",
-            r"\1_renamed_\2",
-        )
-
-        # Check that the files were moved
-        for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertTrue(
-                os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_renamed_{i}")
-            )
-
-    def test_move_files_set_owner(self):
-
-        # Determine if the current user is root or not
-        is_root = os.getuid() == 0
-
-        # Try setting the owner. This should fail because you cannot change the owner of a file unless you are root
-        if not is_root:
-            with self.assertRaises(PermissionError):
-                transfer.move_files(
-                    self.list,
-                    self.DELIMITER,
-                    self.MOVED_FILES_DIR,
-                    False,
-                    "root",
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-
-            # Check that the files were not moved
-            for i in range(10):
-                self.assertTrue(
-                    os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-                )
-                self.assertFalse(
-                    os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-                )
-
-        # Now try setting the owner to the current user - Doesn't really make sense, but should work without throwing an exception
-        transfer.move_files(
-            self.list,
-            self.DELIMITER,
-            self.MOVED_FILES_DIR,
-            False,
-            os.environ.get("USER"),
-            None,
+            groups[0],
             None,
             None,
             None,
@@ -244,97 +256,30 @@ class TransferScriptTest(unittest.TestCase):
 
         # Check the files moved
         for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
-            self.assertTrue(
-                os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-            )
+            assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+            assert os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_{i}")
 
-    def test_move_files_set_group(self):
-        is_root = os.getuid() == 0
-
-        # Try setting the group. This should fail because you cannot change the group of a file if you're not a member of it
-        if not is_root:
-            with self.assertRaises(PermissionError):
-                transfer.move_files(
-                    self.list,
-                    self.DELIMITER,
-                    self.MOVED_FILES_DIR,
-                    False,
-                    None,
-                    "root",
-                    None,
-                    None,
-                    None,
-                )
-
-            # Check that the files were not moved
-            for i in range(10):
-                self.assertTrue(
-                    os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-                )
-                self.assertFalse(
-                    os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-                )
-
-            # Now try setting the group to one of the secondary groups of the current user
-            groups = os.getgrouplist(os.environ.get("USER"), os.getgid())
-
-            # Convert group ID to name
-            groups = [grp.getgrgid(group).gr_name for group in groups]
-
-            transfer.move_files(
-                self.list,
-                self.DELIMITER,
-                self.MOVED_FILES_DIR,
-                False,
-                None,
-                groups[0],
-                None,
-                None,
-                None,
-            )
-
-            # Check the files moved
-            for i in range(10):
-                self.assertFalse(
-                    os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-                )
-                self.assertTrue(
-                    os.path.exists(f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}")
-                )
-
-            # Check the group was set correctly
-            for i in range(10):
-                file_group = os.stat(
-                    f"{self.MOVED_FILES_DIR}/{self.FILE_PREFIX}_{i}"
-                ).st_gid
-                # Convert group ID to name
-                file_group = grp.getgrgid(file_group).gr_name
-
-                self.assertEqual(groups[0], file_group)
-
-    def test_delete_files(self):
-
-        transfer.delete_files(self.list, self.DELIMITER)
-
-        # Check that the files were moved
+        # Check the group was set correctly
         for i in range(10):
-            self.assertFalse(
-                os.path.exists(f"{self.BASE_DIRECTORY}/{self.FILE_PREFIX}_{i}")
-            )
+            file_group = os.stat(f"{tmpdir}/{MOVED_FILES_DIR}/{FILE_PREFIX}_{i}").st_gid
+            # Convert group ID to name
+            file_group = grp.getgrgid(file_group).gr_name
 
-    # Cleanup
-    def tearDown(self):
-        # Delete the files we created
-        list = list_test_files(
-            self.BASE_DIRECTORY, f"{self.FILE_PREFIX}_.*", delimiter=self.DELIMITER
-        )
-        if list:
-            for file in list.split(self.DELIMITER):
-                os.remove(file)
+            assert groups[0] == file_group
 
-        # Cleanup, remove the directory we created, if it exists
-        if os.path.exists(self.MOVED_FILES_DIR):
-            shutil.rmtree(self.MOVED_FILES_DIR)
+
+def test_delete_files(setup, tmpdir):
+    transfer.delete_files(list, DELIMITER)
+
+    # Check that the files were moved
+    for i in range(10):
+        assert not os.path.exists(f"{tmpdir}/{FILE_PREFIX}_{i}")
+
+
+def list_test_files(directory, file_pattern, delimiter):
+    files = [
+        f"{directory}/{f}"
+        for f in os.listdir(directory)
+        if re.match(rf"{file_pattern}", f)
+    ]
+    return delimiter.join(files)

@@ -41,7 +41,6 @@ def _define_log_file_name(task_id, task_type):
 
 
 def init_logging(name, task_id=None, task_type=None):
-
     # Check if there's a root logger already
     if not logging.getLogger().hasHandlers():
         # Set the root logger

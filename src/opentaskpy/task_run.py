@@ -17,7 +17,6 @@ class TaskRun:
         self.config_loader = None
 
     def run(self):
-
         # Create a config loader object
         self.config_loader = ConfigLoader(self.config_dir)
 

@@ -14,7 +14,6 @@ plugin_name = "file"
 
 
 def run(**kwargs):
-
     # Expect a kwarg named file
     if "path" not in kwargs:
         raise Exception(

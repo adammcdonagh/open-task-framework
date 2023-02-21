@@ -15,6 +15,14 @@ class RemoteTransferHandler(ABC):
         ...
 
     @abstractmethod
+    def push_files_from_worker(self, files, dest_remote_handler=None):
+        ...
+
+    @abstractmethod
+    def pull_files_to_worker(self, files, local_staging_directory):
+        ...
+
+    @abstractmethod
     def pull_files(self, files):
         ...
 
