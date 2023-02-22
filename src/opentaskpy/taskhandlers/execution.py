@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
 import opentaskpy.logging
-from opentaskpy import exceptions
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
@@ -33,9 +32,11 @@ class Execution(TaskHandler):
         # Delete the remote connection objects
         if self.remote_handlers:
             for remote_handler in self.remote_handlers:
+                remote_host = self._get_remote_host_name(remote_handler)
+
                 self.logger.log(
                     12,
-                    f"[{remote_handler.remote_host}] Closing source connection for {remote_handler}",
+                    f"[{remote_host}] Closing source connection for {remote_handler}",
                 )
                 remote_handler.tidy()
 
@@ -49,19 +50,29 @@ class Execution(TaskHandler):
 
         return status == 0
 
+    def _get_remote_host_name(self, remote_handler):
+        return (
+            remote_handler.remote_host
+            if hasattr(remote_handler, "remote_host")
+            else "REMOTE"
+        )
+
     def _set_remote_handlers(self):
         # Based on the transfer definition, determine what to do first
-        # Based on the source protocol pick the appropriate remote handler
-        if self.execution_definition["protocol"]["name"] == "ssh":
-            # For each host, create a remote handler
-            self.remote_handlers = []
+        # Based on the remote protocol pick the appropriate remote handler
+        # For each host, create a remote handler
+        self.remote_handlers = []
+        remote_protocol = self.execution_definition["protocol"]["name"]
+        if remote_protocol == "ssh":
             for host in self.execution_definition["hosts"]:
                 self.remote_handlers.append(
                     SSHExecution(host, self.execution_definition)
                 )
         else:
-            raise exceptions.UnknownProtocolError(
-                f"Unknown protocol {self.execution_definition['protocol']['name']}"
+            self.remote_handlers.append(
+                super()._get_handler_for_protocol(
+                    remote_protocol, self.execution_definition
+                )
             )
 
     def run(self, kill_event=None):
@@ -78,9 +89,7 @@ class Execution(TaskHandler):
 
         with ThreadPoolExecutor(len(self.remote_handlers)) as executor:
             futures = [
-                executor.submit(
-                    self._execute, self.execution_definition, remote_handler
-                )
+                executor.submit(self._execute, remote_handler)
                 for remote_handler in self.remote_handlers
             ]
 
@@ -99,9 +108,8 @@ class Execution(TaskHandler):
                     # Before we terminate everything locally, we need to make sure that the processes
                     # on the remote hosts are terminated as well
                     for remote_handler in self.remote_handlers:
-                        self.logger.info(
-                            f"Killing remote processes on {remote_handler.remote_host}"
-                        )
+                        remote_host = self._get_remote_host_name(remote_handler)
+                        self.logger.info(f"Killing remote processes on {remote_host}")
                         remote_handler.kill()
 
                     executor.shutdown(wait=False)
@@ -133,9 +141,10 @@ class Execution(TaskHandler):
         else:
             return self.return_result(1, "Execution(s) failed", ex)
 
-    def _execute(self, spec, remote_handler):
-        result = remote_handler.execute(spec["command"])
-        self.logger.info(f"[{remote_handler.remote_host}] Execution returned {result}")
+    def _execute(self, remote_handler):
+        result = remote_handler.execute()
+        remote_host = self._get_remote_host_name(remote_handler)
+        self.logger.info(f"[{remote_host}] Execution returned {result}")
         return result
 
     # Destructor to handle when the execution is finished. Make sure the log file

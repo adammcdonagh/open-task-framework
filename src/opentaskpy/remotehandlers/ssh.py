@@ -661,13 +661,13 @@ class SSHExecution(RemoteExecutionHandler):
         # Disconnect SSH
         self.tidy()
 
-    def execute(self, command):
+    def execute(self):
         # Establish the SSH connection
         try:
             self.connect()
 
             # Command needs the directory to be changed to appended to it
-            command = f"echo __OTF_TOKEN__$$_{self.random}__; cd {self.spec['directory']} && {command}"
+            command = f"echo __OTF_TOKEN__$$_{self.random}__; cd {self.spec['directory']} && {self.spec['command']}"
 
             self.logger.info(f"[{self.remote_host}] Executing command: {command}")
             _, stdout, stderr = self.ssh_client.exec_command(command)
