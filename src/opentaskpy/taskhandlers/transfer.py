@@ -375,9 +375,9 @@ class Transfer(TaskHandler):
                             exception=exceptions.RemoteTransferError,
                         )
 
-                # Handle the push transfers first
                 i = 0
                 for dest_file_spec in self.dest_file_specs:
+                    # Handle the push transfers first
                     associated_dest_remote_handler = self.dest_remote_handlers[i]
                     # If this is a default push transfer, and both source and dest protocols are the same
                     if (
@@ -450,6 +450,17 @@ class Transfer(TaskHandler):
                                 "Error moving file into final location",
                                 exception=exceptions.RemoteTransferError,
                             )
+
+                    # Create any flag files that might need creating
+                    if "flags" in dest_file_spec:
+                        flag_result = self.dest_remote_handlers[i].create_flag_files()
+                        if flag_result != 0:
+                            return self.return_result(
+                                1,
+                                "Error creating flag files",
+                                exception=exceptions.RemoteTransferError,
+                            )
+
                     i += 1
 
                 if different_protocols:

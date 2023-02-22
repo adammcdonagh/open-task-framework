@@ -42,6 +42,9 @@ class ConfigLoader:
             11, f"Got call to lookup function {plugin} with kwargs {kwargs}"
         )
 
+        # Append the globals to the kwargs
+        kwargs["globals"] = self.global_variables
+
         # Import the plugin if its not already loaded
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
             # Check the module is loadable

@@ -552,6 +552,26 @@ class SSHTransfer(RemoteTransferHandler):
 
         return 1
 
+    def create_flag_files(self):
+        self.connect(self.spec["hostname"])
+        sftp_client = self.ssh_client.open_sftp()
+        filename = self.spec["flags"]["fullPath"]
+
+        try:
+            # Use the SFTP client to create an empty file at this path
+            sftp_client.file(filename, "w").close()
+
+            # TODO: File permissions
+
+        except IOError as e:
+            self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
+            self.logger.error(
+                f"[{self.spec['hostname']}] Error creating flag file: {filename}"
+            )
+            return 1
+
+        return 0
+
 
 def log_stdout(str_stdout, hostname, logger):
     # self.logger.info(f"[{hostname}] Remote stdout returned:")
