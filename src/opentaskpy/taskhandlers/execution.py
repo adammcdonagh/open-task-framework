@@ -46,7 +46,10 @@ class Execution(TaskHandler):
 
         # Throw an exception if we have one
         if exception:
-            raise exception(message)
+            if callable(exception):
+                raise exception(message)
+            else:
+                raise Exception(message)
 
         return status == 0
 
@@ -132,6 +135,9 @@ class Execution(TaskHandler):
                     self.overall_result = False
                     ex = e
                     self.logger.error("Thread returned exception")
+                    # Ensure we log the exception
+                    self.logger.exception(e)
+                    failures = True
 
             if not failures:
                 self.overall_result = True
