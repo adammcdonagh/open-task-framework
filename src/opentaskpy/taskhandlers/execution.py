@@ -95,6 +95,7 @@ class Execution(TaskHandler):
                 executor.submit(self._execute, remote_handler)
                 for remote_handler in self.remote_handlers
             ]
+            self.logger.debug("Triggered all threads")
 
             while True:
                 try:
@@ -116,6 +117,15 @@ class Execution(TaskHandler):
                         remote_handler.kill()
 
                     executor.shutdown(wait=False)
+                    # Make sure all threaeds are dead
+                    for future in futures:
+                        future.cancel()
+                        # Check it's dead
+                        if future.running():
+                            self.logger.error(
+                                f"Thread {future} is still running after kill. Cannot kill a running thread. Will have to wait for it to complete. Consider altering the plugin so that it cannot block."
+                            )
+
                     return self.return_result(
                         1, "Execution(s) failed - Kill signal received"
                     )

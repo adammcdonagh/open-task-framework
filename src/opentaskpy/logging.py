@@ -102,6 +102,9 @@ def get_latest_log_file(task_id, task_type):
     # Also, we don't want to limit to running jobs, only failed or successful ones
     log_file_name = log_file_name.replace("_running", "(_failed)*")
 
+    if not os.path.exists(os.path.dirname(log_file_name)):
+        return None
+
     # List the contents of the directory
     log_files = os.listdir(os.path.dirname(log_file_name))
     # Filter the list to only include files that match the log_file_name, and contain a valid date/time prefix

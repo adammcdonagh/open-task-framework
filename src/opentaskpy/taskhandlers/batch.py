@@ -273,7 +273,11 @@ class Batch(TaskHandler):
                 for _order_id, batch_task in self.task_order_tree.items():
                     if batch_task["status"] == "RUNNING":
                         batch_task["kill_event"].set()
-                        batch_task["thread"].join()
+                        # Give the thread 2 seconds to stop, otherwise we kill it
+                        batch_task["thread"].join(2)
+                        if batch_task["thread"].is_alive():
+                            batch_task["thread"].cancel()
+
                         batch_task["status"] = "KILLED"
 
         # Check if any tasks have failed
