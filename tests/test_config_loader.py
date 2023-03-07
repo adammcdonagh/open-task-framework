@@ -61,14 +61,14 @@ def test_load_new_variables_from_task_def(tmpdir):
         [
             {
                 f"{tmpdir}/task.json": {
-                    "content": '{"test": "{{ test }}", "variables": {"NEW_VARIABLE": "NEW_VALUE"}}'
+                    "content": '{"test_var": "{{ test }}", "variables": {"NEW_VARIABLE": "NEW_VALUE"}}'
                 }
             }
         ]
     )
 
     expected_task_definition = {
-        "test": "test123456",
+        "test_var": "test123456",
         "variables": {"NEW_VARIABLE": "NEW_VALUE"},
     }
 
@@ -212,3 +212,40 @@ def test_resolve_templated_variables(tmpdir):
         config_loader = ConfigLoader(tmpdir)
 
     assert e.value.args[0] == "Reached max depth of recursive template evaluation"
+
+
+def test_resolve_lookups_in_task_definition(tmpdir):
+    json_obj = {"test": "{{ SOME_VARIABLE }}", "SOME_VARIABLE": "test1234"}
+
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    # Test that the global variables are loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+
+    # Now create a task definition file
+    task_def = {
+        "name": "test",
+        "description": "{{ lookup('file', path='" + str(tmpdir) + "/lookup.txt') }}",
+    }
+
+    # Create a JSON file for the task definition
+    fs.create_files(
+        [
+            {f"{tmpdir}/transfers/task_def.json": {"content": json.dumps(task_def)}},
+            {f"{tmpdir}/lookup.txt": {"content": "FILE_LOOKUP_SUCCESS"}},
+        ]
+    )
+
+    # Test that the global variables are loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+    config_loader.get_global_variables()
+
+    # Load the task definition
+    task_def = config_loader.load_task_definition("task_def")
+    # Check that the description has been resolved
+    assert task_def["description"] == "FILE_LOOKUP_SUCCESS"
