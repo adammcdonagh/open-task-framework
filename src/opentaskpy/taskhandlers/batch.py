@@ -19,12 +19,14 @@ BATCH_TASK_LOG_MARKER = "__OTF_BATCH_TASK_MARKER__"
 class Batch(TaskHandler):
     overall_result = False
 
-    def __init__(self, task_id, batch_definition, config_loader):
+    def __init__(self, global_config, task_id, batch_definition, config_loader):
         self.task_id = task_id
         self.batch_definition = batch_definition
         self.config_loader = config_loader
         self.tasks = dict()
         self.task_order_tree = dict()
+
+        super().__init__(global_config)
 
         self.logger = opentaskpy.logging.init_logging(__name__, self.task_id, TASK_TYPE)
 
@@ -110,12 +112,19 @@ class Batch(TaskHandler):
             if status == "NOT_STARTED":
                 # Create the appropriate task handler based on the task type
                 if task_definition["type"] == "execution":
-                    task_handler = Execution(task["task_id"], task_definition)
+                    task_handler = Execution(
+                        global_config, task["task_id"], task_definition
+                    )
                 elif task_definition["type"] == "transfer":
-                    task_handler = Transfer(task["task_id"], task_definition)
+                    task_handler = Transfer(
+                        global_config, task["task_id"], task_definition
+                    )
                 elif task_definition["type"] == "batch":
                     task_handler = Batch(
-                        task["task_id"], task_definition, self.config_loader
+                        global_config,
+                        task["task_id"],
+                        task_definition,
+                        self.config_loader,
                     )
                 else:
                     raise Exception("Unknown task type")

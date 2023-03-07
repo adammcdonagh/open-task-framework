@@ -1,3 +1,4 @@
+import random
 import shutil
 import time
 from math import ceil, floor
@@ -16,7 +17,7 @@ TASK_TYPE = "T"
 
 
 class Transfer(TaskHandler):
-    def __init__(self, task_id, transfer_definition):
+    def __init__(self, global_config, task_id, transfer_definition):
         self.task_id = task_id
         self.transfer_definition = transfer_definition
         self.source_remote_handler = None
@@ -25,13 +26,13 @@ class Transfer(TaskHandler):
         self.dest_file_specs = None
         self.overall_result = False
 
-        self.local_staging_dir = f"/tmp/staging/{getpid()}"
+        self.local_staging_dir = f"/tmp/staging/{getpid()}.{random.randint(0, 1000000)}"
 
         self.logger = opentaskpy.logging.init_logging(
             "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
         )
 
-        super().__init__()
+        super().__init__(global_config)
 
     def return_result(self, status, message=None, exception=None):
         if message:
@@ -92,6 +93,8 @@ class Transfer(TaskHandler):
                 source_protocol, self.source_file_spec
             )
 
+        super()._set_handler_vars(source_protocol, self.source_remote_handler)
+
         # Based on the destination protocol pick the appropriate remote handler
         if self.dest_file_specs:
             self.dest_remote_handlers = []
@@ -102,11 +105,12 @@ class Transfer(TaskHandler):
                 if remote_protocol == "ssh":
                     self.dest_remote_handlers.append(SSHTransfer(dest_file_spec))
                 else:
-                    self.dest_remote_handlers.append(
-                        super()._get_handler_for_protocol(
-                            remote_protocol, dest_file_spec
-                        )
+                    remote_handler = super()._get_handler_for_protocol(
+                        remote_protocol, dest_file_spec
                     )
+                    self.dest_remote_handlers.append(remote_handler)
+
+                    super()._set_handler_vars(remote_protocol, remote_handler)
 
     def run(self, kill_event=None):
         self.logger.info("Running transfer")

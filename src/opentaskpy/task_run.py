@@ -19,6 +19,7 @@ class TaskRun:
     def run(self):
         # Create a config loader object
         self.config_loader = ConfigLoader(self.config_dir)
+        global_variables = self.config_loader.get_global_variables()
 
         # Populate the task definition with the global variables
         active_task_definition = self.config_loader.load_task_definition(self.task_id)
@@ -37,7 +38,7 @@ class TaskRun:
                 self.logger.error("JSON format does not match schema")
                 return False
 
-            transfer = Transfer(self.task_id, active_task_definition)
+            transfer = Transfer(global_variables, self.task_id, active_task_definition)
 
             result = transfer.run()
 
@@ -50,14 +51,21 @@ class TaskRun:
                 self.logger.error("JSON format does not match schema")
                 return False
 
-            execution = Execution(self.task_id, active_task_definition)
+            execution = Execution(
+                global_variables, self.task_id, active_task_definition
+            )
 
             result = execution.run()
 
         elif active_task_definition["type"] == "batch":
             # Hand off to the batch module
             self.logger.log(12, "Batch")
-            batch = Batch(self.task_id, active_task_definition, self.config_loader)
+            batch = Batch(
+                global_variables,
+                self.task_id,
+                active_task_definition,
+                self.config_loader,
+            )
             result = batch.run()
 
         else:
