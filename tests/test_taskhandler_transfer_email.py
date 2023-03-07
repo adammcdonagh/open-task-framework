@@ -84,7 +84,7 @@ def test_remote_handler_vars():
 
 def test_email_transfer(setup_ssh_keys, root_dir):
     # Dont run this test if the env var GITHUB_ACTIONS is set
-    if not os.getenv("GITHUB_ACTIONS"):
+    if os.getenv("GITHUB_ACTIONS"):
         return
 
     # Create a file to transfer
