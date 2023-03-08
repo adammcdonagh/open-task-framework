@@ -49,7 +49,7 @@ fail_invalid_protocol_task_definition = {
 
 def test_invalid_protocol():
     execution_obj = execution.Execution(
-        "invalid-protocol", fail_invalid_protocol_task_definition
+        None, "invalid-protocol", fail_invalid_protocol_task_definition
     )
     # Expect a UnknownProtocolError exception
     with pytest.raises(exceptions.UnknownProtocolError):
@@ -57,7 +57,7 @@ def test_invalid_protocol():
 
 
 def test_basic_execution(setup_ssh_keys, root_dir):
-    execution_obj = execution.Execution("df-basic", touch_task_definition)
+    execution_obj = execution.Execution(None, "df-basic", touch_task_definition)
     execution_obj._set_remote_handlers()
 
     # Ensure no test files exist already, if so delete them
@@ -92,7 +92,7 @@ def test_basic_execution_cmd_failure(setup_ssh_keys, root_dir):
         ]
     )
 
-    execution_obj = execution.Execution("task-fail", fail_task_definition)
+    execution_obj = execution.Execution(None, "task-fail", fail_task_definition)
     execution_obj._set_remote_handlers()
 
     # Validate some things were set as expected
@@ -106,7 +106,7 @@ def test_basic_execution_cmd_failure(setup_ssh_keys, root_dir):
 
 
 def test_basic_execution_invalid_host(setup_ssh_keys, root_dir):
-    execution_obj = execution.Execution("task-fail", fail_host_task_definition)
+    execution_obj = execution.Execution(None, "task-fail", fail_host_task_definition)
     execution_obj._set_remote_handlers()
     # Remove test files if they exist
     if os.path.exists(f"{root_dir}/testFiles/ssh_1/dest/execution.invalidhost.txt"):

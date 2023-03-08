@@ -6,9 +6,8 @@ from opentaskpy import exceptions
 
 
 class TaskHandler(ABC):
-    @abstractmethod
-    def __init__(self):
-        pass
+    def __init__(self, global_config):
+        self.global_config = global_config
 
     @abstractmethod
     def return_result(self, status, mesaage, exception):
@@ -22,9 +21,53 @@ class TaskHandler(ABC):
     def run(self):
         ...
 
+    def _set_handler_vars(self, source_protocol, remote_handler):
+        # If remote handler has a set handler vars method, call it and pass in any variables it might want
+        if hasattr(remote_handler, "set_handler_vars"):
+            self.logger.log(12, f"Setting handler vars for {source_protocol}")
+
+            global_protocol_vars = [
+                {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"}
+            ]
+            # Check if theres an object with name attribute with value email in global_protocol_vars
+            protocol_vars = next(
+                (item for item in global_protocol_vars if item["name"] == "email"), None
+            )
+
+            # Read the protocol specific variables from the global config
+            if (
+                self.global_config
+                and "global_protocol_vars" in self.global_config
+                and next(
+                    (
+                        item
+                        for item in self.global_config["global_protocol_vars"]
+                        if item["name"] == source_protocol
+                    ),
+                    None,
+                )
+            ):
+                protocol_vars = next(
+                    (
+                        item
+                        for item in self.global_config["global_protocol_vars"]
+                        if item["name"] == source_protocol
+                    ),
+                    None,
+                ).copy()
+                # Remove "name" from the dict
+                del protocol_vars["name"]
+
+                remote_handler.set_handler_vars(protocol_vars)
+
     def _get_handler_for_protocol(self, protocol_name, spec):
         # Remove the class name from the end of addon_protocol
         addon_package = ".".join(protocol_name.split(".")[:-1])
+
+        # If the protocol_name has no full package name, then it's a default one, so we need to append opentaskpy.remotehandlers. to the front of it
+        if addon_package == "":
+            protocol_name = f"opentaskpy.remotehandlers.{protocol_name}.EmailTransfer"
+            addon_package = ".".join(protocol_name.split(".")[:-1])
 
         if addon_package == "":
             raise exceptions.UnknownProtocolError(f"Unknown protocol {protocol_name}")

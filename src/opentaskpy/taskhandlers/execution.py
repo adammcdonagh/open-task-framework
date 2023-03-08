@@ -9,7 +9,7 @@ TASK_TYPE = "E"
 
 
 class Execution(TaskHandler):
-    def __init__(self, task_id, execution_definition):
+    def __init__(self, global_config, task_id, execution_definition):
         self.task_id = task_id
         self.execution_definition = execution_definition
         self.remote_handlers = None
@@ -18,6 +18,8 @@ class Execution(TaskHandler):
         self.logger = opentaskpy.logging.init_logging(
             "opentaskpy.taskhandlers.execution", self.task_id, TASK_TYPE
         )
+
+        super().__init__(global_config)
 
     def return_result(self, status, message=None, exception=None):
         if message:
@@ -72,11 +74,12 @@ class Execution(TaskHandler):
                     SSHExecution(host, self.execution_definition)
                 )
         else:
-            self.remote_handlers.append(
-                super()._get_handler_for_protocol(
-                    remote_protocol, self.execution_definition
-                )
+            remote_handler = super()._get_handler_for_protocol(
+                remote_protocol, self.execution_definition
             )
+            self.remote_handlers.append(remote_handler)
+
+            super()._set_handler_vars(remote_protocol, remote_handler)
 
     def run(self, kill_event=None):
         self.logger.info("Running execution")

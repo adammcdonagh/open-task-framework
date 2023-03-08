@@ -190,7 +190,7 @@ fail_invalid_protocol_task_definition = {
 
 def test_invalid_protocol():
     transfer_obj = transfer.Transfer(
-        "invalid-protocol", fail_invalid_protocol_task_definition
+        None, "invalid-protocol", fail_invalid_protocol_task_definition
     )
     # Expect a UnknownProtocolError exception
     with pytest.raises(exceptions.UnknownProtocolError):
@@ -201,7 +201,7 @@ def test_invalid_protocol():
         "name"
     ] = "some.module.path.ProtocolClass"
     transfer_obj = transfer.Transfer(
-        "invalid-protocol", fail_invalid_protocol_task_definition
+        None, "invalid-protocol", fail_invalid_protocol_task_definition
     )
     # Expect a UnknownProtocolError exception
     with pytest.raises(exceptions.UnknownProtocolError):
@@ -211,7 +211,7 @@ def test_invalid_protocol():
 def test_remote_handler(setup_ssh_keys):
     # Validate that given a transfer with ssh protocol, that we get a remote handler of type SSH
 
-    transfer_obj = transfer.Transfer("scp-basic", scp_task_definition)
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_task_definition)
 
     transfer_obj._set_remote_handlers()
 
@@ -238,7 +238,7 @@ def test_scp_basic(root_dir, setup_ssh_keys):
     )
 
     # Create a transfer object
-    transfer_obj = transfer.Transfer("scp-basic", scp_task_definition)
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_task_definition)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -264,7 +264,7 @@ def test_scp_basic_write_fin(root_dir, setup_ssh_keys):
     )
 
     # Create a transfer object
-    transfer_obj = transfer.Transfer("scp-basic", scp_with_fin_task_definition)
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_with_fin_task_definition)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -285,7 +285,9 @@ def test_pca_move(root_dir, setup_ssh_keys):
         [{f"{root_dir}/testFiles/ssh_1/src/pca_move.txt": {"content": "test1234"}}]
     )
     # Create a transfer object
-    transfer_obj = transfer.Transfer("scp-pca-move", scp_pca_move_task_definition_1)
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-move", scp_pca_move_task_definition_1
+    )
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -301,7 +303,9 @@ def test_pca_move(root_dir, setup_ssh_keys):
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/pca_move_2.txt": {"content": "test1234"}}]
     )
-    transfer_obj = transfer.Transfer("scp-pca-move-2", scp_pca_move_task_definition_2)
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-move-2", scp_pca_move_task_definition_2
+    )
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -318,7 +322,7 @@ def test_pca_move(root_dir, setup_ssh_keys):
         [{f"{root_dir}/testFiles/ssh_1/src/pca_move_3.txt": {"content": "test1234"}}]
     )
     transfer_obj = transfer.Transfer(
-        "scp-pca-move-invalid", scp_pca_invalid_move_task_definition
+        None, "scp-pca-move-invalid", scp_pca_invalid_move_task_definition
     )
 
     # Run the transfer and expect a true status
@@ -343,7 +347,9 @@ def test_pca_rename(root_dir, setup_ssh_keys):
         [{f"{root_dir}/testFiles/ssh_1/src/pca_rename_1.txt": {"content": "test1234"}}]
     )
     # Create a transfer object
-    transfer_obj = transfer.Transfer("scp-pca-rename", scp_pca_rename_task_definition_1)
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-rename", scp_pca_rename_task_definition_1
+    )
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -375,7 +381,7 @@ def test_pca_rename_many(root_dir, setup_ssh_keys):
         )
     # Create a transfer object
     transfer_obj = transfer.Transfer(
-        "scp-pca-rename-name", scp_pca_rename_many_task_definition_1
+        None, "scp-pca-rename-name", scp_pca_rename_many_task_definition_1
     )
 
     # Run the transfer and expect a true status
@@ -409,7 +415,7 @@ def test_scp_proxy(root_dir, setup_ssh_keys):
     )
 
     # Create a transfer object
-    transfer_obj = transfer.Transfer("scp-basic", scp_proxy_task_definition)
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_proxy_task_definition)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()

@@ -6,7 +6,6 @@ import sys
 from glob import glob
 
 import jinja2
-from jinja2 import Template
 
 import opentaskpy.logging
 from opentaskpy.exceptions import DuplicateConfigFileError
@@ -95,12 +94,10 @@ class ConfigLoader:
         active_task_definition = None
         with open(task_definition_file) as json_file:
             json_content = json_file.read()
-            template = Template(json_content)
-            # Render the template without evaluating any variables yet
-            rendered_template = template.render()
+            template = self.template_env.from_string(json_content)
 
             # From this, convert it to JSON and pull out the variables key if there is one
-            task_definition = json.loads(rendered_template)
+            task_definition = json.loads(json_content)
             # Extend or replace any local variables for this task
             if "variables" in task_definition:
                 self.global_variables = (
@@ -108,6 +105,12 @@ class ConfigLoader:
                 )
 
             template = self.template_env.from_string(json_content)
+
+            template.globals["now"] = datetime.datetime.utcnow
+
+            # Define lookup function
+            template.globals["lookup"] = self.template_lookup
+
             rendered_template = template.render(self.global_variables)
             active_task_definition = json.loads(rendered_template)
             self.logger.log(
@@ -146,15 +149,15 @@ class ConfigLoader:
         current_depth = 0
         previous_render = None
 
-        variables_template = self.template_env.from_string(
-            json.dumps(self.global_variables)
-        )
+        template = self.global_variables
+
+        variables_template = self.template_env.from_string(json.dumps(template))
         variables_template.globals["now"] = datetime.datetime.utcnow
 
         # Define lookup function
         variables_template.globals["lookup"] = self.template_lookup
 
-        evaluated_variables = variables_template.render(self.global_variables)
+        evaluated_variables = variables_template.render(template)
 
         while evaluated_variables != previous_render and current_depth < MAX_DEPTH:
             previous_render = evaluated_variables

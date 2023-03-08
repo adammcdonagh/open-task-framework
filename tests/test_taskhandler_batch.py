@@ -146,7 +146,9 @@ def test_basic_batch(setup_ssh_keys, env_vars, root_dir):
     # We need a config loader object, so that the batch class can load in the configs for
     # the sub tasks
     config_loader = ConfigLoader("test/cfg")
-    batch_obj = batch.Batch(f"basic-{RANDOM}", basic_batch_definition, config_loader)
+    batch_obj = batch.Batch(
+        None, f"basic-{RANDOM}", basic_batch_definition, config_loader
+    )
 
     # Check that the batch_obj contains an execution type task
     # batch_obj.tasks[0] should be an instance of a execution task handler class
@@ -172,7 +174,7 @@ def test_batch_parallel(setup_ssh_keys, env_vars, root_dir):
     # the sub tasks
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
-        f"parallel-{RANDOM}", parallel_batch_definition, config_loader
+        None, f"parallel-{RANDOM}", parallel_batch_definition, config_loader
     )
 
     # Check that the batch_obj contains an execution type task
@@ -194,7 +196,7 @@ def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars):
     # the sub tasks
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
-        f"dependencies-1-{RANDOM}", dependent_batch_definition, config_loader
+        None, f"dependencies-1-{RANDOM}", dependent_batch_definition, config_loader
     )
 
     # Check that the batch_obj contains an execution type task
@@ -217,7 +219,7 @@ def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars):
     config_loader = ConfigLoader("test/cfg")
     # Expect a FileNotFoundError as the task_id is non-existent
     with pytest.raises(FileNotFoundError):
-        batch.Batch(f"fail-{RANDOM}", fail_batch_definition, config_loader)
+        batch.Batch(None, f"fail-{RANDOM}", fail_batch_definition, config_loader)
 
 
 def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
@@ -227,7 +229,7 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
     os.environ["OTF_LOG_RUN_PREFIX"] = f"testbatch_timeout_{RANDOM}"
 
     config_loader = ConfigLoader("test/cfg")
-    batch_obj = batch.Batch("timeout", timeout_batch_definition, config_loader)
+    batch_obj = batch.Batch(None, "timeout", timeout_batch_definition, config_loader)
     assert not batch_obj.run()
 
     # Validate that a log has been created with the correct status
@@ -249,6 +251,7 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
+        None,
         task_id,
         parallel_batch_with_single_failure_definition,
         config_loader,
@@ -277,6 +280,7 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
+        None,
         task_id,
         parallel_batch_with_single_failure_definition,
         config_loader,
@@ -302,6 +306,7 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
 
     # Run it again, but this time, expect it to only run the failed task
     batch_obj = batch.Batch(
+        None,
         task_id,
         parallel_batch_with_single_failure_definition,
         config_loader,
@@ -336,6 +341,7 @@ def test_batch_resume_after_failure_retry_successful_tasks(
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
+        None,
         task_id,
         parallel_batch_with_single_failure_with_retry_definition,
         config_loader,
@@ -361,6 +367,7 @@ def test_batch_resume_after_failure_retry_successful_tasks(
 
     # Run it again, but this time, expect it to only run the failed task
     batch_obj = batch.Batch(
+        None,
         task_id,
         parallel_batch_with_single_failure_with_retry_definition,
         config_loader,
@@ -393,6 +400,7 @@ def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
+        None,
         task_id,
         dependent_batch_continue_on_fail_definition,
         config_loader,
