@@ -243,11 +243,21 @@ class Transfer(TaskHandler):
             ):
                 return self.return_result("0", "Just performing filewatch")
             elif not remote_files:
-                return self.return_result(
-                    1,
-                    f"No files found after {timeout_seconds} seconds",
-                    exception=exceptions.RemoteFileNotFoundError,
-                )
+                # Only error if error is not set to false
+                if (
+                    "error" in self.source_file_spec
+                    and not self.source_file_spec["error"]
+                ):
+                    self.logger.info(
+                        "No files found after timeout, but error is set to false"
+                    )
+                    return self.return_result(0, "No files found")
+                else:
+                    return self.return_result(
+                        1,
+                        f"No files found after {timeout_seconds} seconds",
+                        exception=exceptions.RemoteFileNotFoundError,
+                    )
 
         # Determine what needs to be transferred
 

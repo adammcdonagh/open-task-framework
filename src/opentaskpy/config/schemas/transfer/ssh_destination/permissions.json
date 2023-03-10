@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "owner": {
+      "type": "string"
+    },
+    "group": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

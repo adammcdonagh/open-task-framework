@@ -28,6 +28,18 @@ scp_task_definition = {
     ],
 }
 
+scp_file_watch_task_no_error_definition = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.11",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": ".*nofileexists.*\\.txt",
+        "fileWatch": {"timeout": 1},
+        "error": False,
+        "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+    },
+}
+
 scp_with_fin_task_definition = {
     "type": "transfer",
     "source": {
@@ -244,6 +256,16 @@ def test_scp_basic(root_dir, setup_ssh_keys):
     assert transfer_obj.run()
     # Check the destination file exists
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt")
+
+
+def test_scp_filewatch_no_error(setup_ssh_keys):
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "scp-no-file-no-error", scp_file_watch_task_no_error_definition
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
 
 
 def test_scp_basic_write_fin(root_dir, setup_ssh_keys):

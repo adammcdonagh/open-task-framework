@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "timeout": {
+      "type": "integer"
+    },
+    "log": {
+      "type": "string"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "contentRegex": {
+      "type": "string"
+    },
+    "tail": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "log",
+    "directory",
+    "contentRegex"
+  ],
+  "additionalProperties": false
+}
