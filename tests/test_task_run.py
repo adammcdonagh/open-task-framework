@@ -16,9 +16,6 @@ FILE_PREFIX = "unittest_task_run"
 MOVED_FILES_DIR = "archive"
 DELIMITER = ","
 
-list = None
-
-
 """
 #################
 Tests for the "binary" task runner

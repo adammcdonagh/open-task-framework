@@ -1,35 +1,56 @@
+import pytest
+
 from opentaskpy.config.schemas import validate_transfer_json
 
-valid_protocol_definition = {
-    "name": "ssh",
-    "credentials": {
-        "username": "test",
-    },
-}
 
-valid_protocol_definition_2 = {"name": "email"}
-
-valid_source_definition = {
-    "hostname": "{{ HOST_A }}",
-    "directory": "/tmp/testFiles/src",
-    "fileRegex": ".*\\.txt",
-    "protocol": valid_protocol_definition,
-}
-
-valid_destination_definition = {
-    "hostname": "somehost",
-    "directory": "/tmp/testFiles/dest",
-    "protocol": valid_protocol_definition,
-}
-
-valid_destination_definition_2 = {
-    "recipients": ["test@example.com"],
-    "subject": "Here is your email",
-    "protocol": valid_protocol_definition_2,
-}
+@pytest.fixture(scope="function")
+def valid_protocol_definition():
+    return {
+        "name": "ssh",
+        "credentials": {
+            "username": "test",
+        },
+    }
 
 
-def test_dest_with_different_protocols():
+@pytest.fixture(scope="function")
+def valid_protocol_definition_2():
+    return {"name": "email"}
+
+
+@pytest.fixture(scope="function")
+def valid_source_definition(valid_protocol_definition):
+    return {
+        "hostname": "{{ HOST_A }}",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": ".*\\.txt",
+        "protocol": valid_protocol_definition,
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_destination_definition(valid_protocol_definition):
+    return {
+        "hostname": "somehost",
+        "directory": "/tmp/testFiles/dest",
+        "protocol": valid_protocol_definition,
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_destination_definition_2(valid_protocol_definition_2):
+    return {
+        "recipients": ["test@example.com"],
+        "subject": "Here is your email",
+        "protocol": valid_protocol_definition_2,
+    }
+
+
+def test_dest_with_different_protocols(
+    valid_source_definition,
+    valid_destination_definition,
+    valid_destination_definition_2,
+):
     json_data = {
         "type": "transfer",
         "source": valid_source_definition,

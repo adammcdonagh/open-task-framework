@@ -1,11 +1,16 @@
+import pytest
+
 from opentaskpy.config.schemas import validate_transfer_json
 
-valid_protocol_definition = {
-    "name": "ssh",
-    "credentials": {
-        "username": "test",
-    },
-}
+
+@pytest.fixture(scope="function")
+def valid_protocol_definition():
+    return {
+        "name": "ssh",
+        "credentials": {
+            "username": "test",
+        },
+    }
 
 
 def test_ssh_protocol():
@@ -36,7 +41,7 @@ def test_ssh_protocol():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_basic():
+def test_ssh_basic(valid_protocol_definition):
     json_data = {
         "type": "transfer",
         "source": {
@@ -59,7 +64,7 @@ def test_ssh_basic():
     assert validate_transfer_json(json_data)
 
 
-def test_ssh_conditions():
+def test_ssh_conditions(valid_protocol_definition):
     json_data = {
         "type": "transfer",
         "source": {
@@ -88,7 +93,7 @@ def test_ssh_conditions():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_filewatch():
+def test_ssh_filewatch(valid_protocol_definition):
     json_data = {
         "type": "transfer",
         "source": {
@@ -121,7 +126,7 @@ def test_ssh_filewatch():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_logwatch():
+def test_ssh_logwatch(valid_protocol_definition):
     json_data = {
         "type": "transfer",
         "source": {
@@ -159,7 +164,7 @@ def test_ssh_logwatch():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_pca():
+def test_ssh_pca(valid_protocol_definition):
     json_data = {
         "type": "transfer",
         "source": {

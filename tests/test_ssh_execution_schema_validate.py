@@ -1,21 +1,29 @@
+import pytest
+
 from opentaskpy.config.schemas import validate_execution_json
 
-valid_protocol_definition = {
-    "name": "ssh",
-    "credentials": {
-        "username": "test",
-    },
-}
 
-valid_execution = {
-    "hosts": ["{{ HOST_A }}"],
-    "directory": "/tmp",
-    "command": "test -e test.txt",
-    "protocol": valid_protocol_definition,
-}
+@pytest.fixture(scope="function")
+def valid_protocol_definition():
+    return {
+        "name": "ssh",
+        "credentials": {
+            "username": "test",
+        },
+    }
 
 
-def test_ssh_basic():
+@pytest.fixture(scope="function")
+def valid_execution(valid_protocol_definition):
+    return {
+        "hosts": ["{{ HOST_A }}"],
+        "directory": "/tmp",
+        "command": "test -e test.txt",
+        "protocol": valid_protocol_definition,
+    }
+
+
+def test_ssh_basic(valid_exceution):
     json_data = {
         "type": "execution",
     }

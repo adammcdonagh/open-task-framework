@@ -1,24 +1,35 @@
+import pytest
+
 from opentaskpy.config.schemas import validate_transfer_json
 
-valid_protocol_definition = {
-    "name": "ssh",
-    "credentials": {
-        "username": "test",
-    },
-}
 
-valid_source_definition = {
-    "hostname": "{{ HOST_A }}",
-    "directory": "/tmp/testFiles/src",
-    "fileRegex": ".*\\.txt",
-    "protocol": valid_protocol_definition,
-}
+@pytest.fixture(scope="function")
+def valid_protocol_definition():
+    return {
+        "name": "ssh",
+        "credentials": {
+            "username": "test",
+        },
+    }
 
-valid_destination_definition = {
-    "hostname": "somehost",
-    "directory": "/tmp/testFiles/dest",
-    "protocol": valid_protocol_definition,
-}
+
+@pytest.fixture(scope="function")
+def valid_source_definition():
+    return {
+        "hostname": "{{ HOST_A }}",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": ".*\\.txt",
+        "protocol": valid_protocol_definition,
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_destination_definition():
+    return {
+        "hostname": "somehost",
+        "directory": "/tmp/testFiles/dest",
+        "protocol": valid_protocol_definition,
+    }
 
 
 def test_ssh_basic():
