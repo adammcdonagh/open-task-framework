@@ -161,7 +161,8 @@ def validate_transfer_json(json_data):
 
     except ValidationError as err:
         print(err.message)
-        print(new_schema)
+        print(f"Transfer Schema: {transfer_schema}")
+        print(f"New Schema: {new_schema}")
         return False
     return True
 
