@@ -159,24 +159,6 @@ def test_ssh_logwatch():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_flags():
-    json_data = {
-        "type": "transfer",
-        "source": {
-            "hostname": "{{ HOST_A }}",
-            "directory": "/tmp/testFiles/src",
-            "fileRegex": ".*\\.txt",
-            "flags": {},
-            "protocol": valid_protocol_definition,
-        },
-    }
-    assert not validate_transfer_json(json_data)
-
-    # Add full path for flags
-    json_data["source"]["flags"]["fullPath"] = "/tmp/testFiles/src/flag.file"
-    assert validate_transfer_json(json_data)
-
-
 def test_ssh_pca():
     json_data = {
         "type": "transfer",

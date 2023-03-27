@@ -21,7 +21,7 @@ email_task_definition = {
     },
     "destination": [
         {
-            "recipients": ["test@example.com" "test1@example.com"],
+            "recipients": ["test@example.com", "test1@example.com"],
             "subject": "Test Email Subject",
             "protocol": {
                 "name": "email",
@@ -36,7 +36,7 @@ email_task_definition = {
 }
 
 
-def test_remote_handler(setup_ssh_keys):
+def test_remote_handler():
     # Validate that given a transfer with email protocol, that we get a remote handler of type EmailTransfer
 
     transfer_obj = transfer.Transfer(None, "email-basic", email_task_definition)

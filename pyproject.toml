@@ -39,7 +39,7 @@ dev = [
   "pytest",
   "bumpver",
   "pytest-shell",
-  "lovely-pytest-docker",
+  "lovely-pytest-docker"
 ]
 
 [project.urls]
@@ -65,3 +65,11 @@ push = true
     'current_version = "{version}"',
     'version = "{version}"'
 ]
+
+# Include the schema JSON files in the package
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

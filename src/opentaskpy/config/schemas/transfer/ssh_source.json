@@ -19,9 +19,6 @@
     "logWatch": {
       "$ref": "ssh_source/logWatch.json"
     },
-    "flags": {
-      "$ref": "ssh_source/flags.json"
-    },
     "error": {
       "type": "boolean"
     },

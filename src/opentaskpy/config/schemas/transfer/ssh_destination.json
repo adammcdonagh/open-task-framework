@@ -13,6 +13,12 @@
     "permissions": {
       "$ref": "ssh_destination/permissions.json"
     },
+    "mode": {
+      "type": "string"
+    },
+    "flags": {
+      "$ref": "ssh_destination/flags.json"
+    },
     "transferType": {
       "type": "string",
       "enum": [

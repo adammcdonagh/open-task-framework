@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0
+
+   * Added proper JSON validation code
+
 ## v0.4.2
 
    * Updated batches to better kill threads.

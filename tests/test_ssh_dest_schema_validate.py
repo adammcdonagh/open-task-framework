@@ -24,14 +24,14 @@ valid_destination_definition = {
 def test_ssh_basic():
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition,
+        "source": valid_source_definition.copy(),
         "destination": [],
     }
     # We dont actually need to give any destinations
     assert validate_transfer_json(json_data)
 
     # Add a valid destination
-    json_data["destination"].append(valid_destination_definition)
+    json_data["destination"].append(valid_destination_definition.copy())
 
     assert validate_transfer_json(json_data)
 
@@ -43,8 +43,8 @@ def test_ssh_basic():
 def test_ssh_rename():
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition,
-        "destination": [valid_destination_definition],
+        "source": valid_source_definition.copy(),
+        "destination": [valid_destination_definition.copy()],
     }
 
     # Add rename config
@@ -55,8 +55,8 @@ def test_ssh_rename():
 def test_ssh_permissions():
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition,
-        "destination": [valid_destination_definition],
+        "source": valid_source_definition.copy(),
+        "destination": [valid_destination_definition.copy()],
     }
 
     # Add permission
@@ -79,11 +79,31 @@ def test_ssh_permissions():
     assert not validate_transfer_json(json_data)
 
 
+def test_ssh_flags():
+    json_data = {
+        "type": "transfer",
+        "source": valid_source_definition.copy(),
+        "destination": [
+            {
+                "hostname": "{{ HOST_A }}",
+                "directory": "/tmp/testFiles/src",
+                "flags": {},
+                "protocol": valid_protocol_definition.copy(),
+            }
+        ],
+    }
+    assert not validate_transfer_json(json_data)
+
+    # Add full path for flags
+    json_data["destination"][0]["flags"]["fullPath"] = "/tmp/testFiles/src/flag.file"
+    assert validate_transfer_json(json_data)
+
+
 def test_ssh_transfer_type():
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition,
-        "destination": [valid_destination_definition],
+        "source": valid_source_definition.copy(),
+        "destination": [valid_destination_definition.copy()],
     }
 
     # Add transfer type
