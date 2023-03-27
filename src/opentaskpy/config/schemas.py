@@ -54,6 +54,7 @@ logger = opentaskpy.logging.init_logging(__name__)
 
 
 def validate_transfer_json(json_data):
+    new_schema = None
     try:
         validate(instance=json_data, schema=transfer_schema)
 
@@ -160,6 +161,7 @@ def validate_transfer_json(json_data):
 
     except ValidationError as err:
         print(err.message)
+        print(new_schema)
         return False
     return True
 
