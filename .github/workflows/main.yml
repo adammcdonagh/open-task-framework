@@ -50,7 +50,7 @@ jobs:
           python -m pytest
           
   changelog:
-    name: Check Actions
+    name: Check Changelog
     needs: unittest
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
