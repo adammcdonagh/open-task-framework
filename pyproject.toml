@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "0.6.1"
+version = "0.6.2"
 authors = [
   { name="Adam McDonagh", email="adam@elitemonkey.net" },
 ]
@@ -45,6 +45,7 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/adammcdonagh/open-task-framework"
 "Bug Tracker" = "https://github.com/adammcdonagh/open-task-framework/issues"
+"Changelog" = "https://github.com/adammcdonagh/open-task-framework/blob/main/CHANGELOG.md"
 
 [project.scripts]
 task-run = "opentaskpy.cli.task_run:main"
@@ -53,7 +54,7 @@ task-run = "opentaskpy.cli.task_run:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "0.6.1"
+current_version = "0.6.2"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true

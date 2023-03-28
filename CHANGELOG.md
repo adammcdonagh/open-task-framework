@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.6.2
+
+   * Update package config to link to changelog
+   * Update `README.md` to show new workflow badge
+
 ## v0.6.1
 
    * Added proper JSON validation code
