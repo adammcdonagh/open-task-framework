@@ -1,4 +1,5 @@
 """Schemas for the configuration files."""
+import copy
 import importlib
 import sys
 from importlib.resources import files
@@ -10,7 +11,7 @@ from jsonschema.validators import RefResolver
 
 import opentaskpy.logging
 
-transfer_schema = {
+TRANSFER_SCHEMA = {
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -32,7 +33,7 @@ transfer_schema = {
 
 # Determine the type of transfer, and apply the correct sub schema based on the protocol used
 
-execution_schema = {
+EXECUTION_SCHEMA = {
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -41,7 +42,10 @@ execution_schema = {
     "required": ["type", "protocol"],
 }
 
-batch_schema = {
+# Declare a constant that cannot be changed
+
+
+BATCH_SCHEMA = {
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -56,7 +60,7 @@ logger = opentaskpy.logging.init_logging(__name__)
 def validate_transfer_json(json_data):
     new_schema = None
     try:
-        validate(instance=json_data, schema=transfer_schema)
+        validate(instance=json_data, schema=TRANSFER_SCHEMA)
 
         # If this works, then determine the protocol and apply the correct sub schema
         # Source protocol
@@ -140,8 +144,8 @@ def validate_transfer_json(json_data):
                 if schema_def not in schema_refs:
                     schema_refs.append(schema_def)
 
-        # Update the transfer_schema with the correct sub schema reference
-        new_schema = transfer_schema.copy()
+        # Update the TRANSFER_SCHEMA with the correct sub schema reference
+        new_schema = copy.deepcopy(TRANSFER_SCHEMA)
         new_schema["properties"]["source"] = {"$ref": source_schema_name}
 
         # Now update the new_schema so that ["properties"]["destination"]["items"]["$ref"] = the list of destination protocols schema references
@@ -161,15 +165,13 @@ def validate_transfer_json(json_data):
 
     except ValidationError as err:
         print(err.message)
-        print(f"Transfer Schema: {transfer_schema}")
-        print(f"New Schema: {new_schema}")
         return False
     return True
 
 
 def validate_execution_json(json_data):
     try:
-        validate(instance=json_data, schema=execution_schema)
+        validate(instance=json_data, schema=EXECUTION_SCHEMA)
 
         # If this works, then determine the protocol and apply the correct sub schema
         protocol = json_data["protocol"]["name"]
@@ -232,7 +234,7 @@ def validate_batch_json(json_data):
             referrer=True,
         )
 
-        validate(instance=json_data, schema=batch_schema, resolver=resolver)
+        validate(instance=json_data, schema=BATCH_SCHEMA, resolver=resolver)
     except ValidationError as err:
         print(err.message)
         return False

@@ -14,7 +14,7 @@ def valid_protocol_definition():
 
 
 @pytest.fixture(scope="function")
-def valid_source_definition():
+def valid_source_definition(valid_protocol_definition):
     return {
         "hostname": "{{ HOST_A }}",
         "directory": "/tmp/testFiles/src",
@@ -24,7 +24,7 @@ def valid_source_definition():
 
 
 @pytest.fixture(scope="function")
-def valid_destination_definition():
+def valid_destination_definition(valid_protocol_definition):
     return {
         "hostname": "somehost",
         "directory": "/tmp/testFiles/dest",
@@ -32,17 +32,17 @@ def valid_destination_definition():
     }
 
 
-def test_ssh_basic():
+def test_ssh_basic(valid_source_definition, valid_destination_definition):
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition.copy(),
+        "source": valid_source_definition,
         "destination": [],
     }
     # We dont actually need to give any destinations
     assert validate_transfer_json(json_data)
 
     # Add a valid destination
-    json_data["destination"].append(valid_destination_definition.copy())
+    json_data["destination"].append(valid_destination_definition)
 
     assert validate_transfer_json(json_data)
 
@@ -51,11 +51,11 @@ def test_ssh_basic():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_rename():
+def test_ssh_rename(valid_source_definition, valid_destination_definition):
     json_data = {
         "type": "transfer",
         "source": valid_source_definition.copy(),
-        "destination": [valid_destination_definition.copy()],
+        "destination": [valid_destination_definition],
     }
 
     # Add rename config
