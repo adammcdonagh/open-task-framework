@@ -26,7 +26,21 @@ TRANSFER_SCHEMA = {
                 },
             },
         },
-        "destination": {"type": "array"},
+        "destination": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "protocol": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                        },
+                    },
+                },
+                "required": ["protocol"],
+            },
+        },
     },
     "required": ["type", "source"],
 }
