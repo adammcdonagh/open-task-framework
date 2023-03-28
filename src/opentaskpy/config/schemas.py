@@ -23,8 +23,10 @@ TRANSFER_SCHEMA = {
                     "properties": {
                         "name": {"type": "string"},
                     },
+                    "required": ["name"],
                 },
             },
+            "required": ["protocol"],
         },
         "destination": {
             "type": "array",
@@ -36,6 +38,7 @@ TRANSFER_SCHEMA = {
                         "properties": {
                             "name": {"type": "string"},
                         },
+                        "required": ["name"],
                     },
                 },
                 "required": ["protocol"],
@@ -51,7 +54,13 @@ EXECUTION_SCHEMA = {
     "type": "object",
     "properties": {
         "type": {"type": "string"},
-        "protocol": {"type": "object"},
+        "protocol": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+            },
+            "required": ["name"],
+        },
     },
     "required": ["type", "protocol"],
 }

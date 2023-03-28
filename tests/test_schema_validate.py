@@ -46,6 +46,18 @@ def valid_destination_definition_2(valid_protocol_definition_2):
     }
 
 
+def test_source_protocols(valid_source_definition):
+    json_data = {
+        "type": "transfer",
+        "source": valid_source_definition,
+        "destination": [],
+    }
+
+    # Remove protocol
+    del json_data["source"]["protocol"]
+    assert not validate_transfer_json(json_data)
+
+
 def test_dest_with_different_protocols(
     valid_source_definition,
     valid_destination_definition,
