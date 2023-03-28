@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.3
+
+   * Force requirement for protocol definition in JSON schemas
+
 ## v0.6.2
 
    * Update package config to link to changelog
