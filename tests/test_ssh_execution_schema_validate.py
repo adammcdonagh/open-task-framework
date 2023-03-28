@@ -23,7 +23,7 @@ def valid_execution(valid_protocol_definition):
     }
 
 
-def test_ssh_basic(valid_exceution):
+def test_ssh_basic(valid_execution):
     json_data = {
         "type": "execution",
     }

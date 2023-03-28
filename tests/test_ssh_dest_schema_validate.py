@@ -54,7 +54,7 @@ def test_ssh_basic(valid_source_definition, valid_destination_definition):
 def test_ssh_rename(valid_source_definition, valid_destination_definition):
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition.copy(),
+        "source": valid_source_definition,
         "destination": [valid_destination_definition],
     }
 
@@ -63,11 +63,11 @@ def test_ssh_rename(valid_source_definition, valid_destination_definition):
     assert validate_transfer_json(json_data)
 
 
-def test_ssh_permissions():
+def test_ssh_permissions(valid_source_definition, valid_destination_definition):
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition.copy(),
-        "destination": [valid_destination_definition.copy()],
+        "source": valid_source_definition,
+        "destination": [valid_destination_definition],
     }
 
     # Add permission
@@ -90,16 +90,16 @@ def test_ssh_permissions():
     assert not validate_transfer_json(json_data)
 
 
-def test_ssh_flags():
+def test_ssh_flags(valid_source_definition, valid_protocol_definition):
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition.copy(),
+        "source": valid_source_definition,
         "destination": [
             {
                 "hostname": "{{ HOST_A }}",
                 "directory": "/tmp/testFiles/src",
                 "flags": {},
-                "protocol": valid_protocol_definition.copy(),
+                "protocol": valid_protocol_definition,
             }
         ],
     }
@@ -110,11 +110,11 @@ def test_ssh_flags():
     assert validate_transfer_json(json_data)
 
 
-def test_ssh_transfer_type():
+def test_ssh_transfer_type(valid_source_definition, valid_destination_definition):
     json_data = {
         "type": "transfer",
-        "source": valid_source_definition.copy(),
-        "destination": [valid_destination_definition.copy()],
+        "source": valid_source_definition,
+        "destination": [valid_destination_definition],
     }
 
     # Add transfer type
