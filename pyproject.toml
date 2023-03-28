@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "0.5.0"
+version = "0.6.1"
 authors = [
   { name="Adam McDonagh", email="adam@elitemonkey.net" },
 ]
@@ -39,7 +39,7 @@ dev = [
   "pytest",
   "bumpver",
   "pytest-shell",
-  "lovely-pytest-docker",
+  "lovely-pytest-docker"
 ]
 
 [project.urls]
@@ -53,7 +53,7 @@ task-run = "opentaskpy.cli.task_run:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "0.5.0"
+current_version = "0.6.1"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -65,3 +65,11 @@ push = true
     'current_version = "{version}"',
     'version = "{version}"'
 ]
+
+# Include the schema JSON files in the package
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

@@ -1,0 +1,85 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "move",
+        "rename",
+        "delete"
+      ]
+    },
+    "destination": {
+      "type": "string"
+    },
+    "sub": {
+      "type": "string"
+    },
+    "pattern": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "enum": [
+              "move",
+              "rename"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "action",
+          "destination"
+        ]
+      },
+      "else": {
+        "properties": {
+          "destination": {
+            "not": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "rename"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "sub",
+          "pattern"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "move"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "sub",
+            "pattern"
+          ]
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

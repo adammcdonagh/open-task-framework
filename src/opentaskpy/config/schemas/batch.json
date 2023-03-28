@@ -1,0 +1,41 @@
+{
+  "title": "Batch",
+  "description": "JSON Schema for a batch object. This is where sets of tasks can be chained together, or run in parallel at the same time.",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "integer",
+      "description": "A unique integer assigned to this task in the batch. This should start at 1, and increment by 1 for each task in the batch. This is the ID used when defining dependencies between batch tasks"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "The id of the task to run. This should match the name of the JSON file for the task being run."
+    },
+    "timeout": {
+      "type": "integer",
+      "description": "Timeout, in seconds, for the task to complete. If the task does not complete within this time, it will be marked as failed.",
+      "minimum": 1
+    },
+    "continue_on_fail": {
+      "type": "boolean",
+      "description": "If true, the batch will continue to run additional steps (dependant on this) even if this step fails. If false, the batch will stop running further depedencies if it fails."
+    },
+    "retry_on_rerun": {
+      "type": "boolean",
+      "description": "If a previous run failed, and this task succeedes, setting this value to true will cause the task to rerun, rather than just running the previously failed tasks."
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "A list of the order_ids of tasks that must complete before this task can run.",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "order_id",
+    "task_id"
+  ]
+}

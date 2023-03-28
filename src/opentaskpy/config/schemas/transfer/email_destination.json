@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "recipients": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^.*@.*$"
+      }
+    },
+    "subject": {
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "email/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "recipients",
+    "subject",
+    "protocol"
+  ]
+}

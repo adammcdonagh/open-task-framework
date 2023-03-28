@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "hostname": {
+      "type": "string"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "fileRegex": {
+      "type": "string"
+    },
+    "conditionals": {
+      "$ref": "ssh_source/conditionals.json"
+    },
+    "fileWatch": {
+      "$ref": "ssh_source/fileWatch.json"
+    },
+    "logWatch": {
+      "$ref": "ssh_source/logWatch.json"
+    },
+    "error": {
+      "type": "boolean"
+    },
+    "postCopyAction": {
+      "$ref": "ssh_source/postCopyAction.json"
+    },
+    "protocol": {
+      "$ref": "ssh_source/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "hostname",
+    "fileRegex",
+    "protocol"
+  ]
+}

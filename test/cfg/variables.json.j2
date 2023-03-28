@@ -2,7 +2,6 @@
   "HOST_A": "172.16.0.11",
   "HOST_B": "172.16.0.12",
   "SSH_USERNAME": "application",
-  "SSH_KEY_LOCATION": "test/testFiles/id_rsa",
   "TEMP_SOURCE_FOLDER": "/tmp",
   "MY_FOLDER": "{{ FOLDER1 }}",
   "FOLDER1": "{{ FOLDER2 }}",
@@ -23,6 +22,6 @@
   "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
   "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
   "testLookup": "{{ lookup('file', path='/tmp/variable_lookup.txt') }}",
-  "testLookup2": "{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}"
-  
+  "testLookup2": "{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}",
+  "global_protocol_vars": {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"}
 }

@@ -1,12 +1,13 @@
 import random
 import shutil
 import time
+from importlib import import_module
 from math import ceil, floor
 from os import environ, getpid, makedirs, path
+from sys import modules
 
 import opentaskpy.logging
 from opentaskpy import exceptions
-from opentaskpy.remotehandlers.ssh import SSHTransfer
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
 # Full transfers expect that the remote host has a base install of python3
@@ -14,6 +15,10 @@ from opentaskpy.taskhandlers.taskhandler import TaskHandler
 # for doing some of the more complex work, rather than triggering a tonne of shell commands
 
 TASK_TYPE = "T"
+DEFAULT_PROTOCOL_MAP = {
+    "ssh": {"module": "opentaskpy.remotehandlers.ssh", "class": "SSHTransfer"},
+    "email": {"module": "opentaskpy.remotehandlers.email", "class": "EmailTransfer"},
+}
 
 
 class Transfer(TaskHandler):
@@ -69,6 +74,16 @@ class Transfer(TaskHandler):
 
         return status == 0
 
+    def _get_default_class(self, protocol_name):
+        class_name = DEFAULT_PROTOCOL_MAP[protocol_name]["class"]
+        module_name = DEFAULT_PROTOCOL_MAP[protocol_name]["module"]
+
+        # Load module
+        if module_name not in modules:
+            import_module(module_name)
+
+        return getattr(modules[module_name], class_name)
+
     def _set_remote_handlers(self):
         # Based on the transfer definition, determine what to do first
         self.source_file_spec = self.transfer_definition["source"]
@@ -83,8 +98,9 @@ class Transfer(TaskHandler):
             self.dest_file_specs = self.transfer_definition["destination"]
 
         # Based on the source protocol pick the appropriate remote handler
-        if source_protocol == "ssh":
-            self.source_remote_handler = SSHTransfer(self.source_file_spec)
+        if source_protocol in DEFAULT_PROTOCOL_MAP:
+            handler_class = self._get_default_class(source_protocol)
+            self.source_remote_handler = handler_class(self.source_file_spec)
 
         # If not SSH, then it's a non-standard protocol, we need to see if it's loadable
         # load it, and then create the remote handler
@@ -102,15 +118,18 @@ class Transfer(TaskHandler):
                 remote_protocol = dest_file_spec["protocol"]["name"]
 
                 # For each host, create a remote handler
-                if remote_protocol == "ssh":
-                    self.dest_remote_handlers.append(SSHTransfer(dest_file_spec))
+                remote_handler = None
+                if remote_protocol in DEFAULT_PROTOCOL_MAP:
+                    handler_class = self._get_default_class(remote_protocol)
+                    remote_handler = handler_class(dest_file_spec)
+
                 else:
                     remote_handler = super()._get_handler_for_protocol(
                         remote_protocol, dest_file_spec
                     )
-                    self.dest_remote_handlers.append(remote_handler)
 
-                    super()._set_handler_vars(remote_protocol, remote_handler)
+                self.dest_remote_handlers.append(remote_handler)
+                super()._set_handler_vars(remote_protocol, remote_handler)
 
     def run(self, kill_event=None):
         self.logger.info("Running transfer")
@@ -243,11 +262,21 @@ class Transfer(TaskHandler):
             ):
                 return self.return_result("0", "Just performing filewatch")
             elif not remote_files:
-                return self.return_result(
-                    1,
-                    f"No files found after {timeout_seconds} seconds",
-                    exception=exceptions.RemoteFileNotFoundError,
-                )
+                # Only error if error is not set to false
+                if (
+                    "error" in self.source_file_spec
+                    and not self.source_file_spec["error"]
+                ):
+                    self.logger.info(
+                        "No files found after timeout, but error is set to false"
+                    )
+                    return self.return_result(0, "No files found")
+                else:
+                    return self.return_result(
+                        1,
+                        f"No files found after {timeout_seconds} seconds",
+                        exception=exceptions.RemoteFileNotFoundError,
+                    )
 
         # Determine what needs to be transferred
 

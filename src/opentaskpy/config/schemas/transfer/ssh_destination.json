@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "hostname": {
+      "type": "string"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "rename": {
+      "$ref": "ssh_destination/rename.json"
+    },
+    "permissions": {
+      "$ref": "ssh_destination/permissions.json"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "flags": {
+      "$ref": "ssh_destination/flags.json"
+    },
+    "transferType": {
+      "type": "string",
+      "enum": [
+        "push",
+        "pull",
+        "proxy"
+      ]
+    },
+    "protocol": {
+      "$ref": "ssh_destination/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "hostname",
+    "directory",
+    "protocol"
+  ]
+}

@@ -5,11 +5,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: Pytest All",
+      "type": "python",
+      "request": "launch",
+      "program": "-m",
+      "console": "integratedTerminal",
+      "args": [
+        "pytest"
+      ],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",
       "program": "${file}",
-      "preLaunchTask": "Build Test containers - without containers",
+      "preLaunchTask": "Build Test containers",
       "console": "integratedTerminal",
       "args": [
         "-t",

@@ -107,11 +107,15 @@ Usage:
 
 # Task Definitions
 
+Task definitions are validated using the JSON Schemas defined within `src/opentaskpy/config/schemas/`. These are split up to make them more readable. The top level schema for each task type is defined within the `schemas.py` file, one level above.
+
+At a later date, I plan to automate the creation of the JSON schema documentation.
+
 ## Transfers
 
 Transfers consist of a `source` definition, and an optional `destination`.
 
-The easiest way to see usage is to look at the examples under the `examples` directory. In addition, the JSON schemas are defined in `src/opentaskpy/config/schemas.py`
+The easiest way to see usage is to look at the examples under the `examples` directory
 
 Below is an example of all the options available for a transfer:
 
