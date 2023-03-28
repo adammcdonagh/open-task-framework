@@ -45,6 +45,7 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/adammcdonagh/open-task-framework"
 "Bug Tracker" = "https://github.com/adammcdonagh/open-task-framework/issues"
+"Changelog" = "https://github.com/adammcdonagh/open-task-framework/blob/main/CHANGELOG.md"
 
 [project.scripts]
 task-run = "opentaskpy.cli.task_run:main"

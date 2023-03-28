@@ -1,5 +1,5 @@
 
-![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/unittest.yml/badge.svg?event=push)
+![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/main.yml/badge.svg?event=push)
 
 
 Open Task Framework (OTF) is a Python based framework to make it easy to run predefined file transfers and scripts/commands on remote machines.
