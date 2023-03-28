@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.5.0
+## v0.6.1
 
    * Added proper JSON validation code
 
