@@ -1,6 +1,24 @@
 
 ![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/main.yml/badge.svg?event=push)
 
+<h1>Open Task Framework (opentaskpy)</h1>
+
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [Command Line Arguments](#command-line-arguments)
+  - [Environment Variables](#environment-variables)
+  - [Logging](#logging)
+  - [Variables](#variables)
+    - [Lookup plugins](#lookup-plugins)
+      - [Adding your own](#adding-your-own)
+    - [Example Variables](#example-variables)
+- [Task Definitions](#task-definitions)
+  - [Transfers](#transfers)
+  - [Executions](#executions)
+  - [Batches](#batches)
+- [Development](#development)
+  - [Quickstart for development](#quickstart-for-development)
+    - [Building and uploading to PyPi](#building-and-uploading-to-pypi)
 
 Open Task Framework (OTF) is a Python based framework to make it easy to run predefined file transfers and scripts/commands on remote machines.
 
@@ -11,19 +29,29 @@ OTF has 3 main concepts for tasks. These are:
 * Executions
 * Batches
 
-## **Transfers**
-As the name suggests, these are just file transfers from a source system, to 1 or more destinations.
-At present, this only supports transfer via SFTP/SSH, but in future the plan is to add S3 capabilities too.
+For more details, see the [task types](docs/task-types.md) doc
 
-In addition to a simple file transfer, transfers can poll for files, watch the contents of log files, only collect files based on age and size, and carry out post copy actions (archive or delete source file) once the transfer has completed.
+# Installation
 
-## **Executions**
-Again, fairly obvious, this will run commands on one or more remote hosts via SSH.
+OTF can be run either as an installed script, or via a docker container
 
-## **Batches**
-A batch is a combination of the above 2 task types, and other batches too.
+Install via pip:
+```shell
+pip install opentaskpy
+```
 
-Batches can have dependencies between tasks, timeouts, and failure recovery e.g. rerunning from the last point of failure
+The `task-run` script will be added to your PATH, and you can invoke it directly.
+
+To run via docker, use the `Dockerfile` to create your own base image using just the standard opentaskpy library. However if you want to install addons, you'll need to customise this, to install the additional packages first, before bundling it as a Docker image.
+
+```shell
+docker build -t opentaskpy -f Dockerfile . # Build the image
+docker run --rm --volume /opt/otf/cfg:/cfg --volume /var/log/otf:/logs--volume /home/<USER>/.ssh/id_rsa:/id_rsa -e OTF_SSH_KEY=/id_rsa -e OTF_LOG_DIRECTORY=/logs task-run -t <TASK NAME> -c /cfg # Run a task
+```
+
+The default `opentaskpy` library is only really designed to use SSH for executions and file transfers. To do this, you need to make sure that the host/container that is running the `task-run` script has a private RSA key, that is trusted on all remote hosts that you're running against. 
+
+An environment variable `OTF_SSH_KEY` can be used to define a default SSH key to use for all SSH connectivity. This can be overridden at the transfer/execution level by specifying a `keyFile` in the `credentials` section of the protocol definition.
 
 # Configuration
 
@@ -67,11 +95,19 @@ VERBOSITY is an integer; 1, 2 or 3
 The directory containing all of the config files. These are the task definition JSON files, as well as the variables Jinja2 template file. 
 
 In order for the process to run, you must have at least one task, and a `variables.json.j2` file, even if it's just an empty object definition
+
 ## Environment Variables
+
+These are some environment variables that can be used to customise the behaviour of the application. There are some internally used variables too, but changing them without a full understanding of the code is not advised.
 
    * `OTF_NO_LOG` - Disable logging to file. Only log to stderr
    * `OTF_LOG_DIRECTORY` - Path under which log files are written
-   * `OTF_RUN_ID` - An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
+   * `OTF_RUN_ID` - (meant for internal use) An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
+   * `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
+
+## Logging
+
+By default, OTF will log to a directory called `logs` in the current working directory. For the docker containers, unless overridden by `OTF_LOG_DIRECTORY`, it will write to `/logs` using a symlink at `/app/logs`
 
 ## Variables
 
@@ -82,6 +118,40 @@ You must always have a `variables.json.j2` file defined at the root of your `con
 Variables can be used using the Jinja2 template syntax within task definitions. They can also be nested.
 
 Individual tasks can have their own local variables too
+
+### Lookup plugins
+
+Static variables are useful, however sometimes you need to look up something a bit more dynamic, or secret, that you don't want to hard code into the variables file.
+
+There are 2 default lookup plugins available:
+
+* File
+* HTTP JSON
+
+The file plugin will load the content of a file into the variable e.g.
+```jinja
+"{{ lookup('file', path='/tmp/variable_lookup.txt') }}"
+```
+
+The HTTP JSON plugin will perform a very basic HTTP GET request, expecting a JSON response. The value to extract is defined by a jsonpath e.g.
+```jinja
+"{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}"
+```
+This will hit the typicode.com side, and extract the title attribute from from the returned JSON file
+
+#### Adding your own
+
+OTF will look for plugins that are either available as an installed module (under the `opentaskpy.plugins.lookup` namespace), or dropped in a `plugins` under the config directory.
+
+An example Python module might be: `opentaskpy.plugins.lookup.aws.ssm`. This can then be referenced as a variable in a template like so:
+```jinja
+"{{ lookup('aws.ssm', name='my_test_param') }}"
+```
+
+Alternatively a lookup plugin could be placed under `cfg/plugins` named `my_lookup.py`, and used in a template:
+```jinja
+"{{ lookup('my_lookup', name='my_param') }}"
+```
 
 ### Example Variables
 

@@ -12,6 +12,9 @@
       "properties": {
         "username": {
           "type": "string"
+        },
+        "keyFile": {
+          "type": "string"
         }
       },
       "required": [

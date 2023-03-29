@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.7
+   
+   * Add some Dockerfiles to allow `task-run` to be run via a Docker container
+   * Update documentation
+   * Add the ability to use a globally overridden SSH private key for connectivity via the `OTF_SSH_KEY` env var
+   * Update test fixture for SSH clients to ensure that the private key file being used is actually valid
+   * Fix protocol definition JSON schema to validate the use of `keyFile` in credentials section
+
 ## v0.6.3
 
    * Force requirement for protocol definition in JSON schemas

@@ -5,7 +5,7 @@ import re
 import stat
 import time
 
-from paramiko import AutoAddPolicy, SSHClient
+from paramiko import AutoAddPolicy, RSAKey, SSHClient
 
 import opentaskpy.logging
 from opentaskpy.remotehandlers.remotehandler import (
@@ -56,8 +56,20 @@ class SSHTransfer(RemoteTransferHandler):
                 "username": self.spec["protocol"]["credentials"]["username"],
                 "timeout": 5,
             }
+            # If a custom key is set via env vars, then set that
+            if (
+                os.environ.get("OTF_SSH_KEY")
+                and os.path.exists(os.environ.get("OTF_SSH_KEY"))
+            ) and "keyFile" not in self.spec["protocol"]["credentials"]:
+                self.logger.info(
+                    "Loading custom private SSH key from OTF_SSH_KEY env var"
+                )
+                key = RSAKey.from_private_key_file(os.environ.get("OTF_SSH_KEY"))
+                kwargs["pkey"] = key
+
             # If a specific key file has been defined, then use that
-            if "keyFile" in self.spec["protocol"]["credentials"]:
+            elif "keyFile" in self.spec["protocol"]["credentials"]:
+                self.logger.info("Using key file from task spec")
                 kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
 
             ssh_client.connect(**kwargs)
@@ -620,11 +632,27 @@ class SSHExecution(RemoteExecutionHandler):
         ):
             return
 
-        self.ssh_client.connect(
-            self.remote_host,
-            username=self.spec["protocol"]["credentials"]["username"],
-            timeout=5,
-        )
+        kwargs = {
+            "hostname": self.remote_host,
+            "username": self.spec["protocol"]["credentials"]["username"],
+            "timeout": 5,
+        }
+
+        # If a custom key is set via env vars, then set that
+        if (
+            os.environ.get("OTF_SSH_KEY")
+            and os.path.exists(os.environ.get("OTF_SSH_KEY"))
+        ) and "keyFile" not in self.spec["protocol"]["credentials"]:
+            self.logger.info("Loading custom private SSH key from OTF_SSH_KEY env var")
+            key = RSAKey.from_private_key_file(os.environ.get("OTF_SSH_KEY"))
+            kwargs["pkey"] = key
+
+        # If a specific key file has been defined, then use that
+        elif "keyFile" in self.spec["protocol"]["credentials"]:
+            self.logger.info("Using key file from task spec")
+            kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
+
+        self.ssh_client.connect(**kwargs)
         _, stdout, _ = self.ssh_client.exec_command("uname -a")
         with stdout as stdout_fh:
             output = stdout_fh.read().decode("UTF-8")
