@@ -74,7 +74,20 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2):
     # Run command locally
     # if ssh key dosent exist yet
     ssh_private_key_file = f"{root_dir}/testFiles/id_rsa"
-    if not os.path.isfile(ssh_private_key_file):
+    # Load the ssh key and validate it
+    from paramiko import RSAKey
+
+    key = None
+    try:
+        key = RSAKey.from_private_key_file(ssh_private_key_file)
+    except Exception:
+        pass
+
+    if not os.path.isfile(ssh_private_key_file) or not key:
+        # If it exists, delete it first
+        if os.path.isfile(ssh_private_key_file):
+            os.remove(ssh_private_key_file)
+        # Generate the key
         subprocess.run(
             ["ssh-keygen", "-t", "rsa", "-N", "", "-f", ssh_private_key_file]
         ).returncode

@@ -15,6 +15,9 @@
         },
         "transferUsername": {
           "type": "string"
+        },
+        "keyFile": {
+          "type": "string"
         }
       },
       "required": [
