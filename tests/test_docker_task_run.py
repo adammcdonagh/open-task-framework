@@ -1,3 +1,4 @@
+import os
 import random
 import subprocess
 
@@ -13,6 +14,10 @@ DELIMITER = ","
 Tests for running task-run via a docker container
 #################
 """
+
+# Get the current user and group id
+user_id = os.getuid()
+group_id = os.getgid()
 
 
 @pytest.fixture(scope="module")
@@ -157,6 +162,8 @@ def test_docker_run(
         "docker",
         "run",
         "--rm",
+        "--user",
+        f"{user_id}:{group_id}",
         "--network",
         test_network_id,
         "--volume",
@@ -198,6 +205,11 @@ def test_standard_docker_image(
     if os.path.exists(log_dir):
         shutil.rmtree(log_dir)
 
+    # Create a test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
+    )
+
     # This image pulls down whatever is on pypi, so we're not really testing the code here. Just that we can call a simple transfer.
     # We want to check that the logging works correctly when running in a docker container and mapping volumes
     # Run the container
@@ -206,6 +218,8 @@ def test_standard_docker_image(
         "docker",
         "run",
         "--rm",
+        "--user",
+        f"{user_id}:{group_id}",
         "--network",
         test_network_id,
         "--volume",
