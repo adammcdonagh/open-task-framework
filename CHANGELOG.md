@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.1
+   
+   * Removed old setup.py
+   * Removed old TODO message
 ## v0.7
    
    * Add some Dockerfiles to allow `task-run` to be run via a Docker container

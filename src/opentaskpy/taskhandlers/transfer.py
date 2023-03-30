@@ -194,7 +194,6 @@ class Transfer(TaskHandler):
                 )
 
         # If filewatching, do that next
-        # TODO: #6 Improve filewatch definition options in JSON
         if "fileWatch" in self.source_file_spec:
             # Setup a loop for the filewatch
             timeout_seconds = (
