@@ -149,8 +149,8 @@ def test_network_id():
 
 
 @pytest.fixture(scope="module")
-def log_dir():
-    return f"{root_dir}/testLogs/docker_log_test"
+def log_dir(root_dir):
+    return f"{root_dir}/testLogs"
 
 
 @pytest.fixture(scope="function")
@@ -160,7 +160,17 @@ def clear_logs(log_dir):
         shutil.rmtree(log_dir)
 
     # Create an empty directory for the logs
-    os.makedirs(log_dir)
+    os.makedirs(log_dir, exist_ok=True)
+    # Check the directory exists
+    assert os.path.exists(log_dir)
+
+
+@pytest.fixture(scope="function")
+def create_test_file(root_dir):
+    # Create a test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
+    )
 
 
 def test_docker_run(
@@ -171,7 +181,9 @@ def test_docker_run(
     root_dir,
     env_vars,
     clear_logs,
+    create_test_file,
 ):
+
     # Run the container
     print("Running docker container")
     command_args = [
@@ -208,8 +220,6 @@ def test_docker_run(
     print(result.stdout.decode("utf-8"))
     print(result.stderr.decode("utf-8"))
 
-    clear_logs()
-
     assert result.returncode == 0
 
 
@@ -219,8 +229,10 @@ def test_standard_docker_image(
     test_network_id,
     image_name,
     root_dir,
+    log_dir,
     env_vars,
     clear_logs,
+    create_test_file,
 ):
     # Create a test file
     fs.create_files(
@@ -265,8 +277,6 @@ def test_standard_docker_image(
     )
     # We dont care whether this worked or not, we just want to check the logs
     # Check that the log file exists containing scp-basic in the name in log_dir
-    log_files = os.listdir(log_dir)
+    log_files = os.listdir(f"{log_dir}/docker_log_test")
     assert len(log_files) == 1
     assert "scp-basic" in log_files[0]
-
-    clear_logs()
