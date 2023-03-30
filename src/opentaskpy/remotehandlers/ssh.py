@@ -331,6 +331,7 @@ class SSHTransfer(RemoteTransferHandler):
         for file in files:
             files_str += f"{source_user}@{source_host}:{file} "
 
+        # TODO: #18 Make pull_files use SFTP client to pull files, rather than raw SCP command on the remote server
         remote_command = (
             f"scp {SSH_OPTIONS} {files_str.strip()} {destination_directory}"
         )
