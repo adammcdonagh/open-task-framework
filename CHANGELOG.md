@@ -7,6 +7,7 @@
    * Add the ability to use a globally overridden SSH private key for connectivity via the `OTF_SSH_KEY` env var
    * Update test fixture for SSH clients to ensure that the private key file being used is actually valid
    * Fix protocol definition JSON schema to validate the use of `keyFile` in credentials section
+   * Permission issues with Docker tests
 
 ## v0.6.3
 

@@ -1,3 +1,4 @@
+import os
 import random
 import subprocess
 
@@ -13,6 +14,10 @@ DELIMITER = ","
 Tests for running task-run via a docker container
 #################
 """
+
+# Get the current user and group id
+user_id = os.getuid()
+group_id = os.getgid()
 
 
 @pytest.fixture(scope="module")
@@ -143,6 +148,31 @@ def test_network_id():
     return result.stdout.decode("utf-8").strip()
 
 
+@pytest.fixture(scope="module")
+def log_dir(root_dir):
+    return f"{root_dir}/testLogs"
+
+
+@pytest.fixture(scope="function")
+def clear_logs(log_dir):
+    # Delete the output log directory
+    if os.path.exists(log_dir):
+        shutil.rmtree(log_dir)
+
+    # Create an empty directory for the logs
+    os.makedirs(log_dir, exist_ok=True)
+    # Check the directory exists
+    assert os.path.exists(log_dir)
+
+
+@pytest.fixture(scope="function")
+def create_test_file(root_dir):
+    # Create a test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
+    )
+
+
 def test_docker_run(
     setup_ssh_keys,
     docker_build_dev_image,
@@ -150,6 +180,8 @@ def test_docker_run(
     image_name_dev,
     root_dir,
     env_vars,
+    clear_logs,
+    create_test_file,
 ):
     # Run the container
     print("Running docker container")
@@ -157,10 +189,14 @@ def test_docker_run(
         "docker",
         "run",
         "--rm",
+        "--user",
+        f"{user_id}:{group_id}",
         "--network",
         test_network_id,
         "--volume",
         f"{root_dir}:/test",
+        "--volume",
+        f"{root_dir}/testLogs:/logs",
         "--volume",
         "/tmp/variable_lookup.txt:/tmp/variable_lookup.txt",
         "-e",
@@ -182,6 +218,7 @@ def test_docker_run(
     )
     print(result.stdout.decode("utf-8"))
     print(result.stderr.decode("utf-8"))
+
     assert result.returncode == 0
 
 
@@ -191,12 +228,15 @@ def test_standard_docker_image(
     test_network_id,
     image_name,
     root_dir,
+    log_dir,
     env_vars,
+    clear_logs,
+    create_test_file,
 ):
-    # Delete the output log directory
-    log_dir = f"{root_dir}/testLogs/docker_log_test"
-    if os.path.exists(log_dir):
-        shutil.rmtree(log_dir)
+    # Create a test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
+    )
 
     # This image pulls down whatever is on pypi, so we're not really testing the code here. Just that we can call a simple transfer.
     # We want to check that the logging works correctly when running in a docker container and mapping volumes
@@ -206,6 +246,8 @@ def test_standard_docker_image(
         "docker",
         "run",
         "--rm",
+        "--user",
+        f"{user_id}:{group_id}",
         "--network",
         test_network_id,
         "--volume",
@@ -234,6 +276,6 @@ def test_standard_docker_image(
     )
     # We dont care whether this worked or not, we just want to check the logs
     # Check that the log file exists containing scp-basic in the name in log_dir
-    log_files = os.listdir(log_dir)
+    log_files = os.listdir(f"{log_dir}/docker_log_test")
     assert len(log_files) == 1
     assert "scp-basic" in log_files[0]
