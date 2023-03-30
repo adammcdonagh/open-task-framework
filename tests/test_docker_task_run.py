@@ -217,7 +217,6 @@ def test_standard_docker_image(
     env_vars,
     clear_logs,
 ):
-
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
