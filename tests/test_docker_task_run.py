@@ -159,6 +159,9 @@ def clear_logs(log_dir):
     if os.path.exists(log_dir):
         shutil.rmtree(log_dir)
 
+    # Create an empty directory for the logs
+    os.makedirs(log_dir)
+
 
 def test_docker_run(
     setup_ssh_keys,
@@ -181,6 +184,8 @@ def test_docker_run(
         test_network_id,
         "--volume",
         f"{root_dir}:/test",
+        "--volume",
+        f"{root_dir}/testLogs:/logs",
         "--volume",
         "/tmp/variable_lookup.txt:/tmp/variable_lookup.txt",
         "-e",
