@@ -183,7 +183,6 @@ def test_docker_run(
     clear_logs,
     create_test_file,
 ):
-
     # Run the container
     print("Running docker container")
     command_args = [
