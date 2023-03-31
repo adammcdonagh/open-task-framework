@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.8
+
+   * Added ability to override global variables at runtime. e.g. Override date variables to pick up files from previous days
+
 ## v0.7.1
    
    * Removed old setup.py
