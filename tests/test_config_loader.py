@@ -1,9 +1,9 @@
 import json
 import os
 import random
+from datetime import datetime, timedelta
 
 import pytest
-from file_helper import write_test_file
 from pytest_shell import fs
 
 from opentaskpy.config.loader import ConfigLoader
@@ -13,7 +13,8 @@ GLOBAL_VARIABLES = None
 RANDOM = random.randint(10000, 99999)
 
 
-def test_load_task_definition(tmpdir):
+@pytest.fixture(scope="function")
+def write_dummy_variables_file(tmpdir):
     # Write a nested variable to the global variables file
     json_obj = {
         "test": "{{ SOME_VARIABLE }}6",
@@ -21,8 +22,14 @@ def test_load_task_definition(tmpdir):
         "SOME_VARIABLE2": "test1234",
     }
 
-    write_test_file(f"{tmpdir}/variables.json.j2", content=json.dumps(json_obj))
+    fs.create_files(
+        [
+            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
 
+
+def test_load_task_definition(write_dummy_variables_file, tmpdir):
     # Initialise the task runner
     config_loader = ConfigLoader(tmpdir)
     # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
@@ -40,20 +47,7 @@ def test_load_task_definition(tmpdir):
     assert e.value.args[0] == "Couldn't find task with name: task"
 
 
-def test_load_new_variables_from_task_def(tmpdir):
-    # Write a nested variable to the global variables file
-    json_obj = {
-        "test": "{{ SOME_VARIABLE }}6",
-        "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}5",
-        "SOME_VARIABLE2": "test1234",
-    }
-
-    fs.create_files(
-        [
-            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
-        ]
-    )
-
+def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):
     config_loader = ConfigLoader(tmpdir)
 
     # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
@@ -249,3 +243,170 @@ def test_resolve_lookups_in_task_definition(tmpdir):
     task_def = config_loader.load_task_definition("task_def")
     # Check that the description has been resolved
     assert task_def["description"] == "FILE_LOOKUP_SUCCESS"
+
+
+def test_default_date_variable_resolution(tmpdir):
+    # Test that the default date variable is resolved correctly
+    json_obj = {
+        "YYYY": "{{ now().strftime('%Y') }}",
+        "MM": "{{ now().strftime('%m') }}",
+        "DD": "{{ now().strftime('%d') }}",
+        "MONTH_SHORT": "{{ now().strftime('%b') }}",
+        "DAY_SHORT": "{{ now().strftime('%a') }}",
+        "PREV_DD": "{{ (now()|delta_days(-1)).strftime('%d') }}",
+        "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
+        "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
+    }
+
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    config_loader = ConfigLoader(tmpdir)
+    config_loader.get_global_variables()
+
+    # Check that the date variables are resolved correctly
+    assert config_loader.get_global_variables()["YYYY"] == datetime.now().strftime("%Y")
+    assert config_loader.get_global_variables()["MM"] == datetime.now().strftime("%m")
+    assert config_loader.get_global_variables()["DD"] == datetime.now().strftime("%d")
+    assert config_loader.get_global_variables()[
+        "MONTH_SHORT"
+    ] == datetime.now().strftime("%b")
+    assert config_loader.get_global_variables()["DAY_SHORT"] == datetime.now().strftime(
+        "%a"
+    )
+
+    # Get datetime for yesterday
+    yesterday = datetime.now() - timedelta(days=1)
+    assert config_loader.get_global_variables()["PREV_YYYY"] == yesterday.strftime("%Y")
+    assert config_loader.get_global_variables()["PREV_MM"] == yesterday.strftime("%m")
+    assert config_loader.get_global_variables()["PREV_DD"] == yesterday.strftime("%d")
+
+
+def test_override_date_variable_resolution(tmpdir):
+    # Test that the default date variable is resolved correctly
+    json_obj = {
+        "YYYY": "{{ now().strftime('%Y') }}",
+        "MM": "{{ now().strftime('%m') }}",
+        "DD": "{{ now().strftime('%d') }}",
+        "MONTH_SHORT": "{{ now().strftime('%b') }}",
+        "DAY_SHORT": "{{ now().strftime('%a') }}",
+        "PREV_DD": "{{ (now()|delta_days(-1)).strftime('%d') }}",
+        "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
+        "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
+    }
+
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    os.environ["YYYY"] = "1901"
+    os.environ["MM"] = "01"
+    os.environ["DD"] = "14"
+
+    config_loader = ConfigLoader(tmpdir)
+    config_loader.get_global_variables()
+
+    # Unset the variables
+    del os.environ["YYYY"]
+    del os.environ["MM"]
+    del os.environ["DD"]
+
+    # Check that the date variables are resolved correctly
+    assert config_loader.get_global_variables()["YYYY"] == "1901"
+    assert config_loader.get_global_variables()["MM"] == "01"
+    assert config_loader.get_global_variables()["DD"] == "14"
+
+
+def test_override_task_variables(tmpdir, write_dummy_variables_file):
+    config_loader = ConfigLoader(tmpdir)
+
+    # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/task.json": {
+                    "content": '{"test_var": "{{ test }}", "variables": {"MY_VARIABLE": "value123"}}'
+                }
+            }
+        ]
+    )
+
+    expected_task_definition = {
+        "test_var": "test123456",
+        "variables": {"MY_VARIABLE": "value123"},
+    }
+
+    # Test that the task definition is loaded correctly
+    assert config_loader.load_task_definition("task") == expected_task_definition
+
+    # Now override it with an environment variable and load it again
+    os.environ["MY_VARIABLE"] = "overridden_value123"
+
+    expected_task_definition = {
+        "test_var": "test123456",
+        "variables": {"MY_VARIABLE": "overridden_value123"},
+    }
+    new_task_definition = config_loader.load_task_definition("task")
+    del os.environ["MY_VARIABLE"]
+    assert new_task_definition == expected_task_definition
+
+
+def test_override_task_specific_attribute(write_dummy_variables_file, tmpdir):
+    # Define a basic scp transfer
+    scp_task_definition = {
+        "type": "transfer",
+        "source": {
+            "hostname": "172.16.0.11",
+            "directory": "/tmp/testFiles/src",
+            "fileRegex": ".*taskhandler.*\\.txt",
+            "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+        },
+        "destination": [
+            {
+                "hostname": "172.16.0.12",
+                "directory": "/tmp/testFiles/dest",
+                "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+            },
+        ],
+    }
+
+    # Write the task definition to a file
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/transfers/test-task.json": {
+                    "content": json.dumps(scp_task_definition)
+                }
+            }
+        ]
+    )
+
+    # Override things
+    os.environ["OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME"] = "non_existent_host"
+    os.environ["OTF_OVERRIDE_TRANSFER_DESTINATION_0_HOSTNAME"] = "non_existent_host2"
+    os.environ[
+        "OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME"
+    ] = "my_username"
+
+    # Load the task definition
+    config_loader = ConfigLoader(tmpdir)
+    task_definition = config_loader.load_task_definition("test-task")
+
+    del os.environ["OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME"]
+    del os.environ["OTF_OVERRIDE_TRANSFER_DESTINATION_0_HOSTNAME"]
+    del os.environ["OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME"]
+
+    # Check that the hostname has been overridden
+    assert task_definition["source"]["hostname"] == "non_existent_host"
+    assert task_definition["destination"][0]["hostname"] == "non_existent_host2"
+    assert (
+        task_definition["destination"][0]["protocol"]["credentials"]["username"]
+        == "my_username"
+    )

@@ -9,7 +9,8 @@
   - [Environment Variables](#environment-variables)
   - [Logging](#logging)
   - [Variables](#variables)
-    - [Lookup plugins](#lookup-plugins)
+  - [Runtime Overrides](#runtime-overrides)
+  - [Lookup plugins](#lookup-plugins)
       - [Adding your own](#adding-your-own)
     - [Example Variables](#example-variables)
 - [Task Definitions](#task-definitions)
@@ -19,6 +20,11 @@
 - [Development](#development)
   - [Quickstart for development](#quickstart-for-development)
     - [Building and uploading to PyPi](#building-and-uploading-to-pypi)
+  - [Official Addons/Plugins](#official-addonsplugins)
+    - [otf-addons-aws](#otf-addons-aws)
+  - [Developing your own addon/plugin](#developing-your-own-addonplugin)
+    - [Lookup Plugins](#lookup-plugins-1)
+    - [Addons](#addons)
 
 Open Task Framework (OTF) is a Python based framework to make it easy to run predefined file transfers and scripts/commands on remote machines.
 
@@ -119,7 +125,29 @@ Variables can be used using the Jinja2 template syntax within task definitions. 
 
 Individual tasks can have their own local variables too
 
-### Lookup plugins
+## Runtime Overrides
+
+Sometimes you might want to override the current date, or something specific about a file transfer when you manually run a task. This can be done using environment variables.
+
+Standard global variables can be overridden simply by setting an environment variable that matches the name of the variable you want to override e.g. `export DD=01`
+In the log output, you'll see something like this:
+```
+Overriding global variable (DD: 05) with environment variable (01)
+```
+
+To override task specific values, you can use the following format in the environment variable name:
+`OTF_OVERRIDE_<TASK_TYPE>_<ATTRIBUTE>_<ATTRIBUTE>_<ATTRIBUTE>`
+
+e.g. `OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME`
+
+Case doesn't matter here. For attributes that are nested within an array, you can specify the array index
+
+e.g. `OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME`
+
+Again this will be logged to show you that the override is being applied.
+
+
+## Lookup plugins
 
 Static variables are useful, however sometimes you need to look up something a bit more dynamic, or secret, that you don't want to hard code into the variables file.
 
@@ -336,3 +364,37 @@ Dev and runtime packages are defined via pipenv, with a `requirements.txt` for t
 python3 -m build
 python3 -m twine upload --repository testpypi dist/*
 ```
+
+## Official Addons/Plugins
+
+Here's a list of official addons:
+### [otf-addons-aws](https://github.com/adammcdonagh/otf-addons-aws)
+
+Provides transfer and execution addons:
+   * Remote handler for interacting with AWS S3 buckets
+   * Remote handler for executing AWS Lambda functions
+
+Lookup plugins:
+   * Support for AWS SSM Parameter Store for retrieving global variables
+
+## Developing your own addon/plugin
+
+### Lookup Plugins
+
+Plugins are very simple. They simply need a `run` function, and to return the required variable based on a list of kwargs provided within the config template. 
+
+3 examples are bundled by default. The simplest of which is the `random` plugin, which takes 2 numbers and returns a random number between the 2.
+
+They should either be installed as a python package and accessible to load as a module, or stored within the config directory under a `plugins` directory.
+
+They must sit under the `opentaskpy.plugins.lookup` namespace. The filename must match the name of the plugin being references from the template lookup function.
+
+### Addons
+
+Addons allow you to write your own interfaces with other types of remote systems. This could be a custom database provider to allow you to run stored procedures on demand, or something like AWS to perform custom transfers
+
+Addons can either be a transfer type, or execution, and must follow the same rules. They should implement all of the functions in the abstract `RemoteTransferHandler` or `RemoteExecutionHandler` class, or return a `NotImplementedError` exception. 
+
+You should also ensure that you define an appropriate JSON schema, and include those under the `opentaskpy.addons.XXXX.remotehandlers.schemas` directory
+
+Addons can technically be named under any namespace, but must be referred to using the full package name in the task definition e.g. `opentaskpy.addons.aws.remotehandlers.lambda.LambdaExecution`

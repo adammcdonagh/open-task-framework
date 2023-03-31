@@ -24,6 +24,8 @@ class TaskRun:
         # Populate the task definition with the global variables
         active_task_definition = self.config_loader.load_task_definition(self.task_id)
 
+        # Handle any overrides from the command line
+
         result = False
 
         # Now we've loaded the config, determine what to do with it

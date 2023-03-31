@@ -31,6 +31,15 @@ class ConfigLoader:
         self._resolve_templated_variables()
 
     def get_global_variables(self):
+        # Before we return the variables, we need to check for any environment variables that match the same name, and are set
+        # if this is the case, then we replace the value with the environment variable
+        for key, _ in self.global_variables.items():
+            if key in os.environ:
+                self.logger.info(
+                    f"Overriding global variable ({key}: {self.global_variables[key]}) with environment variable ({os.environ[key]})"
+                )
+                self.global_variables[key] = os.environ[key]
+
         return self.global_variables
 
     def delta_days(self, value, days):
@@ -86,7 +95,67 @@ class ConfigLoader:
         found_file = json_config[0]
         self.logger.log(12, f"Found: {found_file}")
 
-        return self._enrich_variables(found_file)
+        task_definition = self._enrich_variables(found_file)
+
+        # If the task has any variables, we need to check if they're overridden by environment variables
+        if "variables" in task_definition:
+            for key, _ in task_definition["variables"].items():
+                if key in os.environ:
+                    task_definition["variables"][key] = os.environ[key]
+
+        # Check to see if this is not a batch type
+        if "type" in task_definition and task_definition["type"] == "batch":
+            self.logger.warn("Cannot apply overrides to batch tasks. Ignoring")
+            return task_definition
+
+        # Finally, attributes of the task definition can also be overridden by environment variables
+        # e.g. OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME will override ["source"]["hostname"], we need to handle this
+        # The format is OTF_OVERRIDE_<TASK_TYPE>_<ATTRIBUTE>_<ATTRIBUTE>_<ATTRIBUTE>
+        # e.g. OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME
+        for key, value in os.environ.items():
+            if key.startswith("OTF_OVERRIDE_"):
+                # Split the key by _
+                split_key = key.split("_")
+                # Remove the first 3 elements
+                split_key = split_key[3:]
+                self._apply_env_var_overrides_to_task_definition(
+                    task_definition, split_key, value
+                )
+
+        return task_definition
+
+    def _apply_env_var_overrides_to_task_definition(
+        self, task_definition, split_key, value
+    ):
+        attribute = split_key[0]
+
+        # Match the attribute, to an attribute in the task_definition, bearing in mind that the case may not match
+        # e.g. "source" may be "Source"
+        for task_definition_attribute in task_definition:
+            if task_definition_attribute.lower() == attribute.lower():
+                attribute = task_definition_attribute
+                break
+
+        # Check that the attribute exists in the definition, if not just ignore it and move on to the next override
+        if attribute not in task_definition:
+            return
+
+        if len(split_key) == 1:
+            self.logger.info(
+                f"Overriding {attribute}: {task_definition[attribute]} with {value}"
+            )
+            task_definition[attribute] = value
+        elif isinstance(task_definition[attribute], list):
+            # If the current attribute is a list, then we need to get the index from the next element
+            # e.g. ["source"]["files"][0]["filename"]
+            index = int(split_key[1])
+            self._apply_env_var_overrides_to_task_definition(
+                task_definition[attribute][index], split_key[2:], value
+            )
+        else:
+            self._apply_env_var_overrides_to_task_definition(
+                task_definition[attribute], split_key[1:], value
+            )
 
     # POPULATE VARIABLES INSIDE TASK DEFINITION
     # AND LOAD ADDITIONAL VARIABLES FROM TASK DEFINITION

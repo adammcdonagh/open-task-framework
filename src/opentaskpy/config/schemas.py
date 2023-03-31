@@ -44,6 +44,7 @@ TRANSFER_SCHEMA = {
                 "required": ["protocol"],
             },
         },
+        "variables": {"type": "object"},
     },
     "required": ["type", "source"],
 }
@@ -61,6 +62,7 @@ EXECUTION_SCHEMA = {
             },
             "required": ["name"],
         },
+        "variables": {"type": "object"},
     },
     "required": ["type", "protocol"],
 }
