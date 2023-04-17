@@ -39,7 +39,8 @@ dev = [
   "pytest",
   "bumpver",
   "pytest-shell",
-  "lovely-pytest-docker"
+  "lovely-pytest-docker",
+  "pre-commit"
 ]
 
 [project.urls]
@@ -73,4 +74,3 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

@@ -55,13 +55,13 @@ docker build -t opentaskpy -f Dockerfile . # Build the image
 docker run --rm --volume /opt/otf/cfg:/cfg --volume /var/log/otf:/logs--volume /home/<USER>/.ssh/id_rsa:/id_rsa -e OTF_SSH_KEY=/id_rsa -e OTF_LOG_DIRECTORY=/logs task-run -t <TASK NAME> -c /cfg # Run a task
 ```
 
-The default `opentaskpy` library is only really designed to use SSH for executions and file transfers. To do this, you need to make sure that the host/container that is running the `task-run` script has a private RSA key, that is trusted on all remote hosts that you're running against. 
+The default `opentaskpy` library is only really designed to use SSH for executions and file transfers. To do this, you need to make sure that the host/container that is running the `task-run` script has a private RSA key, that is trusted on all remote hosts that you're running against.
 
 An environment variable `OTF_SSH_KEY` can be used to define a default SSH key to use for all SSH connectivity. This can be overridden at the transfer/execution level by specifying a `keyFile` in the `credentials` section of the protocol definition.
 
 # Configuration
 
-There are several ways to customise the running of tasks. 
+There are several ways to customise the running of tasks.
 
 ## Command Line Arguments
 
@@ -98,7 +98,7 @@ VERBOSITY is an integer; 1, 2 or 3
 
 **-c, --configDir**
 
-The directory containing all of the config files. These are the task definition JSON files, as well as the variables Jinja2 template file. 
+The directory containing all of the config files. These are the task definition JSON files, as well as the variables Jinja2 template file.
 
 In order for the process to run, you must have at least one task, and a `variables.json.j2` file, even if it's just an empty object definition
 
@@ -296,7 +296,7 @@ An explaination of what's going on in the order it will handled:
 1. Tail the log file matching named: `/tmp/testFiles/src/log{{ YYYY }}Watch1.log` for lines matching containing the regex `someText[0-9]`, for up to 15 seconds, before giving up.
 2. Poll for a file matching the regex `/tmp/testFiles/src/fileWatch\.txt` for up to 15 seconds.
 3. Find all files matching the regex `/tmp/testFiles/src/.*\.txt`, with the conditions that the are >10B and <20B in size, as well as being older than 60 seconds, but newer than 600 seconds since last modification
-4. Transfer the files that were found to 2 destinations. 
+4. Transfer the files that were found to 2 destinations.
    1. The first destination is a simple SCP from `HOST_A` to `HOST_B` where the file is placed under `/tmp/testFiles/dest`. The group ownership of the file(s) is then set to `operator`
    2. The second destination is done via a pull from the destination server into the same directory. The SCP connects to `HOST_A` as `transferUsername`. Once the file has been retrieved, it is renamed using the following regex match `^(.*)\.txt$` and substitution `\1-2.txt`
 5. Transferred files are moved into `/tmp/testFiles/archive` on `HOST_A`
@@ -329,7 +329,7 @@ The above is running the command `touch touchedFile.txt` on `{{ HOST_A }}`, from
 
 If multiple `hosts` are defined, a thread is spawned in parallel for each host. If the command fails on any of the hosts in the list, it will cause the task run to fail, once all processes have returned a result.
 
-## Batches 
+## Batches
 
 Batches are a little more complex. They do not contain any task definitions, only the list, and order of excecution for each task.
 
@@ -339,7 +339,7 @@ Each task in a batch has an `order_id`, this is a unique ID for each task, and i
 
 `dependencies` can be applied to any task, and are simply a list of other tasks that must be completed before it is triggered.
 
-`continue_on_fail` is a boolean that defines whether a failure would cause the whole batch to fail immediately (after existing tasks have finished executing), or whether following steps get run. This defaults to false if not defined. 
+`continue_on_fail` is a boolean that defines whether a failure would cause the whole batch to fail immediately (after existing tasks have finished executing), or whether following steps get run. This defaults to false if not defined.
 
 `retry_on_rerun` is a boolean that determines whether a successful task is run a second time following a failed run. If a batch exits with a failure, and then the script is reun later on that same day, by default only the steps that failed will be run. All steps can be forced to run by setting this to true
 
@@ -381,7 +381,7 @@ Lookup plugins:
 
 ### Lookup Plugins
 
-Plugins are very simple. They simply need a `run` function, and to return the required variable based on a list of kwargs provided within the config template. 
+Plugins are very simple. They simply need a `run` function, and to return the required variable based on a list of kwargs provided within the config template.
 
 3 examples are bundled by default. The simplest of which is the `random` plugin, which takes 2 numbers and returns a random number between the 2.
 
@@ -393,7 +393,7 @@ They must sit under the `opentaskpy.plugins.lookup` namespace. The filename must
 
 Addons allow you to write your own interfaces with other types of remote systems. This could be a custom database provider to allow you to run stored procedures on demand, or something like AWS to perform custom transfers
 
-Addons can either be a transfer type, or execution, and must follow the same rules. They should implement all of the functions in the abstract `RemoteTransferHandler` or `RemoteExecutionHandler` class, or return a `NotImplementedError` exception. 
+Addons can either be a transfer type, or execution, and must follow the same rules. They should implement all of the functions in the abstract `RemoteTransferHandler` or `RemoteExecutionHandler` class, or return a `NotImplementedError` exception.
 
 You should also ensure that you define an appropriate JSON schema, and include those under the `opentaskpy.addons.XXXX.remotehandlers.schemas` directory
 

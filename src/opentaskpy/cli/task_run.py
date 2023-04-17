@@ -72,6 +72,7 @@ def main():
         logger.error(f"Error running task: {e}")
         if logger.getEffectiveLevel() <= 12:
             raise e
+        os._exit(1)
 
 
 if __name__ == "__main__":

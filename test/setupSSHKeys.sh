@@ -24,12 +24,10 @@ docker exec ssh_2 /bin/sh -c "usermod -G operator -a application -u $UID"
 docker exec ssh_1 /bin/sh -c "mkdir -p ~application/.ssh"
 docker exec ssh_2 /bin/sh -c "mkdir -p ~application/.ssh"
 
-docker cp $DIR/testFiles/id_rsa ssh_1:/home/application/.ssh 
+docker cp $DIR/testFiles/id_rsa ssh_1:/home/application/.ssh
 docker cp $DIR/testFiles/id_rsa.pub ssh_1:/home/application/.ssh/authorized_keys
 docker exec ssh_1 /bin/sh -c "chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh && chown -R application /tmp/testFiles"
 
-docker cp $DIR/testFiles/id_rsa ssh_2:/home/application/.ssh 
+docker cp $DIR/testFiles/id_rsa ssh_2:/home/application/.ssh
 docker cp $DIR/testFiles/id_rsa.pub ssh_2:/home/application/.ssh/authorized_keys
 docker exec ssh_2 /bin/sh -c "chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh && chown -R application /tmp/testFiles"
-
-
