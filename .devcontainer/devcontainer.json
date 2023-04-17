@@ -19,7 +19,7 @@
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "pip install -e . && pip install -e .[dev] && pip install build twine",
+  "postCreateCommand": "pip install -e . && pip install -e .[dev] && pre-commit install && pip install build twine",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -27,7 +27,9 @@
         "ms-python.vscode-pylance",
         "ms-python.python",
         "esbenp.vscode-prettier",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "ms-python.isort",
+        "yzhang.markdown-all-in-one"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
