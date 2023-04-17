@@ -1,0 +1,12 @@
+# This file defines who should review and approve changes to this repo
+#
+# Code owners are automatically requested for review when someone opens a pull
+# request that modifies code that they own.
+#
+# See https://help.github.com/articles/about-codeowners/
+
+- @adammcdonagh
+
+# This should always go at the bottom so that only DevOps can change it
+
+.github/CODEOWNERS @adammcdonagh
