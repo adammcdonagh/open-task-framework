@@ -4,6 +4,7 @@
 <h1>Open Task Framework (opentaskpy)</h1>
 
 - [Installation](#installation)
+  - [Example Deployment](#example-deployment)
 - [Configuration](#configuration)
   - [Command Line Arguments](#command-line-arguments)
   - [Environment Variables](#environment-variables)
@@ -58,6 +59,14 @@ docker run --rm --volume /opt/otf/cfg:/cfg --volume /var/log/otf:/logs--volume /
 The default `opentaskpy` library is only really designed to use SSH for executions and file transfers. To do this, you need to make sure that the host/container that is running the `task-run` script has a private RSA key, that is trusted on all remote hosts that you're running against.
 
 An environment variable `OTF_SSH_KEY` can be used to define a default SSH key to use for all SSH connectivity. This can be overridden at the transfer/execution level by specifying a `keyFile` in the `credentials` section of the protocol definition.
+
+## Example Deployment
+
+This is an example deployment for using OTF in an AWS environment, using BMC Control-M as the job scheduler. Control-M could be replaced with any job scheduler, AWS EventBridge for example, depending on your requirements.
+
+![AWS Deployment](docs/aws.png)
+
+"Admin/Status Portal" currently does not exist, and is a placeholder for a potential further project to visualise the OTF configs, as well as including real-time job statuses from the job scheduler.
 
 # Configuration
 
