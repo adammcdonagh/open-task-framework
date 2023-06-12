@@ -5,6 +5,7 @@
 - Added pre-commit config to devcontainer
 - Applied pre-commit fixes
 - Fixed task-run so that errors we actually get a non-zero return code on failures
+- Update docs
 
 # v0.8
 
