@@ -3,7 +3,6 @@ name: Unit Tests
 on: [push, pull_request]
 
 jobs:
-
   linting:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'

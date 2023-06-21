@@ -13,10 +13,7 @@
   },
   "destination": [
     {
-      "recipients": [
-        "test@example.com",
-        "test1@example.com"
-      ],
+      "recipients": ["test@example.com", "test1@example.com"],
       "subject": "Test Email Subject",
       "protocol": {
         "name": "email",

@@ -1,7 +1,6 @@
-version: '3'
+version: "3"
 
 services:
-
   ssh_1:
     image: webdevops/ssh
     restart: always

@@ -11,9 +11,7 @@
       "order_id": 2,
       "task_id": "scp-basic",
       "timeout": 60,
-      "dependencies": [
-        1
-      ]
+      "dependencies": [1]
     }
   ]
 }

@@ -1,8 +1,6 @@
 {
   "type": "execution",
-  "hosts": [
-    "{{ HOST_A }}"
-  ],
+  "hosts": ["{{ HOST_A }}"],
   "directory": "/tmp/testFiles/src",
   "command": "touch touchedFile.txt",
   "protocol": {

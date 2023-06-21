@@ -1,5 +1,10 @@
 # Changelog
 
+# v0.9.0
+
+- Linting updates
+- Added new pre-commit tasks
+
 # v0.8.1
 
 - Added pre-commit config to devcontainer
