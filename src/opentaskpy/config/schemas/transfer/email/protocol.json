@@ -3,9 +3,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "enum": [
-        "email"
-      ]
+      "enum": ["email"]
     },
     "smtp_port": {
       "type": "number",
@@ -29,15 +27,10 @@
           "type": "string"
         }
       },
-      "required": [
-        "username",
-        "password"
-      ],
+      "required": ["username", "password"],
       "additionalProperties": false
     }
   },
-  "required": [
-    "name"
-  ],
+  "required": ["name"],
   "additionalProperties": false
 }

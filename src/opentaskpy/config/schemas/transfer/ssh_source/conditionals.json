@@ -13,14 +13,10 @@
       },
       "anyOf": [
         {
-          "required": [
-            "gt"
-          ]
+          "required": ["gt"]
         },
         {
-          "required": [
-            "lt"
-          ]
+          "required": ["lt"]
         }
       ],
       "additionalProperties": false
@@ -37,14 +33,10 @@
       },
       "anyOf": [
         {
-          "required": [
-            "gt"
-          ]
+          "required": ["gt"]
         },
         {
-          "required": [
-            "lt"
-          ]
+          "required": ["lt"]
         }
       ],
       "additionalProperties": false
