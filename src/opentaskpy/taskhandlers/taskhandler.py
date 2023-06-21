@@ -1,17 +1,31 @@
+"""Abstract task handler class."""
+
 from abc import ABC, abstractmethod
 from importlib import import_module
+from logging import Logger
 from sys import modules
 
 from opentaskpy import exceptions
 
 
 class TaskHandler(ABC):
-    def __init__(self, global_config):
+    """Abstract task handler class."""
+
+    logger: Logger = None
+
+    def __init__(self, global_config: dict):
+        """Initialize the class."""
         self.global_config = global_config
 
     @abstractmethod
-    def return_result(self, status, mesaage, exception):
-        ...
+    def return_result(self, status: int, message: str, exception: Exception = None):
+        """Return the result of the task run.
+
+        Args:
+            status (int): The return code of the task run. 0 is success, anything else is failure.
+            message (str): Message to return.
+            exception (Exception, optional): Exception to return. Defaults to None.
+        """
 
     @abstractmethod
     def _set_remote_handlers(self):
@@ -19,7 +33,7 @@ class TaskHandler(ABC):
 
     @abstractmethod
     def run(self):
-        ...
+        """Run the task handler."""
 
     def _set_handler_vars(self, source_protocol, remote_handler):
         # If remote handler has a set handler vars method, call it and pass in any variables it might want
@@ -65,10 +79,10 @@ class TaskHandler(ABC):
             try:
                 self.logger.log(12, f"Loading addon protocol: {addon_package}")
                 import_module(addon_package)
-            except ModuleNotFoundError:
+            except ModuleNotFoundError as exc:
                 raise exceptions.UnknownProtocolError(
                     f"Unknown protocol {protocol_name}"
-                )
+                ) from exc
 
         # Get the imported class relating to addon_protocol
         addon_class = getattr(modules[addon_package], protocol_name.split(".")[-1])

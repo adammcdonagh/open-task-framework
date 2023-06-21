@@ -7,7 +7,7 @@ import time
 import pytest
 from pytest_shell import fs
 
-from opentaskpy.remotehandlers.scripts import transfer as transfer
+from opentaskpy.remotehandlers.scripts import transfer
 
 FILE_PREFIX = "unittest_testfile"
 FILE_CONTENT = "test1234"

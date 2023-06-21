@@ -3,7 +3,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 from opentaskpy.taskhandlers.execution import Execution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 from opentaskpy.taskhandlers.transfer import Transfer
@@ -23,24 +23,26 @@ class Batch(TaskHandler):
         self.task_id = task_id
         self.batch_definition = batch_definition
         self.config_loader = config_loader
-        self.tasks = dict()
-        self.task_order_tree = dict()
+        self.tasks = {}
+        self.task_order_tree = {}
 
         super().__init__(global_config)
 
-        self.logger = opentaskpy.logging.init_logging(__name__, self.task_id, TASK_TYPE)
+        self.logger = opentaskpy.otflogging.init_logging(
+            __name__, self.task_id, TASK_TYPE
+        )
 
         # We need to get the latest log file (if there is one), to determine
         # where to start from (if we are resuming a batch)
-        previous_log_file = opentaskpy.logging.get_latest_log_file(
+        previous_log_file = opentaskpy.otflogging.get_latest_log_file(
             self.task_id, TASK_TYPE
         )
-        previous_status = dict()
+        previous_status = {}
         if previous_log_file:
             self.logger.info("Parsing previous log file for log marks")
 
             # Parse the previous log file to determine where we left off
-            with open(previous_log_file, "r") as f:
+            with open(previous_log_file) as f:
                 for line in f:
                     if BATCH_TASK_LOG_MARKER in line:
                         log_mark = line.split(f"{BATCH_TASK_LOG_MARKER}: ")[1].strip()
@@ -65,10 +67,7 @@ class Batch(TaskHandler):
 
             # Set the timeout for the task
             timeout = None
-            if "timeout" in task:
-                timeout = task["timeout"]
-            else:
-                timeout = DEFAULT_TASK_TIMEOUT
+            timeout = task.get("timeout", DEFAULT_TASK_TIMEOUT)
 
             # Same for continue on fail
             continue_on_fail = None
@@ -79,10 +78,7 @@ class Batch(TaskHandler):
 
             # Same for retry on rerun
             retry_on_rerun = None
-            if "retry_on_rerun" in task:
-                retry_on_rerun = task["retry_on_rerun"]
-            else:
-                retry_on_rerun = DEFAULT_TASK_RETRY_ON_RERUN
+            retry_on_rerun = task.get("retry_on_rerun", DEFAULT_TASK_RETRY_ON_RERUN)
 
             # Set the status of the task
             status = "NOT_STARTED"
@@ -92,12 +88,14 @@ class Batch(TaskHandler):
                     if previous_status[order_id] == "COMPLETED":
                         # Log something to make it clear that we are rerunning
                         self.logger.info(
-                            f"Task {task_id} succeeded last time, but is marked to be rerun"
+                            f"Task {task_id} succeeded last time, but is marked to be"
+                            " rerun"
                         )
                     status = "NOT_STARTED"
                 elif previous_status[order_id] == "COMPLETED":
                     self.logger.info(
-                        f"Task {task_id} succeeded last time, and is not marked to be rerun, so marking as complete"
+                        f"Task {task_id} succeeded last time, and is not marked to be"
+                        " rerun, so marking as complete"
                     )
                     # Output the log mark
                     self._log_task_result(
@@ -157,7 +155,7 @@ class Batch(TaskHandler):
 
         # Close the file handler
         self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
         if exception:
@@ -190,12 +188,17 @@ class Batch(TaskHandler):
                         if self.task_order_tree[dependency]["status"] != "COMPLETED":
                             self.logger.log(
                                 12,
-                                f"Skipping task {order_id} ({batch_task['task_id']}) as dependency {dependency} has not completed",
+                                (
+                                    "Skipping task"
+                                    f" {order_id} ({batch_task['task_id']}) as"
+                                    f" dependency {dependency} has not completed"
+                                ),
                             )
                             all_dependencies_complete = False
                             continue
                         self.logger.info(
-                            f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
+                            "All dependencies for task"
+                            f" {order_id} ({batch_task['task_id']}) have completed"
                         )
                     if not all_dependencies_complete:
                         continue
@@ -259,7 +262,8 @@ class Batch(TaskHandler):
                     and batch_task["continue_on_fail"]
                 ):
                     self.logger.info(
-                        f"Task {order_id} ({batch_task['task_id']}) has failed, but continuing on fail"
+                        f"Task {order_id} ({batch_task['task_id']}) has failed, but"
+                        " continuing on fail"
                     )
                     batch_task["status"] = "COMPLETED"
                     batch_task["result"] = False
@@ -393,4 +397,4 @@ class Batch(TaskHandler):
     # gets renamed as appropriate
     def __del__(self):
         self.logger.debug("Batch object deleted")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

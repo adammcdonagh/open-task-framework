@@ -29,6 +29,10 @@ def write_dummy_variables_file(tmpdir):
     )
 
 
+def test_load_variables(tmpdir):
+    assert ConfigLoader("test/cfg") is not None
+
+
 def test_load_task_definition(write_dummy_variables_file, tmpdir):
     # Initialise the task runner
     config_loader = ConfigLoader(tmpdir)
@@ -55,7 +59,10 @@ def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):
         [
             {
                 f"{tmpdir}/task.json": {
-                    "content": '{"test_var": "{{ test }}", "variables": {"NEW_VARIABLE": "NEW_VALUE"}}'
+                    "content": (
+                        '{"test_var": "{{ test }}", "variables": {"NEW_VARIABLE":'
+                        ' "NEW_VALUE"}}'
+                    )
                 }
             }
         ]
@@ -68,6 +75,29 @@ def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):
 
     # Test that the task definition is loaded correctly
     assert config_loader.load_task_definition("task") == expected_task_definition
+
+
+def test_custom_plugin(tmpdir):
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": '{"test": "{{ lookup(\'test_plugin\') }}"}'
+                }
+            },
+        ]
+    )
+    # Symlink test/cfg/plugins to tmpdir/plugins
+    os.symlink(
+        os.path.join(os.path.dirname(__file__), "../test/cfg", "plugins"),
+        f"{tmpdir}/plugins",
+    )
+
+    # Test that the global variables are loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+
+    assert config_loader.get_global_variables() == {"test": "hello"}
 
 
 def test_load_global_variables(tmpdir):
@@ -189,7 +219,9 @@ def test_resolve_templated_variables(tmpdir):
         "SOME_VARIABLE4": "{{ SOME_VARIABLE5 }}3",
         "SOME_VARIABLE5": "{{ SOME_VARIABLE6 }}2",
         "SOME_VARIABLE6": "{{ SOME_VARIABLE7 }}1",
-        "SOME_VARIABLE7": "{{ SOME_VARIABLE8 }}{{ SOME_VARIABLE2 }}{{ SOME_VARIABLE3 }}",
+        "SOME_VARIABLE7": (
+            "{{ SOME_VARIABLE8 }}{{ SOME_VARIABLE2 }}{{ SOME_VARIABLE3 }}"
+        ),
         "SOME_VARIABLE8": "test1234",
     }
 
@@ -332,7 +364,10 @@ def test_override_task_variables(tmpdir, write_dummy_variables_file):
         [
             {
                 f"{tmpdir}/task.json": {
-                    "content": '{"test_var": "{{ test }}", "variables": {"MY_VARIABLE": "value123"}}'
+                    "content": (
+                        '{"test_var": "{{ test }}", "variables": {"MY_VARIABLE":'
+                        ' "value123"}}'
+                    )
                 }
             }
         ]

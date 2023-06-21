@@ -4,7 +4,7 @@ import random
 from fixtures.ssh_clients import *  # noqa:F401
 from pytest_shell import fs
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 from opentaskpy.config.loader import ConfigLoader
 
 # from opentaskpy.taskhandlers.batch import Batch
@@ -234,8 +234,8 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
-    log_file_name_batch = opentaskpy.logging._define_log_file_name("timeout", "B")
-    log_file_name_task = opentaskpy.logging._define_log_file_name("sleep-300", "E")
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name("timeout", "B")
+    log_file_name_task = opentaskpy.otflogging._define_log_file_name("sleep-300", "E")
 
     # Check that both exist, but renamed with _failed
     assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))
@@ -261,9 +261,9 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
-    log_file_name_batch = opentaskpy.logging._define_log_file_name(task_id, "B")
-    log_file_name_touch_task = opentaskpy.logging._define_log_file_name("touch", "E")
-    log_file_name_failed_task = opentaskpy.logging._define_log_file_name(
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
+    log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
+    log_file_name_failed_task = opentaskpy.otflogging._define_log_file_name(
         "fail-command", "E"
     )
 
@@ -276,7 +276,9 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
 def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
     task_id = f"parallel-single-failure-1-{RANDOM}"
     # Ensure there are no logs for this batch
-    shutil.rmtree(f"{opentaskpy.logging.LOG_DIRECTORY}/{task_id}", ignore_errors=True)
+    shutil.rmtree(
+        f"{opentaskpy.otflogging.LOG_DIRECTORY}/{task_id}", ignore_errors=True
+    )
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
@@ -290,9 +292,9 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
-    log_file_name_batch = opentaskpy.logging._define_log_file_name(task_id, "B")
-    log_file_name_touch_task = opentaskpy.logging._define_log_file_name("touch", "E")
-    log_file_name_failed_task = opentaskpy.logging._define_log_file_name(
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
+    log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
+    log_file_name_failed_task = opentaskpy.otflogging._define_log_file_name(
         "fail-command", "E"
     )
 
@@ -320,9 +322,9 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
     assert not batch_obj.run()
 
     # Validate that the touch task has been skipped, so there's no log file
-    log_file_name_batch = opentaskpy.logging._define_log_file_name(task_id, "B")
-    log_file_name_touch_task = opentaskpy.logging._define_log_file_name("touch", "E")
-    log_file_name_failed_task = opentaskpy.logging._define_log_file_name(
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
+    log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
+    log_file_name_failed_task = opentaskpy.otflogging._define_log_file_name(
         "fail-command", "E"
     )
 
@@ -337,7 +339,9 @@ def test_batch_resume_after_failure_retry_successful_tasks(
 ):
     task_id = f"parallel-single-failure-2-{RANDOM}"
     # Ensure there are no logs for this batch
-    shutil.rmtree(f"{opentaskpy.logging.LOG_DIRECTORY}/{task_id}", ignore_errors=True)
+    shutil.rmtree(
+        f"{opentaskpy.otflogging.LOG_DIRECTORY}/{task_id}", ignore_errors=True
+    )
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
@@ -351,9 +355,9 @@ def test_batch_resume_after_failure_retry_successful_tasks(
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
-    log_file_name_batch = opentaskpy.logging._define_log_file_name(task_id, "B")
-    log_file_name_touch_task = opentaskpy.logging._define_log_file_name("touch", "E")
-    log_file_name_failed_task = opentaskpy.logging._define_log_file_name(
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
+    log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
+    log_file_name_failed_task = opentaskpy.otflogging._define_log_file_name(
         "fail-command", "E"
     )
 
@@ -381,9 +385,9 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     assert not batch_obj.run()
 
     # Validate that the touch task has been skipped, so there's no log file
-    log_file_name_batch = opentaskpy.logging._define_log_file_name(task_id, "B")
-    log_file_name_touch_task = opentaskpy.logging._define_log_file_name("touch", "E")
-    log_file_name_failed_task = opentaskpy.logging._define_log_file_name(
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
+    log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
+    log_file_name_failed_task = opentaskpy.otflogging._define_log_file_name(
         "fail-command", "E"
     )
 
@@ -396,7 +400,9 @@ def test_batch_resume_after_failure_retry_successful_tasks(
 def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
     task_id = f"dependency-continue-on-fail-1-{RANDOM}"
     # Ensure there are no logs for this batch
-    shutil.rmtree(f"{opentaskpy.logging.LOG_DIRECTORY}/{task_id}", ignore_errors=True)
+    shutil.rmtree(
+        f"{opentaskpy.otflogging.LOG_DIRECTORY}/{task_id}", ignore_errors=True
+    )
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
@@ -410,11 +416,13 @@ def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
-    log_file_name_batch = opentaskpy.logging._define_log_file_name(task_id, "B")
-    log_file_name_fail_task = opentaskpy.logging._define_log_file_name(
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
+    log_file_name_fail_task = opentaskpy.otflogging._define_log_file_name(
         "fail-command", "E"
     )
-    log_file_name_scp_task = opentaskpy.logging._define_log_file_name("scp-basic", "T")
+    log_file_name_scp_task = opentaskpy.otflogging._define_log_file_name(
+        "scp-basic", "T"
+    )
 
     # Check that all exist, with the right status
     assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))

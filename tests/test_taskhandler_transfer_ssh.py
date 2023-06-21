@@ -438,8 +438,12 @@ def test_scp_proxy(root_dir, setup_ssh_keys):
 
     # Create a transfer object
     transfer_obj = transfer.Transfer(None, "scp-basic", scp_proxy_task_definition)
+    local_staging_dir = transfer_obj.local_staging_dir
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
     # Check the destination file exists
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.proxy.txt")
+
+    # Ensure that local files are tidied up
+    assert not os.path.exists(local_staging_dir)

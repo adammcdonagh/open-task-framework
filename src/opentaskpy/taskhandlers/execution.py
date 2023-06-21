@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
@@ -15,7 +15,7 @@ class Execution(TaskHandler):
         self.remote_handlers = None
         self.overall_result = False
 
-        self.logger = opentaskpy.logging.init_logging(
+        self.logger = opentaskpy.otflogging.init_logging(
             "opentaskpy.taskhandlers.execution", self.task_id, TASK_TYPE
         )
 
@@ -44,7 +44,7 @@ class Execution(TaskHandler):
 
         # Close the file handler
         self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
         if exception:
@@ -126,7 +126,10 @@ class Execution(TaskHandler):
                         # Check it's dead
                         if future.running():
                             self.logger.error(
-                                f"Thread {future} is still running after kill. Cannot kill a running thread. Will have to wait for it to complete. Consider altering the plugin so that it cannot block."
+                                f"Thread {future} is still running after kill. Cannot"
+                                " kill a running thread. Will have to wait for it to"
+                                " complete. Consider altering the plugin so that it"
+                                " cannot block."
                             )
 
                     return self.return_result(
@@ -172,4 +175,4 @@ class Execution(TaskHandler):
         self.logger.debug("Execution object deleted")
         # Close the file handler
         self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

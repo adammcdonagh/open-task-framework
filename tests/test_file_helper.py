@@ -5,7 +5,7 @@ def test_write_test_file_with_content(tmpdir):
     file_name = f"{tmpdir}/test.txt"
     content = "test1234"
     write_test_file(file_name, content)
-    with open(file_name, "r") as f:
+    with open(file_name) as f:
         assert f.read() == content
 
 
@@ -13,7 +13,7 @@ def test_write_test_file_with_length(tmpdir):
     file_name = f"{tmpdir}/test.txt"
     length = 100
     write_test_file(file_name, length=length)
-    with open(file_name, "r") as f:
+    with open(file_name) as f:
         assert len(f.read()) == length
 
 

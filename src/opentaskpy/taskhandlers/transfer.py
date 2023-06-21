@@ -1,3 +1,4 @@
+"""Task handler for running transfers."""
 import random
 import shutil
 import time
@@ -5,41 +6,66 @@ from importlib import import_module
 from math import ceil, floor
 from os import environ, getpid, makedirs, path
 from sys import modules
+from typing import NamedTuple
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 from opentaskpy import exceptions
+from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
 # Full transfers expect that the remote host has a base install of python3
 # We transfer over the wrapper script to the remote host and trigger it, which is responsible
 # for doing some of the more complex work, rather than triggering a tonne of shell commands
 
+
+class DefaultProtocolCharacteristics(NamedTuple):
+    """Class defining the configuration for default protocols."""
+
+    module: str
+    _class: str
+
+
 TASK_TYPE = "T"
 DEFAULT_PROTOCOL_MAP = {
-    "ssh": {"module": "opentaskpy.remotehandlers.ssh", "class": "SSHTransfer"},
-    "email": {"module": "opentaskpy.remotehandlers.email", "class": "EmailTransfer"},
+    "ssh": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.ssh", "SSHTransfer"
+    ),
+    "email": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.email", "EmailTransfer"
+    ),
 }
 
 
-class Transfer(TaskHandler):
-    def __init__(self, global_config, task_id, transfer_definition):
+class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
+    """Task handler for running transfers."""
+
+    source_remote_handler: RemoteTransferHandler = None
+    dest_remote_handlers: RemoteTransferHandler = None
+    source_file_spec: dict = None
+    dest_file_specs: dict = None
+    overall_result: bool = False
+
+    def __init__(self, global_config: dict, task_id: str, transfer_definition: dict):
+        """Create a new transfer task handler.
+
+        Args:
+            global_config (dict): Global configuration dictionary
+            task_id (str): Task ID
+            transfer_definition (dict): Transfer definition
+        """
         self.task_id = task_id
         self.transfer_definition = transfer_definition
-        self.source_remote_handler = None
-        self.dest_remote_handlers = None
-        self.source_file_spec = None
-        self.dest_file_specs = None
-        self.overall_result = False
-
         self.local_staging_dir = f"/tmp/staging/{getpid()}.{random.randint(0, 1000000)}"
 
-        self.logger = opentaskpy.logging.init_logging(
+        self.logger = opentaskpy.otflogging.init_logging(
             "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
         )
 
         super().__init__(global_config)
 
-    def return_result(self, status, message=None, exception=None):
+    def return_result(
+        self, status: int, message: str = None, exception: Exception = None
+    ):
         if message:
             if status == 0:
                 self.logger.info(message)
@@ -66,7 +92,7 @@ class Transfer(TaskHandler):
             shutil.rmtree(self.local_staging_dir)
 
         self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
         if exception:
@@ -140,7 +166,8 @@ class Transfer(TaskHandler):
         # If log watching, do that first
         if "logWatch" in self.source_file_spec:
             self.logger.info(
-                f"Performing a log watch of {self.source_file_spec['logWatch']['directory']}/{self.source_file_spec['logWatch']['log']}"
+                "Performing a log watch of"
+                f" {self.source_file_spec['logWatch']['directory']}/{self.source_file_spec['logWatch']['log']}"
             )
 
             if self.source_remote_handler.init_logwatch() != 0:
@@ -180,7 +207,8 @@ class Transfer(TaskHandler):
                         actual_sleep_seconds = sleep_seconds
 
                     self.logger.info(
-                        f"No entry found in log. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain"
+                        f"No entry found in log. Sleeping for {sleep_seconds} secs."
+                        f" {remaining_seconds} seconds remain"
                     )
                     time.sleep(actual_sleep_seconds)
 
@@ -250,7 +278,8 @@ class Transfer(TaskHandler):
                         actual_sleep_seconds = sleep_seconds
 
                     self.logger.info(
-                        f"No files found. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain"
+                        f"No files found. Sleeping for {sleep_seconds} secs."
+                        f" {remaining_seconds} seconds remain"
                     )
                     time.sleep(actual_sleep_seconds)
 
@@ -306,13 +335,15 @@ class Transfer(TaskHandler):
 
                     if min_size and file_size <= min_size:
                         self.logger.info(
-                            f"File is too small: Min size: [{min_size} B] Actual size: [{file_size} B]"
+                            f"File is too small: Min size: [{min_size} B] Actual size:"
+                            f" [{file_size} B]"
                         )
                         meets_condition = False
 
                     if max_size and file_size >= max_size:
                         self.logger.info(
-                            f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]"
+                            f"File is too big: Max size: [{max_size} B] Actual size:"
+                            f" [{file_size} B]"
                         )
                         meets_condition = False
 
@@ -333,18 +364,24 @@ class Transfer(TaskHandler):
 
                     self.logger.log(
                         12,
-                        f"Checking file age - Last modified time: {time.ctime(file_modified_time)} - Age in secs: {file_age} secs",
+                        (
+                            "Checking file age - Last modified time:"
+                            f" {time.ctime(file_modified_time)} - Age in secs:"
+                            f" {file_age} secs"
+                        ),
                     )
 
                     if min_age and file_age <= min_age:
                         self.logger.info(
-                            f"File is too new: Min age: [{min_age} secs] Actual age: [{file_age} secs]"
+                            f"File is too new: Min age: [{min_age} secs] Actual age:"
+                            f" [{file_age} secs]"
                         )
                         meets_condition = False
 
                     if max_age and file_age >= max_age:
                         self.logger.info(
-                            f"File is too old: Max age: [{max_age} secs] Actual age: [{file_age} secs]"
+                            f"File is too old: Max age: [{max_age} secs] Actual age:"
+                            f" [{file_age} secs]"
                         )
                         meets_condition = False
 
@@ -355,7 +392,10 @@ class Transfer(TaskHandler):
             if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,
-                    "No remote files could be found to transfer. But not erroring due to config",
+                    (
+                        "No remote files could be found to transfer. But not erroring"
+                        " due to config"
+                    ),
                     exception=exceptions.FilesDoNotMeetConditionsError,
                 )
             else:
@@ -439,7 +479,8 @@ class Transfer(TaskHandler):
                         )
                     ) or different_protocols:
                         self.logger.debug(
-                            "Transfer protocols are different, or proxy transfer is requested"
+                            "Transfer protocols are different, or proxy transfer is"
+                            " requested"
                         )
 
                         transfer_result = (
@@ -527,4 +568,4 @@ class Transfer(TaskHandler):
     def __del__(self):
         self.logger.debug("Transfer object deleted")
         self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

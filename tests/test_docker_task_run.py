@@ -39,8 +39,7 @@ def tidy_images(root_dir):
             "images",
             f"{IMAGE_PREFIX}_*",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     if result.stdout:
         images = result.stdout.decode("utf-8").split("\n")
@@ -56,8 +55,7 @@ def tidy_images(root_dir):
                         "rmi",
                         image_id,
                     ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                 )
                 print(result.stdout.decode("utf-8"))
                 print(result.stderr.decode("utf-8"))
@@ -82,8 +80,7 @@ def docker_build_dev_image(tidy_images, image_name_dev, root_dir):
     ]
     result = subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
 
@@ -105,8 +102,7 @@ def docker_build_image(tidy_images, image_name, root_dir):
     ]
     result = subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
 
@@ -123,8 +119,7 @@ def test_network_id():
             "--format",
             "{{.Networks}}",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
 
@@ -141,8 +136,7 @@ def test_network_id():
             "--format",
             "{{.Id}}",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
     return result.stdout.decode("utf-8").strip()
@@ -213,8 +207,7 @@ def test_docker_run(
 
     result = subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     print(result.stdout.decode("utf-8"))
     print(result.stderr.decode("utf-8"))
@@ -271,8 +264,7 @@ def test_standard_docker_image(
 
     subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     # We dont care whether this worked or not, we just want to check the logs
     # Check that the log file exists containing scp-basic in the name in log_dir

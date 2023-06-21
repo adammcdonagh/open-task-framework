@@ -9,7 +9,7 @@ from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from jsonschema.validators import RefResolver
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 
 TRANSFER_SCHEMA = {
     "type": "object",
@@ -79,11 +79,19 @@ BATCH_SCHEMA = {
     "required": ["type", "tasks"],
 }
 
-logger = opentaskpy.logging.init_logging(__name__)
+logger = opentaskpy.otflogging.init_logging(__name__)
 
 
-def validate_transfer_json(json_data):
-    new_schema = None
+def validate_transfer_json(json_data: dict) -> bool:
+    """Validate the JSON data against the transfer schema.
+
+    Args:
+        json_data (dict): The Transfer JSON definition
+
+    Returns:
+        bool: Whether the JSON data is valid or not
+    """
+    new_schema: dict
     try:
         validate(instance=json_data, schema=TRANSFER_SCHEMA)
 
@@ -101,7 +109,7 @@ def validate_transfer_json(json_data):
 
         # Load the schema file for XXX_source
         resolver = RefResolver(
-            base_uri=f"{schema_dir.as_uri()}/",
+            base_uri=f"{schema_dir.as_uri()}/",  # type: ignore[attr-defined]
             referrer=True,
         )
 
@@ -111,8 +119,9 @@ def validate_transfer_json(json_data):
         # Default protocols are the only ones that aren't prefixed with a package name, and we don't need to do anything more
         if "." in source_protocol:
             # Get the full package name from the class name (strip the class off the end)
-            package_name = ".".join(source_protocol.split(".")[:-2])
-            if package_name not in sys.modules:
+            if (
+                package_name := ".".join(source_protocol.split(".")[:-2])
+            ) not in sys.modules:
                 # Check the module is loadable
                 importlib.import_module(package_name)
             # Get the path to the module
@@ -122,7 +131,7 @@ def validate_transfer_json(json_data):
             source_protocol = source_protocol.split(".")[-2]
 
             # Append new path to the resolver
-            resolver.store[module_path.as_uri()] = module_path
+            resolver.store[module_path.as_uri()] = module_path  # type: ignore[attr-defined]
         else:
             # Default protocol
             module_path = schema_dir
@@ -139,7 +148,6 @@ def validate_transfer_json(json_data):
                 # Get the protocol name
                 destination_protocol = destination["protocol"]["name"]
                 # As above, we need to determine the path of the protocol schema file if it's not a default protocol
-                module_path = None
                 if "." in destination_protocol:
                     # Get the full package name from the class name (strip the class off the end)
                     package_name = ".".join(destination_protocol.split(".")[:-2])
@@ -154,7 +162,7 @@ def validate_transfer_json(json_data):
                     destination_protocol = destination_protocol.split(".")[-2]
 
                     # Append new path to the resolver
-                    resolver.store[module_path.as_uri()] = module_path
+                    resolver.store[module_path.as_uri()] = module_path  # type: ignore[attr-defined]
                 else:
                     # Default protocol
                     module_path = schema_dir
@@ -189,12 +197,20 @@ def validate_transfer_json(json_data):
         validate(instance=json_data, schema=new_schema, resolver=resolver)
 
     except ValidationError as err:
-        print(err.message)
+        print(err.message)  # noqa: T201
         return False
     return True
 
 
-def validate_execution_json(json_data):
+def validate_execution_json(json_data: dict) -> bool:
+    """Validate the JSON data against the execution schema.
+
+    Args:
+        json_data (dict): The Execution JSON definition
+
+    Returns:
+        bool: Whether the JSON data is valid or not
+    """
     try:
         validate(instance=json_data, schema=EXECUTION_SCHEMA)
 
@@ -208,15 +224,13 @@ def validate_execution_json(json_data):
 
         # Load the schema file for xxx
         resolver = RefResolver(
-            base_uri=f"{schema_dir.as_uri()}/",
+            base_uri=f"{schema_dir.as_uri()}/",  # type: ignore[attr-defined]
             referrer=True,
         )
 
         if "." in protocol:
             # Get the full package name from the class name (strip the class off the end)
-            package_name = ".".join(protocol.split(".")[:-2])
-
-            if package_name not in sys.modules:
+            if (package_name := ".".join(protocol.split(".")[:-2])) not in sys.modules:
                 # Check the module is loadable
                 importlib.import_module(package_name)
             # Get the path to the module
@@ -226,7 +240,7 @@ def validate_execution_json(json_data):
             protocol = protocol.split(".")[-2]
 
             # Append new path to the resolver
-            resolver.store[module_path.as_uri()] = module_path
+            resolver.store[module_path.as_uri()] = module_path  # type: ignore[attr-defined]
         else:
             # Default protocol
             module_path = schema_dir
@@ -244,23 +258,31 @@ def validate_execution_json(json_data):
         validate(instance=json_data, schema=new_schema, resolver=resolver)
 
     except ValidationError as err:
-        print(err.message)
+        print(err.message)  # noqa: T201
         return False
     return True
 
 
-def validate_batch_json(json_data):
+def validate_batch_json(json_data: dict) -> bool:
+    """Validate the JSON data against the batch schema.
+
+    Args:
+        json_data (dict): The Batch JSON definition
+
+    Returns:
+        bool: Whether the JSON data is valid or not
+    """
     try:
         schema_dir = files("opentaskpy.config").joinpath("schemas")
 
         # Load the schema file for xxx
         resolver = RefResolver(
-            base_uri=f"{schema_dir.as_uri()}/",
+            base_uri=f"{schema_dir.as_uri()}/",  # type: ignore[attr-defined]
             referrer=True,
         )
 
         validate(instance=json_data, schema=BATCH_SCHEMA, resolver=resolver)
     except ValidationError as err:
-        print(err.message)
+        print(err.message)  # noqa: T201
         return False
     return True

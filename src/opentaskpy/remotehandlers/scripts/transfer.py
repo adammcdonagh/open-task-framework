@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""Remote script to handle complex transfer related tasks."""
 import argparse
 import grp
 import json
@@ -12,7 +14,16 @@ logger = logging.getLogger("opentaskpy.remotehandlers.scripts.transfer")
 # Remote script intended to serve as a utility to the main script for dealing with file transfers
 
 
-def list_files(pattern, details=False):
+def list_files(pattern: str, details: bool = False) -> list | dict:
+    """List files matching the pattern.
+
+    Args:
+        pattern (str): The pattern to match files against
+        details (bool): Whether to return file details or not
+
+    Returns:
+        dict: A dict of files and their details (if requested)
+    """
     file_regex = os.path.basename(pattern)
     directory = os.path.dirname(pattern)
     files = None
@@ -25,12 +36,12 @@ def list_files(pattern, details=False):
 
     # For each file get the file age and size (incase we need then for file watches)
     if details:
-        result = dict()
+        result: dict = {}
         for file in files:
             file_stat = os.stat(file)
             modified_time = file_stat.st_mtime
             size = file_stat.st_size
-            result[file] = dict()
+            result[file] = {}
             result[file]["size"] = size
             result[file]["modified_time"] = modified_time
         return result
@@ -38,27 +49,50 @@ def list_files(pattern, details=False):
     return files
 
 
-def delete_files(files, delimiter):
-    files = files.split(delimiter)
-    for file in list(files):
+def delete_files(files: str, delimiter: str) -> None:
+    """Delete files from a given list.
+
+    Args:
+        files (str): File paths as a delimited string
+        delimiter (str): String delimiter
+    """
+    files_ = files.split(delimiter)
+    for file in list(files_):
         logger.info(f"Deleting {file}")
         os.unlink(file)
 
 
 def move_files(
-    files,
-    delimiter,
-    destination,
-    create_dest_dir,
-    owner,
-    group,
-    mode,
-    rename_regex,
-    rename_sub,
-):
+    files: str,
+    delimiter: str,
+    destination: str,
+    create_dest_dir: bool,
+    owner: str,
+    group: str,
+    mode: str,
+    rename_regex: str,
+    rename_sub: str,
+) -> None:
+    """Move files from a given list.
+
+    Args:
+        files (str): File paths as a delimited string
+        delimiter (str): String delimiter
+        destination (str): Destination directory
+        create_dest_dir (bool): Whether to create the destination directory if it
+        doesn't exist
+        owner (str): The owner to set on the files
+        group (str): The group to set on the files
+        mode (str): The mode to set on the files
+        rename_regex (str): A regex pattern to rename the files
+        rename_sub (str): The substitution to use when renaming the files
+
+    Returns:
+        None
+    """
     # Split the moveFiles arg into a list
-    files = files.split(delimiter)
-    for file in list(files):
+    files_ = files.split(delimiter)
+    for file in list(files_):
         file = os.path.expanduser(file)
         logger.info(f"Handling {file}")
 
@@ -94,7 +128,8 @@ def move_files(
             os.makedirs(destination)
         elif not os.path.exists(destination):
             logger.error(
-                f"ERROR: Destination directory does not exist: {destination}, and not requested to create it"
+                f"ERROR: Destination directory does not exist: {destination}, and not"
+                " requested to create it"
             )
             raise FileNotFoundError
 
@@ -121,7 +156,8 @@ def move_files(
         os.chmod(f"{destination}/{filename}", file_stat.st_mode)
 
 
-def main():
+def main() -> None:
+    """Main function."""
     logging.basicConfig(
         format="%(asctime)s — %(name)s — %(levelname)s — %(message)s",
         level=logging.INFO,
@@ -184,7 +220,7 @@ def main():
     args = parser.parse_args()
 
     if args.listFiles:
-        print(json.dumps(list_files(args.listFiles, args.details)))
+        print(json.dumps(list_files(args.listFiles, args.details)))  # noqa: T201
 
     if args.deleteFiles:
         delete_files(args.deleteFiles, args.delimiter)

@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import subprocess
@@ -78,10 +79,9 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2):
     from paramiko import RSAKey
 
     key = None
-    try:
+    with contextlib.suppress(Exception):
         key = RSAKey.from_private_key_file(ssh_private_key_file)
-    except Exception:
-        pass
+
 
     if not os.path.isfile(ssh_private_key_file) or not key:
         # If it exists, delete it first

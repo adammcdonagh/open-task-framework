@@ -1,3 +1,4 @@
+"""Email handler to send files via email."""
 import glob
 import os
 import smtplib
@@ -5,23 +6,44 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
 
 MAX_OBJECTS_PER_QUERY = 100
 
 
 class EmailTransfer(RemoteTransferHandler):
+    """A remote handler for email transfers."""
+
     TASK_TYPE = "T"
 
-    def __init__(self, spec):
-        self.spec = spec
+    def __init__(self, spec: dict):
+        """Initialise the handler."""
+        self.protocol_vars: dict
 
-        self.logger = opentaskpy.logging.init_logging(
+        self.logger = opentaskpy.otflogging.init_logging(
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
-    def set_handler_vars(self, protocol_vars):
+        super().__init__(spec)
+
+    def set_handler_vars(self, protocol_vars: dict) -> None:
+        """Set the handler variables.
+
+        Set any custom variables that are specifically needed for this handler.
+
+        The schema defines the following variables:
+        - smtp_server - The SMTP server to use
+        - smtp_port - The SMTP port to use
+        - sender - The sender of the email
+        - credentials - A dictionary containing the following:
+            - username - The username used to authenticate
+            - password - The password used to authenticate
+
+        Args:
+            protocol_vars (dict): The protocol variables.
+
+        """
         self.protocol_vars = protocol_vars
 
         # Also pull variables that have been set on the spec level
@@ -31,16 +53,15 @@ class EmailTransfer(RemoteTransferHandler):
         # Remove name
         del self.protocol_vars["name"]
 
-    def move_files_to_final_location(self, files):
-        raise NotImplementedError()
+    def push_files_from_worker(self, local_staging_directory: str) -> int:
+        """Push files from the worker to the email recipients.
 
-    def list_files(self):
-        raise NotImplementedError()
+        Args:
+            local_staging_directory (str): The local staging directory.
 
-    def pull_files(self, files, remote_spec):
-        raise NotImplementedError()
-
-    def push_files_from_worker(self, local_staging_directory):
+        Returns:
+            int: The result of the transfer.
+        """
         result = 0
         files = glob.glob(f"{local_staging_directory}/*")
 
@@ -54,14 +75,14 @@ class EmailTransfer(RemoteTransferHandler):
                 file_name = file.split("/")[-1]
                 self.logger.debug(f"Emailing file: {files} to {email_address}")
                 try:
-                    with open(file, "rb") as f:
-                        part = MIMEApplication(f.read(), Name=file_name)
+                    with open(file, "rb") as file_handle:
+                        part = MIMEApplication(file_handle.read(), Name=file_name)
                     # After the file is closed
                     part["Content-Disposition"] = f'attachment; filename="{file_name}"'
                     msg.attach(part)
-                except Exception as e:
+                except Exception as ex:  # pylint: disable=broad-exception-caught
                     self.logger.error(f"Failed to attach file: {file}")
-                    self.logger.error(e)
+                    self.logger.error(ex)
                     result = 1
 
             # Get comma separated list of files
@@ -84,38 +105,25 @@ class EmailTransfer(RemoteTransferHandler):
             # Send the email using a provided SMTP server
             try:
                 self.logger.debug(f"Sending email to {email_address}")
-                s = smtplib.SMTP(
+                smtp = smtplib.SMTP(
                     self.protocol_vars["smtp_server"],
                     port=self.protocol_vars["smtp_port"],
                 )
-                s.starttls()
+                smtp.starttls()
 
                 # Authenticate
-                s.login(
+                smtp.login(
                     self.protocol_vars["credentials"]["username"],
                     self.protocol_vars["credentials"]["password"],
                 )
 
-                s.sendmail(self.protocol_vars["sender"], email_address, msg.as_string())
-                s.quit()
-            except Exception as e:
+                smtp.sendmail(
+                    self.protocol_vars["sender"], email_address, msg.as_string()
+                )
+                smtp.quit()
+            except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Failed to send email to {email_address}")
-                self.logger.error(e)
+                self.logger.error(ex)
                 result = 1
 
         return result
-
-    def pull_files_to_worker(self, files, local_staging_directory):
-        raise NotImplementedError()
-
-    def transfer_files(self, files, remote_spec, dest_remote_handler=None):
-        raise NotImplementedError()
-
-    def create_flag_files(self):
-        raise NotImplementedError()
-
-    def handle_post_copy_action(self, files):
-        raise NotImplementedError()
-
-    def tidy(self):
-        pass
