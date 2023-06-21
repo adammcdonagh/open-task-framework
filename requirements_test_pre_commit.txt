@@ -1,0 +1,9 @@
+-r requirements.txt
+pre-commit
+pylint
+pytest
+freezegun
+pydantic
+mypy
+ruff
+black
