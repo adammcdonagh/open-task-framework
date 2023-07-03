@@ -1,4 +1,5 @@
-from file_helper import list_test_files, write_test_file
+# pylint: skip-file
+from tests.file_helper import list_test_files, write_test_file
 
 
 def test_write_test_file_with_content(tmpdir):

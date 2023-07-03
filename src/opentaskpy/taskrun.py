@@ -8,8 +8,9 @@ from opentaskpy.taskhandlers.transfer import Transfer
 
 GLOBAL_VERBOSITY = 1
 
+
 class TaskRun:  # pylint: disable=too-few-public-methods
-    """Do the acutal work.
+    """Do the actual work.
 
     Class responsible for doing all the work. The TaskRun class
     parses config, loads variables and triggers the work

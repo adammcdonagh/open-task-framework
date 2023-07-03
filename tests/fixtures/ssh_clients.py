@@ -1,3 +1,4 @@
+# pylint: skip-file
 import contextlib
 import os
 import shutil
@@ -8,7 +9,7 @@ from pytest_shell import fs
 
 
 @pytest.fixture(scope="function")
-def env_vars():
+def env_vars() -> None:
     # Ensure all custom env vars are
     if "OTF_LOG_DIRECTORY" in os.environ:
         del os.environ["OTF_LOG_DIRECTORY"]
@@ -24,13 +25,19 @@ def env_vars():
 
 
 @pytest.fixture(scope="session")
-def root_dir():
+def root_dir() -> str:
     # Get current working directory
     return os.path.join(os.getcwd(), "test")
 
 
 @pytest.fixture(scope="session")
-def docker_compose_files(root_dir):
+def top_level_root_dir() -> str:
+    # Get current working directory
+    return os.getcwd()
+
+
+@pytest.fixture(scope="session")
+def docker_compose_files(root_dir) -> list[str]:
     """Get the docker-compose.yml absolute path."""
     return [
         f"{root_dir}/docker-compose.yml",
@@ -38,7 +45,7 @@ def docker_compose_files(root_dir):
 
 
 @pytest.fixture(scope="session")
-def ssh_1(docker_services):
+def ssh_1(docker_services) -> str:
     docker_services.start("ssh_1")
     port = docker_services.port_for("ssh_1", 22)
     address = f"{docker_services.docker_ip}:{port}"
@@ -46,7 +53,7 @@ def ssh_1(docker_services):
 
 
 @pytest.fixture(scope="session")
-def ssh_2(docker_services):
+def ssh_2(docker_services) -> str:
     docker_services.start("ssh_2")
     port = docker_services.port_for("ssh_2", 22)
     address = f"{docker_services.docker_ip}:{port}"
@@ -54,7 +61,7 @@ def ssh_2(docker_services):
 
 
 @pytest.fixture(scope="session")
-def test_directories(root_dir):
+def test_directories(root_dir) -> None:
     # Get the root directory of the project
 
     structure = [
@@ -71,9 +78,9 @@ def test_directories(root_dir):
 
 
 @pytest.fixture(scope="session")
-def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2):
+def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2) -> None:
     # Run command locally
-    # if ssh key dosent exist yet
+    # if ssh key doesn't exist yet
     ssh_private_key_file = f"{root_dir}/testFiles/id_rsa"
     # Load the ssh key and validate it
     from paramiko import RSAKey
@@ -81,7 +88,6 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2):
     key = None
     with contextlib.suppress(Exception):
         key = RSAKey.from_private_key_file(ssh_private_key_file)
-
 
     if not os.path.isfile(ssh_private_key_file) or not key:
         # If it exists, delete it first
@@ -101,9 +107,9 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2):
         )
 
     # Copy the file into the ssh directory on this host
-    # Curren user's home directory
+    # Current user's home directory
     home_dir = os.path.expanduser("~")
-    # Make the .ssh directory if it dosent exist
+    # Make the .ssh directory if it doesn't exist
     if not os.path.isdir(f"{home_dir}/.ssh"):
         os.mkdir(f"{home_dir}/.ssh")
 

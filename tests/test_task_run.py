@@ -1,14 +1,17 @@
+# pylint: skip-file
 import datetime
+import logging
 import os
 import random
 import subprocess
 import threading
 import time
 
-from fixtures.ssh_clients import *  # noqa:F401
+import pytest
 from pytest_shell import fs
 
 from opentaskpy import exceptions, taskrun
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 # Create a variable with a random number
 RANDOM = random.randint(10000, 99999)
@@ -307,7 +310,7 @@ def test_scp_file_watch(env_vars, setup_ssh_keys, root_dir):
         {"content": "01234567890"},
     )
     t.start()
-    print("Started thread - Expect file in 5 seconds, starting task-run now...")
+    logging.info("Started thread - Expect file in 5 seconds, starting task-run now...")
 
     task_runner = taskrun.TaskRun("scp-file-watch", "test/cfg")
     assert task_runner.run()
@@ -328,13 +331,13 @@ def test_scp_log_watch(env_vars, setup_ssh_keys, root_dir):
     if os.path.exists(log_file):
         os.remove(log_file)
 
-    # Logwatch will fail if the log file dosent exist
+    # Logwatch will fail if the log file doesn't exist
     task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
     with pytest.raises(exceptions.LogWatchInitError) as cm:
         task_runner.run()
     assert "Logwatch init failed" in (cm.value.args[0])
 
-    # This time, we run it again with the file created and populated. It should fail because the file dosent contain the expected text
+    # This time, we run it again with the file created and populated. It should fail because the file doesn't contain the expected text
     # Write the file
     fs.create_files([{log_file: {"content": "NOT_THE_RIGHT_PATTERN"}}])
 
@@ -351,7 +354,7 @@ def test_scp_log_watch(env_vars, setup_ssh_keys, root_dir):
         {"content": "someText\n"},
     )
     t.start()
-    print("Started thread - Expect file in 5 seconds, starting task-run now...")
+    logging.info("Started thread - Expect file in 5 seconds, starting task-run now...")
     task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
     assert task_runner.run()
 
@@ -391,7 +394,7 @@ def test_scp_log_watch_tail(env_vars, setup_ssh_keys, root_dir):
         {"content": "someText\n", "mode": "a"},
     )
     t.start()
-    print("Started thread - Expect file in 5 seconds, starting task-run now...")
+    logging.info("Started thread - Expect file in 5 seconds, starting task-run now...")
     task_runner = taskrun.TaskRun("scp-log-watch-tail", "test/cfg")
     assert task_runner.run()
 
@@ -410,16 +413,14 @@ def run_task_run(task, verbose="2", config="test/cfg"):
     ]
 
     # Run the script
-    result = subprocess.run(
-        [script] + args, capture_output=True
-    )
+    result = subprocess.run([script] + args, capture_output=True)
     # Write stdout and stderr to the console
-    print("\n########## STDOUT ##########")
-    print(result.stdout.decode("utf-8"))
+    logging.info("\n########## STDOUT ##########")
+    logging.info(result.stdout.decode("utf-8"))
     # Get the console colour for red
 
-    print("########## STDERR ##########")
-    print(f"{result.stderr.decode('utf-8')}")
+    logging.info("########## STDERR ##########")
+    logging.info(f"{result.stderr.decode('utf-8')}")
 
     return {
         "returncode": result.returncode,
@@ -434,4 +435,4 @@ def write_test_file(file_name, content=None, length=0, mode="w"):
             f.write(content)
         else:
             f.write("a" * length)
-    print(f"Wrote file: {file_name}")
+    logging.info(f"Wrote file: {file_name}")

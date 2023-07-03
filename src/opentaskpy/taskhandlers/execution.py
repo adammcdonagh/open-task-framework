@@ -1,7 +1,10 @@
+"""Execution task handler."""
+import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
 import opentaskpy.otflogging
+from opentaskpy.remotehandlers.remotehandler import RemoteHandler
 from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
@@ -9,11 +12,21 @@ TASK_TYPE = "E"
 
 
 class Execution(TaskHandler):
-    def __init__(self, global_config, task_id, execution_definition):
+    """Execution task handler."""
+
+    remote_handlers: list[RemoteHandler] | None = None
+    overall_result: bool = False
+
+    def __init__(self, global_config: dict, task_id: str, execution_definition: dict):
+        """Initialize the execution handler.
+
+        Args:
+            global_config (dict): The global config.
+            task_id (str): The task ID.
+            execution_definition (dict): The execution definition.
+        """
         self.task_id = task_id
         self.execution_definition = execution_definition
-        self.remote_handlers = None
-        self.overall_result = False
 
         self.logger = opentaskpy.otflogging.init_logging(
             "opentaskpy.taskhandlers.execution", self.task_id, TASK_TYPE
@@ -21,16 +34,22 @@ class Execution(TaskHandler):
 
         super().__init__(global_config)
 
-    def return_result(self, status, message=None, exception=None):
-        if message:
-            if status == 0:
-                self.logger.info(message)
-            else:
-                self.logger.error(message)
+    def return_result(
+        self,
+        status: int,
+        message: str | None = None,
+        exception: Exception | None = None,
+    ) -> bool:
+        """Return the result of the task run.
 
-        if status == 0:
-            self.overall_result = True
+        Args:
+            status (int): The status code to return.
+            message (str, optional): The message to return. Defaults to None.
+            exception (Exception, optional): The exception to return. Defaults to None.
 
+        Returns:
+            bool: The result of the task run.
+        """
         # Delete the remote connection objects
         if self.remote_handlers:
             for remote_handler in self.remote_handlers:
@@ -42,27 +61,22 @@ class Execution(TaskHandler):
                 )
                 remote_handler.tidy()
 
-        # Close the file handler
-        self.logger.info("Closing log file handler")
-        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
+        # Call super to do the rest
+        return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
-        # Throw an exception if we have one
-        if exception:
-            if callable(exception):
-                raise exception(message)
-            else:
-                raise Exception(message)
-
-        return status == 0
-
-    def _get_remote_host_name(self, remote_handler):
+    def _get_remote_host_name(self, remote_handler: RemoteHandler) -> str:
         return (
-            remote_handler.remote_host
+            str(remote_handler.remote_host)
             if hasattr(remote_handler, "remote_host")
             else "REMOTE"
         )
 
-    def _set_remote_handlers(self):
+    def _set_remote_handlers(self) -> None:
+        """Set the remote handlers.
+
+        Determine which protocols are in use and create the appropriate objects for
+        each.
+        """
         # Based on the transfer definition, determine what to do first
         # Based on the remote protocol pick the appropriate remote handler
         # For each host, create a remote handler
@@ -81,11 +95,24 @@ class Execution(TaskHandler):
 
             super()._set_handler_vars(remote_protocol, remote_handler)
 
-    def run(self, kill_event=None):
+    def run(self, kill_event: threading.Event | None = None) -> bool:
+        """Run the execution.
+
+        Args:
+            kill_event (threading.Event, optional): An event to kill the execution. Defaults to None.
+
+        Returns:
+            bool: The result of the execution.
+        """
         self.logger.info("Running execution")
         environ["OTF_TASK_ID"] = self.task_id
 
         self._set_remote_handlers()
+
+        # Check that we have remote handlers, if not something has gone very wrong
+        if not self.remote_handlers:
+            self.logger.error("No remote handlers set")
+            return self.return_result(1, "No remote handlers set")
 
         # This is where we could potentially be waiting for a while. So,
         # for each remote handler, we should spawn a new thread to run
@@ -147,7 +174,7 @@ class Execution(TaskHandler):
                     result = future.result()
                     if not result:
                         failures = True
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     self.overall_result = False
                     ex = e
                     self.logger.error("Thread returned exception")
@@ -160,18 +187,19 @@ class Execution(TaskHandler):
 
         if self.overall_result:
             return self.return_result(0, "All executions completed successfully")
-        else:
-            return self.return_result(1, "Execution(s) failed", ex)
 
-    def _execute(self, remote_handler):
-        result = remote_handler.execute()
+        return self.return_result(1, "Execution(s) failed", ex)
+
+    def _execute(self, remote_handler: RemoteHandler) -> bool:
+        result: bool = remote_handler.execute()
         remote_host = self._get_remote_host_name(remote_handler)
         self.logger.info(f"[{remote_host}] Execution returned {result}")
         return result
 
     # Destructor to handle when the execution is finished. Make sure the log file
     # gets renamed as appropriate
-    def __del__(self):
+    def __del__(self) -> None:
+        """Destructor to handle closing log file correctly."""
         self.logger.debug("Execution object deleted")
         # Close the file handler
         self.logger.info("Closing log file handler")

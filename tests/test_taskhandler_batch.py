@@ -1,7 +1,9 @@
+# pylint: skip-file
 import os
 import random
+import shutil
 
-from fixtures.ssh_clients import *  # noqa:F401
+import pytest
 from pytest_shell import fs
 
 import opentaskpy.otflogging
@@ -9,6 +11,7 @@ from opentaskpy.config.loader import ConfigLoader
 
 # from opentaskpy.taskhandlers.batch import Batch
 from opentaskpy.taskhandlers import batch, execution, transfer
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_NO_LOG"] = "1"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"

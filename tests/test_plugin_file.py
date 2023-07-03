@@ -1,3 +1,4 @@
+# pylint: skip-file
 import pytest
 from pytest_shell import fs
 
@@ -20,7 +21,8 @@ def test_file_plugin_file_not_found(tmpdir):
 
     assert (
         ex.value.args[0]
-        == f"File {tmpdir}/does_not_exist.txt does not exist while trying to run lookup plugin 'file'"
+        == f"File {tmpdir}/does_not_exist.txt does not exist while trying to run lookup"
+        " plugin 'file'"
     )
 
 

@@ -1,14 +1,15 @@
+# pylint: skip-file
+import logging
 import os
 import re
 import time
 from datetime import datetime
 
-from fixtures.ssh_clients import *  # noqa:F401
-
 import opentaskpy.otflogging
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 
-def test_define_log_file_name(env_vars, tmpdir):
+def test_define_log_file_name(env_vars, tmpdir, top_level_root_dir):
     # Pass in different task types and validate that the log file name is correct
     timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{6}"
     log_path = "logs"
@@ -66,18 +67,18 @@ def test_define_log_file_name(env_vars, tmpdir):
         del os.environ["OTF_RUN_ID"]
 
     # Pass no task type, and expect None in it's place
-    expected_result_regex = rf"{log_path}/no_task_id/{timestamp}_None_running.log"
+    expected_result_regex = rf"{log_path}/no_task_id/{timestamp}_running.log"
     assert re.search(
         expected_result_regex, opentaskpy.otflogging._define_log_file_name(None, None)
     )
 
 
-def test_init_logging(env_vars):
+def test_init_logging(env_vars, top_level_root_dir):
     # Call init logging function and ensure that the returned logger includes a TaskFileHandler
     # pointing at the correct filename
     timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{6}"
-    log_path = "logs"
-    expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_None_running.log"
+    log_path = f"{top_level_root_dir}/logs"
+    expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_running.log"
     logger = opentaskpy.otflogging.init_logging(
         "some.class.name1", task_id="some_task_id"
     )
@@ -153,7 +154,7 @@ def test_get_latest_log_file(env_vars):
     # Run the function again and validate that it returns this file
     assert opentaskpy.otflogging.get_latest_log_file(None, "B") == last_created_file
 
-    # Create a new file that has succeeded, make sure it still returns None, as the lastest
+    # Create a new file that has succeeded, make sure it still returns None, as the latest
     # state is success
     log_file_name = opentaskpy.otflogging._define_log_file_name(None, "B")
     # Write to the file
@@ -178,7 +179,7 @@ def test_close_log_file(env_vars, tmpdir):
     # Find a handler of type TaskFileHandler in the logger
     found_handler = None
     for log_handler in logger.handlers:
-        print(log_handler)
+        logging.info(log_handler)
         if log_handler.__class__.__name__ == "TaskFileHandler":
             found_handler = log_handler
             break

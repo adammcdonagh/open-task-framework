@@ -37,7 +37,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.configDir:
-        global CONFIG_PATH
+        global CONFIG_PATH  # pylint: disable=global-statement
         CONFIG_PATH = args.configDir
 
     # If given a runId, then set the environment variable

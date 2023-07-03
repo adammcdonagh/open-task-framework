@@ -127,3 +127,31 @@ class EmailTransfer(RemoteTransferHandler):
                 result = 1
 
         return result
+
+    def pull_files_to_worker(self, local_staging_directory: str) -> int:
+        """Not implemented for this handler."""
+        raise NotImplementedError
+
+    def handle_post_copy_action(self, files: list) -> None:
+        """Not implemented for this handler."""
+        raise NotImplementedError
+
+    def list_files(
+        self, directory: str | None = None, file_pattern: str | None = None
+    ) -> dict:
+        """Not implemented for this handler."""
+        raise NotImplementedError
+
+    def move_files_to_final_location(self, files: list) -> None:
+        """Not implemented for this handler."""
+        raise NotImplementedError
+
+    def pull_files(self, files: list) -> None:
+        """Not implemented for this handler."""
+        raise NotImplementedError
+
+    def transfer_files(
+        self, files: dict, remote_spec: dict, dest_remote_handler: dict | None = None
+    ) -> None:
+        """Not implemented for this handler."""
+        raise NotImplementedError

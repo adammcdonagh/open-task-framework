@@ -1,5 +1,5 @@
 # https://bandit.readthedocs.io/en/latest/config.html
-
+exclude_dirs: ["tests"]
 tests:
   - B103
   - B108

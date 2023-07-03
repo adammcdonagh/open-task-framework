@@ -14,7 +14,7 @@ logger = logging.getLogger("opentaskpy.remotehandlers.scripts.transfer")
 # Remote script intended to serve as a utility to the main script for dealing with file transfers
 
 
-def list_files(pattern: str, details: bool = False) -> list | dict:
+def list_files(pattern: str, details: bool = False):  # type: ignore[no-untyped-def]
     """List files matching the pattern.
 
     Args:
@@ -34,7 +34,7 @@ def list_files(pattern: str, details: bool = False) -> list | dict:
     except FileNotFoundError:
         files = []
 
-    # For each file get the file age and size (incase we need then for file watches)
+    # For each file get the file age and size (in case we need then for file watches)
     if details:
         result: dict = {}
         for file in files:

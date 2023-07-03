@@ -1,3 +1,5 @@
+# pylint: skip-file
+import logging
 import os
 from re import match
 
@@ -10,7 +12,7 @@ def write_test_file(file_name, content=None, length=0, mode="w"):
             f.write(content)
         else:
             f.write("a" * length)
-    print(f"Wrote file: {file_name}")
+    logging.info(f"Wrote file: {file_name}")
 
 
 def list_test_files(directory, file_pattern, delimiter):

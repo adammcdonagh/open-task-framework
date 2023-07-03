@@ -186,7 +186,7 @@ logger = init_logging(__name__)
 
 # mypy: ignore-errors
 class TaskFileHandler(logging.FileHandler):
-    """Custom file hander to ensure logs get correct naming.
+    """Custom file handler to ensure logs get correct naming.
 
     This class handles the closing of log files. It will rename based on the argument
     passed into the close method.

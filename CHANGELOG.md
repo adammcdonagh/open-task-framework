@@ -4,6 +4,7 @@
 
 - Linting updates
 - Added new pre-commit tasks
+- Add argument sanitisation when passing arguments for remote execution
 
 # v0.8.1
 

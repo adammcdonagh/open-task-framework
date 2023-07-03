@@ -110,7 +110,7 @@ class ConfigLoader:
 
         # If we haven't loaded the plugin yet, then look in the cfg/plugins directory and see if we can find it
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
-            plugin_path = f"{self.config_dir}/plugins/{plugin}.py"
+            plugin_path = f"{self.config_dir}/plugins/lookup/{plugin}.py"
             if os.path.isfile(plugin_path):
                 spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
                     f"opentaskpy.plugins.lookup.{plugin}", plugin_path
@@ -163,7 +163,7 @@ class ConfigLoader:
 
         # Check to see if this is not a batch type
         if "type" in task_definition and task_definition["type"] == "batch":
-            self.logger.warn("Cannot apply overrides to batch tasks. Ignoring")
+            self.logger.warning("Cannot apply overrides to batch tasks. Ignoring")
             return task_definition
 
         # Finally, attributes of the task definition can also be overridden by environment variables
@@ -270,7 +270,7 @@ class ConfigLoader:
 
     # RESOLVE ANY VARIABLES THAT USE OTHER VARIABLES IN THE VARIABLE FILES
     def _resolve_templated_variables(self) -> None:
-        # We need to evaluate the variables themselves, incase theres any recursion
+        # We need to evaluate the variables themselves, in case there's any recursion
         # Convert the variables to a JSON string which we can process with the jinja2 templater
         current_depth = 0
         previous_render = None

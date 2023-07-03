@@ -120,6 +120,8 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_LOG_DIRECTORY` - Path under which log files are written
 - `OTF_RUN_ID` - (meant for internal use) An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
 - `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
+- `OTF_REMOTE_SCRIPT_BASE_DIR` - Alternative location to drop the temporary `transfer.py` script on remote hosts using SSH protocol. Default is `/tmp`
+- `OTF_STAGING_DIR` - Staging base directory to place files before they're dropped into their final location. Default is `/tmp`
 
 ## Logging
 
@@ -306,7 +308,7 @@ Below is an example of all the options available for a transfer:
 }
 ```
 
-An explaination of what's going on in the order it will handled:
+An explanation of what's going on in the order it will handled:
 
 1. Tail the log file matching named: `/tmp/testFiles/src/log{{ YYYY }}Watch1.log` for lines matching containing the regex `someText[0-9]`, for up to 15 seconds, before giving up.
 2. Poll for a file matching the regex `/tmp/testFiles/src/fileWatch\.txt` for up to 15 seconds.
@@ -343,7 +345,7 @@ If multiple `hosts` are defined, a thread is spawned in parallel for each host. 
 
 ## Batches
 
-Batches are a little more complex. They do not contain any task definitions, only the list, and order of excecution for each task.
+Batches are a little more complex. They do not contain any task definitions, only the list, and order of execution for each task.
 
 A batch task can have multiple options set that determine the execution order and conditions, as well as how failures and task reruns are handled.
 

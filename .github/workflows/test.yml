@@ -36,8 +36,7 @@ jobs:
       - name: Generate partial Python venv restore key
         id: generate-python-key
         run: >-
-          echo "key=${{ env.KEY_PREFIX }}-${{ env.CACHE_VERSION }}-${{
-            hashFiles('pyproject.toml') }}" >>
+          echo "key=${{ env.KEY_PREFIX }}-${{ env.CACHE_VERSION }}-${{ hashFiles('pyproject.toml') }}" >>
           $GITHUB_OUTPUT
       - name: Restore Python virtual environment
         id: cache-venv

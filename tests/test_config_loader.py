@@ -1,3 +1,4 @@
+# pylint: skip-file
 import json
 import os
 import random
@@ -8,7 +9,7 @@ from pytest_shell import fs
 
 from opentaskpy.config.loader import ConfigLoader
 
-GLOBAL_VARIABLES = None
+GLOBAL_VARIABLES: str | None = None
 
 RANDOM = random.randint(10000, 99999)
 
@@ -30,6 +31,17 @@ def write_dummy_variables_file(tmpdir):
 
 
 def test_load_variables(tmpdir):
+    # Ensure something satisfies the file lookup plugin
+    fs.create_files(
+        [
+            {
+                "/tmp/variable_lookup.txt": {
+                    "content": "hello",
+                }
+            },
+        ]
+    )
+
     assert ConfigLoader("test/cfg") is not None
 
 

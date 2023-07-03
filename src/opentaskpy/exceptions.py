@@ -58,6 +58,14 @@ class DuplicateConfigFileError(Exception):
         super().__init__(message)
 
 
+class InvalidConfigError(Exception):
+    """Invalid config error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)
+
+
 class UnknownProtocolError(Exception):
     """Unknown protocol error."""
 
@@ -76,6 +84,14 @@ class LookupPluginError(Exception):
 
 class VariableResolutionTooDeepError(Exception):
     """Variable resolution too deep error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)
+
+
+class SSHClientError(Exception):
+    """SSH client error."""
 
     def __init__(self, message):
         """Call the base class constructor."""

@@ -5,37 +5,71 @@ from importlib import import_module
 from logging import Logger
 from sys import modules
 
-from opentaskpy import exceptions
+import opentaskpy.otflogging
+from opentaskpy.exceptions import UnknownProtocolError
+from opentaskpy.remotehandlers.remotehandler import RemoteHandler
 
 
 class TaskHandler(ABC):
     """Abstract task handler class."""
 
-    logger: Logger = None
+    logger: Logger
+    overall_result: bool
 
     def __init__(self, global_config: dict):
         """Initialize the class."""
         self.global_config = global_config
 
-    @abstractmethod
-    def return_result(self, status: int, message: str, exception: Exception = None):
+    def return_result(
+        self, status: int, message: str, exception: type[Exception] | None = None
+    ) -> bool:
         """Return the result of the task run.
 
         Args:
             status (int): The return code of the task run. 0 is success, anything else is failure.
             message (str): Message to return.
             exception (Exception, optional): Exception to return. Defaults to None.
+
+        Returns:
+            bool: True if the task was successful, False otherwise.
         """
+        if message:
+            if status == 0:
+                self.logger.info(message)
+            else:
+                self.logger.error(message)
+
+        if status == 0:
+            self.overall_result = True
+
+        # Close the file handler
+        self.logger.info("Closing log file handler")
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
+
+        # Throw an exception if we have one
+        if exception:
+            if callable(exception):
+                raise exception(message)
+
+            raise Exception(message)  # pylint: disable=broad-exception-raised
+
+        return status == 0
 
     @abstractmethod
-    def _set_remote_handlers(self):
+    def _set_remote_handlers(self) -> None:
         ...
 
     @abstractmethod
-    def run(self):
-        """Run the task handler."""
+    def run(self) -> bool:
+        """Run the task handler.
 
-    def _set_handler_vars(self, source_protocol, remote_handler):
+        Returns:
+            bool: True if the task was successful, False otherwise.
+        """
+
+    def _set_handler_vars(
+        self, source_protocol: str, remote_handler: RemoteHandler
+    ) -> None:
         # If remote handler has a set handler vars method, call it and pass in any variables it might want
         if hasattr(remote_handler, "set_handler_vars"):
             self.logger.log(12, f"Setting handler vars for {source_protocol}")
@@ -50,7 +84,6 @@ class TaskHandler(ABC):
                         for item in self.global_config["global_protocol_vars"]
                         if item["name"] == source_protocol
                     ),
-                    None,
                 )
             ):
                 protocol_vars = next(
@@ -59,19 +92,35 @@ class TaskHandler(ABC):
                         for item in self.global_config["global_protocol_vars"]
                         if item["name"] == source_protocol
                     ),
-                    None,
                 ).copy()
                 # Remove "name" from the dict
                 del protocol_vars["name"]
 
                 remote_handler.set_handler_vars(protocol_vars)
 
-    def _get_handler_for_protocol(self, protocol_name, spec):
+    def _get_handler_for_protocol(
+        self, protocol_name: str, spec: dict
+    ) -> RemoteHandler:
+        """Get the handler for a protocol.
+
+        Looks for the protocol package to import. An addon must be accessible in the
+        PYTHONPATH to be found and loaded.
+
+        Args:
+            protocol_name (str): The name of the protocol.
+            spec (dict): The spec for the protocol.
+
+        Raises:
+            UnknownProtocolError: Raised if the protocol is unknown.
+
+        Returns:
+            RemoteHandler: The remote handler for the protocol.
+        """
         # Remove the class name from the end of addon_protocol
         addon_package = ".".join(protocol_name.split(".")[:-1])
 
         if addon_package == "":
-            raise exceptions.UnknownProtocolError(f"Unknown protocol {protocol_name}")
+            raise UnknownProtocolError(f"Unknown protocol {protocol_name}")
 
         # Import the plugin if its not already loaded
         if addon_package not in modules:
@@ -80,9 +129,7 @@ class TaskHandler(ABC):
                 self.logger.log(12, f"Loading addon protocol: {addon_package}")
                 import_module(addon_package)
             except ModuleNotFoundError as exc:
-                raise exceptions.UnknownProtocolError(
-                    f"Unknown protocol {protocol_name}"
-                ) from exc
+                raise UnknownProtocolError(f"Unknown protocol {protocol_name}") from exc
 
         # Get the imported class relating to addon_protocol
         addon_class = getattr(modules[addon_package], protocol_name.split(".")[-1])
