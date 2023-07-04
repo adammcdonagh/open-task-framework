@@ -438,9 +438,9 @@ def test_override_task_specific_attribute(write_dummy_variables_file, tmpdir):
     # Override things
     os.environ["OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME"] = "non_existent_host"
     os.environ["OTF_OVERRIDE_TRANSFER_DESTINATION_0_HOSTNAME"] = "non_existent_host2"
-    os.environ[
-        "OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME"
-    ] = "my_username"
+    os.environ["OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME"] = (
+        "my_username"
+    )
 
     # Load the task definition
     config_loader = ConfigLoader(tmpdir)
