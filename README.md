@@ -1,4 +1,4 @@
-![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/main.yml/badge.svg?event=push)
+![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/test.yml/badge.svg?event=push)
 
 <h1>Open Task Framework (opentaskpy)</h1>
 
@@ -182,7 +182,7 @@ The HTTP JSON plugin will perform a very basic HTTP GET request, expecting a JSO
 
 This will hit the typicode.com side, and extract the title attribute from from the returned JSON file
 
-#### Adding your own
+### Adding your own
 
 OTF will look for plugins that are either available as an installed module (under the `opentaskpy.plugins.lookup` namespace), or dropped in a `plugins` under the config directory.
 
