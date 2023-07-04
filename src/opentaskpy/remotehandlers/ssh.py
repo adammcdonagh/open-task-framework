@@ -949,8 +949,6 @@ class SSHExecution(RemoteExecutionHandler):
             f"[{self.remote_host}] Killing remote processes with command: {command}"
         )
 
-        # Sanitise the command
-        command = quote(command)
         # Make sure we're not killing PID 1 or 0
         if command in ("kill 1", "kill 0"):
             self.logger.error(
@@ -974,13 +972,11 @@ class SSHExecution(RemoteExecutionHandler):
         try:
             self.connect()
 
-            # Command needs the directory to be changed to appended to it
-            # Sanitise the command
-            command = quote(self.spec["command"])
             directory = quote(self.spec["directory"])
 
             command = (
-                f"echo __OTF_TOKEN__$$_{self.random}__; cd {directory} && {command}"
+                f"echo __OTF_TOKEN__$$_{self.random}__; cd {directory} &&"
+                f" {self.spec['command']}"
             )
 
             self.logger.info(f"[{self.remote_host}] Executing command: {command}")
