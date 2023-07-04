@@ -533,21 +533,19 @@ class SSHTransfer(RemoteTransferHandler):
         # Next step is to move the file to it's final resting place with the correct permissions and ownership
         # Build a command to pass to the remote transfer.py to do the work
         owner_args = (
-            quote(f"--owner {self.spec['permissions']['owner']}")
+            f"--owner {quote(self.spec['permissions']['owner'])}"
             if "permissions" in self.spec and "owner" in self.spec["permissions"]
             else ""
         )
         group_args = (
-            quote(f"--group {self.spec['permissions']['group']}")
+            f"--group {quote(self.spec['permissions']['group'])}"
             if "permissions" in self.spec and "group" in self.spec["permissions"]
             else ""
         )
-        mode_args = quote(f"--mode {self.spec['mode']}") if "mode" in self.spec else ""
+        mode_args = f"--mode {quote(self.spec['mode'])}" if "mode" in self.spec else ""
         rename_args = (
-            quote(
-                f"--renameRegex '{self.spec['rename']['pattern']}' --renameSub"
-                f" '{self.spec['rename']['sub']}'"
-            )
+            f"--renameRegex '{quote(self.spec['rename']['pattern'])}' --renameSub"
+            f" '{quote(self.spec['rename']['sub'])}'"
             if "rename" in self.spec
             else ""
         )
