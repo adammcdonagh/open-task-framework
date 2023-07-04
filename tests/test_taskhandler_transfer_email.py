@@ -1,11 +1,12 @@
+# pylint: skip-file
 import json
 import os
 
-from fixtures.ssh_clients import *  # noqa:F401
 from pytest_shell import fs
 
 from opentaskpy.config.loader import ConfigLoader
 from opentaskpy.taskhandlers import transfer
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_NO_LOG"] = "1"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -53,7 +54,7 @@ def test_remote_handler():
     assert transfer_obj.dest_remote_handlers[0].__class__.__name__ == "EmailTransfer"
 
 
-def test_remote_handler_vars():
+def test_remote_handler_vars(env_vars):
     # Load the global config
     config_loader = ConfigLoader("test/cfg")
     global_variables = config_loader.get_global_variables()
@@ -82,7 +83,7 @@ def test_remote_handler_vars():
     )
 
 
-def test_email_transfer(setup_ssh_keys, root_dir):
+def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
     # Dont run this test if the env var GITHUB_ACTIONS is set
     if os.getenv("GITHUB_ACTIONS"):
         return
@@ -119,4 +120,7 @@ def test_email_transfer(setup_ssh_keys, root_dir):
     transfer_obj._set_remote_handlers()
 
     # Run the transfer
-    transfer_obj.run()
+    assert transfer_obj.run()
+
+    # Check that files have been tidied up on the worker
+    assert not os.path.exists(transfer_obj.local_staging_dir)

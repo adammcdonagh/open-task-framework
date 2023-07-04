@@ -10,9 +10,7 @@
       "request": "launch",
       "program": "-m",
       "console": "integratedTerminal",
-      "args": [
-        "pytest"
-      ],
+      "args": ["pytest"],
       "justMyCode": false
     },
     {
@@ -22,14 +20,7 @@
       "program": "${file}",
       "preLaunchTask": "Build Test containers",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-basic",
-        "-v",
-        "2",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-basic", "-v", "2", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -37,16 +28,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-basic",
-        "-v",
-        "3",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-basic", "-v", "3", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -54,16 +38,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-basic-multiple-dests",
-        "-v",
-        "3",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-basic-multiple-dests", "-v", "3", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -71,16 +48,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-source-file-conditions",
-        "-v",
-        "2",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-source-file-conditions", "-v", "2", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -88,16 +58,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-file-watch",
-        "-v",
-        "2",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-file-watch", "-v", "2", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -105,16 +68,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-log-watch",
-        "-v",
-        "1",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-log-watch", "-v", "1", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -122,16 +78,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "scp-log-watch-tail",
-        "-v",
-        "1",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-log-watch-tail", "-v", "1", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -139,16 +88,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "batch-basic",
-        "-v",
-        "1",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "batch-basic", "-v", "1", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -156,16 +98,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "batch-parallel",
-        "-v",
-        "1",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "batch-parallel", "-v", "1", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -173,7 +108,7 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
       "args": [
         "-t",
@@ -192,7 +127,7 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
       "args": [
         "-t",
@@ -211,7 +146,7 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
       "args": [
         "-t",
@@ -230,7 +165,7 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
       "args": [
         "-t",
@@ -249,14 +184,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "batch-dependencies-continue-on-fail",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "batch-dependencies-continue-on-fail", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -264,16 +194,9 @@
       "type": "python",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
-      "program": "src/bin/task-run",
+      "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "df",
-        "-v",
-        "1",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "df", "-v", "1", "-c", "test/cfg"],
       "justMyCode": false
     }
   ]

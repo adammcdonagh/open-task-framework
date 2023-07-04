@@ -1,17 +1,20 @@
 #!/bin/env python3
+"""CLI script wrapper for handling env vars and triggering the TaskRun class."""
 
 import argparse
 import logging
 import os
+import sys
 from datetime import datetime
 
-from opentaskpy import task_run
-from opentaskpy.logging import OTF_LOG_FORMAT
+from opentaskpy import taskrun  # type: ignore[attr-defined]
+from opentaskpy.otflogging import OTF_LOG_FORMAT
 
 CONFIG_PATH = f"{os.getcwd()}/cfg"
 
 
-def main():
+def main() -> None:
+    """Parse args and call TaskRun class."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-t", "--taskId", help="Name of the JSON config to run", type=str, required=True
@@ -19,7 +22,10 @@ def main():
     parser.add_argument(
         "-r",
         "--runId",
-        help="Unique identifier to correlate logs with. e.g. if being triggered by an external scheduler",
+        help=(
+            "Unique identifier to correlate logs with. e.g. if being triggered by an"
+            " external scheduler"
+        ),
         type=str,
         required=False,
     )
@@ -31,7 +37,7 @@ def main():
     args = parser.parse_args()
 
     if args.configDir:
-        global CONFIG_PATH
+        global CONFIG_PATH  # pylint: disable=global-statement
         CONFIG_PATH = args.configDir
 
     # If given a runId, then set the environment variable
@@ -64,15 +70,15 @@ def main():
     logger.log(11, f"Log verbosity: {args.verbosity}")
 
     # Create the TaskRun object
-    task_run_obj = task_run.TaskRun(args.taskId, CONFIG_PATH)
+    task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH)
 
     try:
         task_run_obj.run()
-    except Exception as e:
-        logger.error(f"Error running task: {e}")
+    except Exception as ex:  # pylint: disable=broad-exception-caught
+        logger.error(f"Error running task: {ex}")
         if logger.getEffectiveLevel() <= 12:
-            raise e
-        os._exit(1)
+            raise ex
+        sys.exit(1)
 
 
 if __name__ == "__main__":

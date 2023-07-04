@@ -17,10 +17,6 @@
       "type": "boolean"
     }
   },
-  "required": [
-    "log",
-    "directory",
-    "contentRegex"
-  ],
+  "required": ["log", "directory", "contentRegex"],
   "additionalProperties": false
 }

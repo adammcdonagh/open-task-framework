@@ -1,10 +1,12 @@
+# pylint: skip-file
 import os
 
-from fixtures.ssh_clients import *  # noqa:F401
+import pytest
 from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.taskhandlers import execution
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_NO_LOG"] = "1"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"

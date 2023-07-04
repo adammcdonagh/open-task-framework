@@ -1,4 +1,3 @@
-
 ![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/main.yml/badge.svg?event=push)
 
 <h1>Open Task Framework (opentaskpy)</h1>
@@ -12,7 +11,7 @@
   - [Variables](#variables)
   - [Runtime Overrides](#runtime-overrides)
   - [Lookup plugins](#lookup-plugins)
-      - [Adding your own](#adding-your-own)
+    - [Adding your own](#adding-your-own)
     - [Example Variables](#example-variables)
 - [Task Definitions](#task-definitions)
   - [Transfers](#transfers)
@@ -32,9 +31,10 @@ Open Task Framework (OTF) is a Python based framework to make it easy to run pre
 Currently the framework is primarily based around being able to use SSH to communicate with remote hosts in order to manipulate files and run commands. This is done via the use of SSH keys, which must be set up in advance.
 
 OTF has 3 main concepts for tasks. These are:
-* Transfers
-* Executions
-* Batches
+
+- Transfers
+- Executions
+- Batches
 
 For more details, see the [task types](docs/task-types.md) doc
 
@@ -43,6 +43,7 @@ For more details, see the [task types](docs/task-types.md) doc
 OTF can be run either as an installed script, or via a docker container
 
 Install via pip:
+
 ```shell
 pip install opentaskpy
 ```
@@ -115,10 +116,12 @@ In order for the process to run, you must have at least one task, and a `variabl
 
 These are some environment variables that can be used to customise the behaviour of the application. There are some internally used variables too, but changing them without a full understanding of the code is not advised.
 
-   * `OTF_NO_LOG` - Disable logging to file. Only log to stderr
-   * `OTF_LOG_DIRECTORY` - Path under which log files are written
-   * `OTF_RUN_ID` - (meant for internal use) An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
-   * `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
+- `OTF_NO_LOG` - Disable logging to file. Only log to stderr
+- `OTF_LOG_DIRECTORY` - Path under which log files are written
+- `OTF_RUN_ID` - (meant for internal use) An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
+- `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
+- `OTF_REMOTE_SCRIPT_BASE_DIR` - Alternative location to drop the temporary `transfer.py` script on remote hosts using SSH protocol. Default is `/tmp`
+- `OTF_STAGING_DIR` - Staging base directory to place files before they're dropped into their final location. Default is `/tmp`
 
 ## Logging
 
@@ -140,6 +143,7 @@ Sometimes you might want to override the current date, or something specific abo
 
 Standard global variables can be overridden simply by setting an environment variable that matches the name of the variable you want to override e.g. `export DD=01`
 In the log output, you'll see something like this:
+
 ```
 Overriding global variable (DD: 05) with environment variable (01)
 ```
@@ -155,25 +159,27 @@ e.g. `OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME`
 
 Again this will be logged to show you that the override is being applied.
 
-
 ## Lookup plugins
 
 Static variables are useful, however sometimes you need to look up something a bit more dynamic, or secret, that you don't want to hard code into the variables file.
 
 There are 2 default lookup plugins available:
 
-* File
-* HTTP JSON
+- File
+- HTTP JSON
 
 The file plugin will load the content of a file into the variable e.g.
+
 ```jinja
 "{{ lookup('file', path='/tmp/variable_lookup.txt') }}"
 ```
 
 The HTTP JSON plugin will perform a very basic HTTP GET request, expecting a JSON response. The value to extract is defined by a jsonpath e.g.
+
 ```jinja
 "{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}"
 ```
+
 This will hit the typicode.com side, and extract the title attribute from from the returned JSON file
 
 #### Adding your own
@@ -181,11 +187,13 @@ This will hit the typicode.com side, and extract the title attribute from from t
 OTF will look for plugins that are either available as an installed module (under the `opentaskpy.plugins.lookup` namespace), or dropped in a `plugins` under the config directory.
 
 An example Python module might be: `opentaskpy.plugins.lookup.aws.ssm`. This can then be referenced as a variable in a template like so:
+
 ```jinja
 "{{ lookup('aws.ssm', name='my_test_param') }}"
 ```
 
 Alternatively a lookup plugin could be placed under `cfg/plugins` named `my_lookup.py`, and used in a template:
+
 ```jinja
 "{{ lookup('my_lookup', name='my_param') }}"
 ```
@@ -300,7 +308,7 @@ Below is an example of all the options available for a transfer:
 }
 ```
 
-An explaination of what's going on in the order it will handled:
+An explanation of what's going on in the order it will handled:
 
 1. Tail the log file matching named: `/tmp/testFiles/src/log{{ YYYY }}Watch1.log` for lines matching containing the regex `someText[0-9]`, for up to 15 seconds, before giving up.
 2. Poll for a file matching the regex `/tmp/testFiles/src/fileWatch\.txt` for up to 15 seconds.
@@ -309,7 +317,6 @@ An explaination of what's going on in the order it will handled:
    1. The first destination is a simple SCP from `HOST_A` to `HOST_B` where the file is placed under `/tmp/testFiles/dest`. The group ownership of the file(s) is then set to `operator`
    2. The second destination is done via a pull from the destination server into the same directory. The SCP connects to `HOST_A` as `transferUsername`. Once the file has been retrieved, it is renamed using the following regex match `^(.*)\.txt$` and substitution `\1-2.txt`
 5. Transferred files are moved into `/tmp/testFiles/archive` on `HOST_A`
-
 
 ## Executions
 
@@ -320,9 +327,7 @@ Executions do not currently have a timeout, so can in theory run forever, or unt
 ```json
 {
   "type": "execution",
-  "hosts": [
-    "{{ HOST_A }}"
-  ],
+  "hosts": ["{{ HOST_A }}"],
   "directory": "/tmp/testFiles/src",
   "command": "touch touchedFile.txt",
   "protocol": {
@@ -340,7 +345,7 @@ If multiple `hosts` are defined, a thread is spawned in parallel for each host. 
 
 ## Batches
 
-Batches are a little more complex. They do not contain any task definitions, only the list, and order of excecution for each task.
+Batches are a little more complex. They do not contain any task definitions, only the list, and order of execution for each task.
 
 A batch task can have multiple options set that determine the execution order and conditions, as well as how failures and task reruns are handled.
 
@@ -354,7 +359,6 @@ Each task in a batch has an `order_id`, this is a unique ID for each task, and i
 
 `timeout` specifies the number of seconds a task is allowed to be running before it gets terminated. This counts as a failure. The default timeout, if not specified is 300 seconds.
 
-
 # Development
 
 This repo has been primarily configured to work with GitHub Codespaces devcontainers, though it can obviously be used directly on your machine too.
@@ -363,9 +367,9 @@ Dev and runtime packages are defined via pipenv, with a `requirements.txt` for t
 
 ## Quickstart for development
 
-* Clone this repo
-* pip install pipenv
-* pipenv --python 3.10 && pipenv install && cd src && pipenv install --editable .
+- Clone this repo
+- pip install pipenv
+- pipenv --python 3.10 && pipenv install && cd src && pipenv install --editable .
 
 ### Building and uploading to PyPi
 
@@ -377,14 +381,17 @@ python3 -m twine upload --repository testpypi dist/*
 ## Official Addons/Plugins
 
 Here's a list of official addons:
+
 ### [otf-addons-aws](https://github.com/adammcdonagh/otf-addons-aws)
 
 Provides transfer and execution addons:
-   * Remote handler for interacting with AWS S3 buckets
-   * Remote handler for executing AWS Lambda functions
+
+- Remote handler for interacting with AWS S3 buckets
+- Remote handler for executing AWS Lambda functions
 
 Lookup plugins:
-   * Support for AWS SSM Parameter Store for retrieving global variables
+
+- Support for AWS SSM Parameter Store for retrieving global variables
 
 ## Developing your own addon/plugin
 

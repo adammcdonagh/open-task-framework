@@ -1,9 +1,6 @@
 {
   "type": "execution",
-  "hosts": [
-    "{{ HOST_A }}",
-    "{{ HOST_B }}"
-  ],
+  "hosts": ["{{ HOST_A }}", "{{ HOST_B }}"],
   "directory": "/tmp",
   "command": "test -e /tmp/does-not-exist",
   "protocol": {

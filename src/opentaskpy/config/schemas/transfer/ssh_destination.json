@@ -21,20 +21,12 @@
     },
     "transferType": {
       "type": "string",
-      "enum": [
-        "push",
-        "pull",
-        "proxy"
-      ]
+      "enum": ["push", "pull", "proxy"]
     },
     "protocol": {
       "$ref": "ssh_destination/protocol.json"
     }
   },
   "additionalProperties": false,
-  "required": [
-    "hostname",
-    "directory",
-    "protocol"
-  ]
+  "required": ["hostname", "directory", "protocol"]
 }

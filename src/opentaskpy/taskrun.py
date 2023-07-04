@@ -1,4 +1,5 @@
-import opentaskpy.logging
+"""Main class."""
+import opentaskpy.otflogging
 from opentaskpy.config.loader import ConfigLoader
 from opentaskpy.config.schemas import validate_execution_json, validate_transfer_json
 from opentaskpy.taskhandlers.batch import Batch
@@ -8,17 +9,38 @@ from opentaskpy.taskhandlers.transfer import Transfer
 GLOBAL_VERBOSITY = 1
 
 
-class TaskRun:
-    def __init__(self, task_id, config_dir):
-        self.logger = opentaskpy.logging.init_logging(__name__)
+class TaskRun:  # pylint: disable=too-few-public-methods
+    """Do the actual work.
+
+    Class responsible for doing all the work. The TaskRun class
+    parses config, loads variables and triggers the work
+    """
+
+    def __init__(self, task_id: str, config_dir: str) -> None:
+        """Create the TaskRun object.
+
+        Initialises the logging.
+
+        Args:
+            task_id (str): ID of the task being triggered
+            config_dir (str): Path to the config directory
+        """
+        self.logger = opentaskpy.otflogging.init_logging(__name__)
         self.task_id = task_id
         self.config_dir = config_dir
         self.active_task_definition = None
-        self.config_loader = None
-
-    def run(self):
         # Create a config loader object
         self.config_loader = ConfigLoader(self.config_dir)
+
+    def run(self) -> bool:
+        """Run the task.
+
+        Load all variables, validate the task definitions, and
+        trigger the run of the task itself.
+
+        Returns:
+            bool: The result of running the task, True is good, False is bad
+        """
         global_variables = self.config_loader.get_global_variables()
 
         # Populate the task definition with the global variables
@@ -32,7 +54,8 @@ class TaskRun:
         if "type" not in active_task_definition:
             self.logger.error("Invalid task configuration. Cannot continue")
             return False
-        elif active_task_definition["type"] == "transfer":
+
+        if active_task_definition["type"] == "transfer":
             # Hand off to the transfer module
             self.logger.log(12, "Transfer")
             # Validate the schema

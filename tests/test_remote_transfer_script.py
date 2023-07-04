@@ -1,3 +1,4 @@
+# pylint: skip-file
 import grp
 import os
 import re
@@ -7,14 +8,14 @@ import time
 import pytest
 from pytest_shell import fs
 
-from opentaskpy.remotehandlers.scripts import transfer as transfer
+from opentaskpy.remotehandlers.scripts import transfer
 
 FILE_PREFIX = "unittest_testfile"
 FILE_CONTENT = "test1234"
 MOVED_FILES_DIR = "test_move_files"
 DELIMITER = ","
 
-list = None
+list_: list[str]
 
 
 @pytest.fixture(scope="function")
@@ -23,8 +24,8 @@ def setup(tmpdir):
     for i in range(10):
         fs.create_files([{f"{tmpdir}/{FILE_PREFIX}_{i}": {"content": FILE_CONTENT}}])
 
-    global list
-    list = list_test_files(tmpdir, f"{FILE_PREFIX}_.*", delimiter=DELIMITER)
+    global list_
+    list_ = list_test_files(tmpdir, f"{FILE_PREFIX}_.*", delimiter=DELIMITER)
 
     # If directory doesn't exist, create it
     if not os.path.exists(f"{tmpdir}/{MOVED_FILES_DIR}"):
@@ -81,7 +82,7 @@ def test_list_files_details(setup, tmpdir):
 
 def test_move_files_basic(setup, tmpdir):
     transfer.move_files(
-        list, ",", f"{tmpdir}/{MOVED_FILES_DIR}", False, None, None, None, None, None
+        list_, ",", f"{tmpdir}/{MOVED_FILES_DIR}", False, None, None, None, None, None
     )
 
     # Check that the files were moved
@@ -95,7 +96,7 @@ def test_move_files_create_dest_dir_1(setup, tmpdir):
     # Try moving to a directory that doesn't exist without asking to create one and expect an error
     with pytest.raises(FileNotFoundError):
         transfer.move_files(
-            list,
+            list_,
             DELIMITER,
             f"{tmpdir}/{MOVED_FILES_DIR}/non_existent_directory",
             False,
@@ -108,7 +109,7 @@ def test_move_files_create_dest_dir_1(setup, tmpdir):
 
     # Now move to a directory that doesn't exist and ask to create it
     transfer.move_files(
-        list,
+        list_,
         DELIMITER,
         f"{tmpdir}/{MOVED_FILES_DIR}/created_directory",
         True,
@@ -130,7 +131,7 @@ def test_move_files_create_dest_dir_1(setup, tmpdir):
 def test_move_files_create_dest_dir_2(setup, tmpdir):
     # Move the files in there again, now that the directory exists, this should still work
     transfer.move_files(
-        list,
+        list_,
         DELIMITER,
         f"{tmpdir}/created_directory",
         True,
@@ -151,7 +152,7 @@ def test_move_files_create_dest_dir_2(setup, tmpdir):
 
 def test_move_files_rename(setup, tmpdir):
     transfer.move_files(
-        list,
+        list_,
         DELIMITER,
         f"{tmpdir}/{MOVED_FILES_DIR}",
         False,
@@ -176,7 +177,7 @@ def test_move_files_set_owner(setup, tmpdir):
     if not is_root:
         with pytest.raises(PermissionError):
             transfer.move_files(
-                list,
+                list_,
                 DELIMITER,
                 f"{tmpdir}/{MOVED_FILES_DIR}",
                 False,
@@ -195,7 +196,7 @@ def test_move_files_set_owner(setup, tmpdir):
 
     # Now try setting the owner to the current user - Doesn't really make sense, but should work without throwing an exception
     transfer.move_files(
-        list,
+        list_,
         DELIMITER,
         f"{tmpdir}/{MOVED_FILES_DIR}",
         False,
@@ -220,7 +221,7 @@ def test_move_files_set_group(setup, tmpdir):
     if not is_root:
         with pytest.raises(PermissionError):
             transfer.move_files(
-                list,
+                list_,
                 DELIMITER,
                 f"{tmpdir}/{MOVED_FILES_DIR}",
                 False,
@@ -243,7 +244,7 @@ def test_move_files_set_group(setup, tmpdir):
         groups = [grp.getgrgid(group).gr_name for group in groups]
 
         transfer.move_files(
-            list,
+            list_,
             DELIMITER,
             f"{tmpdir}/{MOVED_FILES_DIR}",
             False,
@@ -269,7 +270,7 @@ def test_move_files_set_group(setup, tmpdir):
 
 
 def test_delete_files(setup, tmpdir):
-    transfer.delete_files(list, DELIMITER)
+    transfer.delete_files(list_, DELIMITER)
 
     # Check that the files were moved
     for i in range(10):

@@ -1,14 +1,17 @@
+# pylint: skip-file
 import datetime
+import logging
 import os
 import random
 import subprocess
 import threading
 import time
 
-from fixtures.ssh_clients import *  # noqa:F401
+import pytest
 from pytest_shell import fs
 
-from opentaskpy import exceptions, task_run
+from opentaskpy import exceptions, taskrun
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 # Create a variable with a random number
 RANDOM = random.randint(10000, 99999)
@@ -81,7 +84,7 @@ Tests using the Python code directly
 
 
 def test_unknown_task_name(env_vars, setup_ssh_keys, root_dir):
-    task_runner = task_run.TaskRun("non-existent", "test/cfg")
+    task_runner = taskrun.TaskRun("non-existent", "test/cfg")
 
     # Verify an exception with appropriate text is thrown
     with pytest.raises(FileNotFoundError) as e:
@@ -96,19 +99,19 @@ def test_batch_basic(env_vars, setup_ssh_keys, root_dir):
     )
 
     # Use the TaskRun class to trigger the job properly
-    task_runner = task_run.TaskRun("batch-basic", "test/cfg")
+    task_runner = taskrun.TaskRun("batch-basic", "test/cfg")
     assert task_runner.run()
 
 
 def test_execution_basic(env_vars, setup_ssh_keys, root_dir):
     # Use the TaskRun class to trigger the job properly
-    task_runner = task_run.TaskRun("df", "test/cfg")
+    task_runner = taskrun.TaskRun("df", "test/cfg")
     assert task_runner.run()
 
 
 def test_execution_fail(env_vars, setup_ssh_keys, root_dir):
     # Use the TaskRun class to trigger the job properly
-    task_runner = task_run.TaskRun("fail-command", "test/cfg")
+    task_runner = taskrun.TaskRun("fail-command", "test/cfg")
     assert not task_runner.run()
 
 
@@ -122,7 +125,7 @@ def test_scp_basic(env_vars, setup_ssh_keys, root_dir):
     )
 
     # Use the TaskRun class to trigger the job properly
-    task_runner = task_run.TaskRun("scp-basic", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-basic", "test/cfg")
     assert task_runner.run()
 
 
@@ -136,7 +139,7 @@ def test_scp_basic_multiple_dests(env_vars, setup_ssh_keys, root_dir):
     )
 
     # Use the TaskRun class to trigger the job properly
-    task_runner = task_run.TaskRun("scp-basic-multiple-dests", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-basic-multiple-dests", "test/cfg")
     assert task_runner.run()
 
     # Check the files were copied to all 3 destinations
@@ -156,7 +159,7 @@ def test_scp_basic_10_files(env_vars, setup_ssh_keys, root_dir):
         )
 
     # Use the TaskRun class to trigger the job properly
-    task_runner = task_run.TaskRun("scp-basic", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-basic", "test/cfg")
     assert task_runner.run()
 
     # Check that the files were all transferred
@@ -173,7 +176,7 @@ def test_scp_basic_pull(env_vars, setup_ssh_keys, root_dir):
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
     )
 
-    task_runner = task_run.TaskRun("scp-basic-pull", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-basic-pull", "test/cfg")
     assert task_runner.run()
 
 
@@ -187,7 +190,7 @@ def test_scp_basic_pca_delete(env_vars, setup_ssh_keys, root_dir):
         [{f"{root_dir}/testFiles/ssh_1/src/test1.txt": {"content": "test1234"}}]
     )
 
-    task_runner = task_run.TaskRun("scp-basic-pca-delete", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-basic-pca-delete", "test/cfg")
     assert task_runner.run()
 
     # Verify the file has disappeared
@@ -204,7 +207,7 @@ def test_scp_basic_pca_move(env_vars, setup_ssh_keys, root_dir):
         [{f"{root_dir}/testFiles/ssh_1/src/test2.txt": {"content": "test1234"}}]
     )
 
-    task_runner = task_run.TaskRun("scp-basic-pca-move", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-basic-pca-move", "test/cfg")
     assert task_runner.run()
 
     # Verify the file has disappeared
@@ -227,7 +230,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
     )
 
     # This should fail, because the file is too new
-    task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
     with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
         task_runner.run()
     assert "No remote files could be found to transfer" in (cm.value.args[0])
@@ -238,7 +241,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
         (time.time() - 61, time.time() - 61),
     )
 
-    task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
     assert task_runner.run()
 
     # Modify the file to be older than 10 minutes and try again
@@ -246,7 +249,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
         f"{root_dir}/testFiles/ssh_1/src/log.unittset.log",
         (time.time() - 601, time.time() - 601),
     )
-    task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
     with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
         task_runner.run()
     assert "No remote files could be found to transfer" in (cm.value.args[0])
@@ -261,7 +264,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
         (time.time() - 61, time.time() - 61),
     )
 
-    task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
     with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
         task_runner.run()
     assert "No remote files could be found to transfer" in (cm.value.args[0])
@@ -276,7 +279,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
         (time.time() - 61, time.time() - 61),
     )
 
-    task_runner = task_run.TaskRun("scp-source-file-conditions", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
     with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
         task_runner.run()
     assert "No remote files could be found to transfer" in (cm.value.args[0])
@@ -293,7 +296,7 @@ def test_scp_file_watch(env_vars, setup_ssh_keys, root_dir):
     )
 
     # Filewatch configured to wait 15 seconds before giving up. Expect it to fail
-    task_runner = task_run.TaskRun("scp-file-watch", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-file-watch", "test/cfg")
     with pytest.raises(exceptions.RemoteFileNotFoundError) as cm:
         task_runner.run()
     assert "No files found after " in (cm.value.args[0])
@@ -307,9 +310,9 @@ def test_scp_file_watch(env_vars, setup_ssh_keys, root_dir):
         {"content": "01234567890"},
     )
     t.start()
-    print("Started thread - Expect file in 5 seconds, starting task-run now...")
+    logging.info("Started thread - Expect file in 5 seconds, starting task-run now...")
 
-    task_runner = task_run.TaskRun("scp-file-watch", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-file-watch", "test/cfg")
     assert task_runner.run()
 
     # Delete the fileWatch.txt and log file
@@ -328,17 +331,17 @@ def test_scp_log_watch(env_vars, setup_ssh_keys, root_dir):
     if os.path.exists(log_file):
         os.remove(log_file)
 
-    # Logwatch will fail if the log file dosent exist
-    task_runner = task_run.TaskRun("scp-log-watch", "test/cfg")
+    # Logwatch will fail if the log file doesn't exist
+    task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
     with pytest.raises(exceptions.LogWatchInitError) as cm:
         task_runner.run()
     assert "Logwatch init failed" in (cm.value.args[0])
 
-    # This time, we run it again with the file created and populated. It should fail because the file dosent contain the expected text
+    # This time, we run it again with the file created and populated. It should fail because the file doesn't contain the expected text
     # Write the file
     fs.create_files([{log_file: {"content": "NOT_THE_RIGHT_PATTERN"}}])
 
-    task_runner = task_run.TaskRun("scp-log-watch", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
     with pytest.raises(exceptions.LogWatchTimeoutError) as cm:
         task_runner.run()
     assert "No log entry found after " in (cm.value.args[0])
@@ -351,8 +354,8 @@ def test_scp_log_watch(env_vars, setup_ssh_keys, root_dir):
         {"content": "someText\n"},
     )
     t.start()
-    print("Started thread - Expect file in 5 seconds, starting task-run now...")
-    task_runner = task_run.TaskRun("scp-log-watch", "test/cfg")
+    logging.info("Started thread - Expect file in 5 seconds, starting task-run now...")
+    task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
     assert task_runner.run()
 
 
@@ -378,7 +381,7 @@ def test_scp_log_watch_tail(env_vars, setup_ssh_keys, root_dir):
             }
         ]
     )
-    task_runner = task_run.TaskRun("scp-log-watch-tail", "test/cfg")
+    task_runner = taskrun.TaskRun("scp-log-watch-tail", "test/cfg")
     with pytest.raises(exceptions.LogWatchTimeoutError) as cm:
         task_runner.run()
     assert "No log entry found after " in (cm.value.args[0])
@@ -391,8 +394,8 @@ def test_scp_log_watch_tail(env_vars, setup_ssh_keys, root_dir):
         {"content": "someText\n", "mode": "a"},
     )
     t.start()
-    print("Started thread - Expect file in 5 seconds, starting task-run now...")
-    task_runner = task_run.TaskRun("scp-log-watch-tail", "test/cfg")
+    logging.info("Started thread - Expect file in 5 seconds, starting task-run now...")
+    task_runner = taskrun.TaskRun("scp-log-watch-tail", "test/cfg")
     assert task_runner.run()
 
 
@@ -410,16 +413,14 @@ def run_task_run(task, verbose="2", config="test/cfg"):
     ]
 
     # Run the script
-    result = subprocess.run(
-        [script] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    result = subprocess.run([script] + args, capture_output=True)
     # Write stdout and stderr to the console
-    print("\n########## STDOUT ##########")
-    print(result.stdout.decode("utf-8"))
+    logging.info("\n########## STDOUT ##########")
+    logging.info(result.stdout.decode("utf-8"))
     # Get the console colour for red
 
-    print("########## STDERR ##########")
-    print(f"{result.stderr.decode('utf-8')}")
+    logging.info("########## STDERR ##########")
+    logging.info(f"{result.stderr.decode('utf-8')}")
 
     return {
         "returncode": result.returncode,
@@ -434,4 +435,4 @@ def write_test_file(file_name, content=None, length=0, mode="w"):
             f.write(content)
         else:
             f.write("a" * length)
-    print(f"Wrote file: {file_name}")
+    logging.info(f"Wrote file: {file_name}")

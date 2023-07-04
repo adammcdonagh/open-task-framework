@@ -1,9 +1,14 @@
+# pylint: skip-file
+import logging
 import os
 import random
+import shutil
 import subprocess
 
 import pytest
-from fixtures.ssh_clients import *  # noqa:F401
+from pytest_shell import fs
+
+from tests.fixtures.ssh_clients import *  # noqa: F403
 
 IMAGE_PREFIX = "opentaskpy_unittest"
 MOVED_FILES_DIR = "archive"
@@ -39,8 +44,7 @@ def tidy_images(root_dir):
             "images",
             f"{IMAGE_PREFIX}_*",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     if result.stdout:
         images = result.stdout.decode("utf-8").split("\n")
@@ -49,26 +53,25 @@ def tidy_images(root_dir):
         for image_id in image_ids:
             # If this image name matches the prefix, remove it
             if image_id.startswith(IMAGE_PREFIX):
-                print(f"Removing image: {image_id}")
+                logging.info(f"Removing image: {image_id}")
                 result = subprocess.run(
                     [
                         "docker",
                         "rmi",
                         image_id,
                     ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                 )
-                print(result.stdout.decode("utf-8"))
-                print(result.stderr.decode("utf-8"))
+                logging.info(result.stdout.decode("utf-8"))
+                logging.info(result.stderr.decode("utf-8"))
     else:
-        print("No images to remove")
+        logging.info("No images to remove")
 
 
 @pytest.fixture(scope="module")
 def docker_build_dev_image(tidy_images, image_name_dev, root_dir):
-    print("Building dev docker image")
-    print(root_dir)
+    logging.info("Building dev docker image")
+    logging.info(root_dir)
 
     # Trigger docker build
     command_args = [
@@ -82,16 +85,15 @@ def docker_build_dev_image(tidy_images, image_name_dev, root_dir):
     ]
     result = subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
 
 
 @pytest.fixture(scope="module")
 def docker_build_image(tidy_images, image_name, root_dir):
-    print("Building docker image")
-    print(root_dir)
+    logging.info("Building docker image")
+    logging.info(root_dir)
 
     # Trigger docker build
     command_args = [
@@ -105,15 +107,14 @@ def docker_build_image(tidy_images, image_name, root_dir):
     ]
     result = subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
 
 
 @pytest.fixture(scope="module")
 def test_network_id():
-    # Get the webdevops/ssh container thats running, and determine the network it's attached to
+    # Get the webdevops/ssh container that's running, and determine the network it's attached to
     result = subprocess.run(
         [
             "docker",
@@ -123,8 +124,7 @@ def test_network_id():
             "--format",
             "{{.Networks}}",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
 
@@ -141,8 +141,7 @@ def test_network_id():
             "--format",
             "{{.Id}}",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     assert result.returncode == 0
     return result.stdout.decode("utf-8").strip()
@@ -183,8 +182,12 @@ def test_docker_run(
     clear_logs,
     create_test_file,
 ):
+    # Create the testLogs directory
+    log_dir = f"{root_dir}/testLogs"
+    os.makedirs(log_dir, exist_ok=True)
+
     # Run the container
-    print("Running docker container")
+    logging.info("Running docker container")
     command_args = [
         "docker",
         "run",
@@ -196,7 +199,7 @@ def test_docker_run(
         "--volume",
         f"{root_dir}:/test",
         "--volume",
-        f"{root_dir}/testLogs:/logs",
+        f"{log_dir}:/logs",
         "--volume",
         "/tmp/variable_lookup.txt:/tmp/variable_lookup.txt",
         "-e",
@@ -213,11 +216,10 @@ def test_docker_run(
 
     result = subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
-    print(result.stdout.decode("utf-8"))
-    print(result.stderr.decode("utf-8"))
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
 
     assert result.returncode == 0
 
@@ -241,7 +243,7 @@ def test_standard_docker_image(
     # This image pulls down whatever is on pypi, so we're not really testing the code here. Just that we can call a simple transfer.
     # We want to check that the logging works correctly when running in a docker container and mapping volumes
     # Run the container
-    print("Running docker container")
+    logging.info("Running docker container")
     command_args = [
         "docker",
         "run",
@@ -267,12 +269,11 @@ def test_standard_docker_image(
         "-c",
         "/test/cfg",
     ]
-    print(" ".join(command_args))
+    logging.info(" ".join(command_args))
 
     subprocess.run(
         command_args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     # We dont care whether this worked or not, we just want to check the logs
     # Check that the log file exists containing scp-basic in the name in log_dir

@@ -1,3 +1,4 @@
+"""Config loader."""
 import datetime
 import importlib
 import json
@@ -7,45 +8,85 @@ from glob import glob
 
 import jinja2
 
-import opentaskpy.logging
-from opentaskpy.exceptions import DuplicateConfigFileError
+import opentaskpy.otflogging
+from opentaskpy.exceptions import (
+    DuplicateConfigFileError,
+    VariableResolutionTooDeepError,
+)
 
 MAX_DEPTH = 5
 
 
 class ConfigLoader:
-    def __init__(self, config_dir):
-        self.logger = opentaskpy.logging.init_logging(__name__)
+    """Class responsible for loading and validating config files."""
+
+    def __init__(self, config_dir: str) -> None:
+        """Parse config files and expand variables.
+
+        Args:
+            config_dir (str): The path to the config files to load.
+        """
+        self.logger = opentaskpy.otflogging.init_logging(__name__)
         self.config_dir = config_dir
-        self.template_env = None
-        self.global_variables = dict()
+        self.global_variables: dict = {}
 
         self.logger.log(12, f"Looking in {self.config_dir}")
 
         # Force Jinja2 to log undefined variables
-        jinja2.make_logging_undefined(logger=self.logger, base=jinja2.Undefined)  # noqa
+        jinja2.make_logging_undefined(logger=self.logger, base=jinja2.Undefined)
         self.template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
         self.template_env.filters["delta_days"] = self.delta_days
 
         self._load_global_variables()
         self._resolve_templated_variables()
 
-    def get_global_variables(self):
+    def get_global_variables(self) -> dict:
+        """Return the set of global variables that have been assigned via config files.
+
+        This will first check for anything that has been overridden in the environment
+        first, and replace those if necessary.
+
+        Returns:
+            dict: _description_
+        """
         # Before we return the variables, we need to check for any environment variables that match the same name, and are set
         # if this is the case, then we replace the value with the environment variable
         for key, _ in self.global_variables.items():
             if key in os.environ:
                 self.logger.info(
-                    f"Overriding global variable ({key}: {self.global_variables[key]}) with environment variable ({os.environ[key]})"
+                    f"Overriding global variable ({key}: {self.global_variables[key]})"
+                    f" with environment variable ({os.environ[key]})"
                 )
                 self.global_variables[key] = os.environ[key]
 
         return self.global_variables
 
-    def delta_days(self, value, days):
+    def delta_days(self, value: datetime.datetime, days: int) -> datetime.datetime:
+        """Returns a new datetime object + or - the number of delta days.
+
+        Args:
+            value (datetime.datetime): Starting datetime object
+            days (int): Days to increment or decrement the value
+
+        Returns:
+            datetime.datetime: New datetime object with the delta applied
+        """
         return value + datetime.timedelta(days)
 
-    def template_lookup(self, plugin, **kwargs):
+    def template_lookup(self, plugin: str, **kwargs) -> str:  # type: ignore[no-untyped-def]
+        """Lookup function used by Jinja.
+
+        This function is responsible for calling the lookup plugins to evaluate custom
+        variables. This imports the necessary Python module and calls the lookup
+        function's run method.
+
+        Args:
+            plugin (str): The name of the plugin to call
+            **kwargs: The arguments to pass to the plugin
+
+        Returns:
+            str: The result of the lookup plugin
+        """
         self.logger.log(
             11, f"Got call to lookup function {plugin} with kwargs {kwargs}"
         )
@@ -61,28 +102,45 @@ class ConfigLoader:
             except ModuleNotFoundError:
                 self.logger.log(
                     11,
-                    f"Module not found: opentaskpy.plugins.lookup.{plugin}. Looking in plugins directory instead",
+                    (
+                        f"Module not found: opentaskpy.plugins.lookup.{plugin}. Looking"
+                        " in plugins directory instead"
+                    ),
                 )
-                pass
 
         # If we haven't loaded the plugin yet, then look in the cfg/plugins directory and see if we can find it
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
-            plugin_path = f"{self.config_dir}/plugins/{plugin}.py"
+            plugin_path = f"{self.config_dir}/plugins/lookup/{plugin}.py"
             if os.path.isfile(plugin_path):
-                spec = importlib.util.spec_from_file_location(
+                spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
                     f"opentaskpy.plugins.lookup.{plugin}", plugin_path
                 )
-                module = importlib.util.module_from_spec(spec)
+                module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
                 spec.loader.exec_module(module)
                 sys.modules[f"opentaskpy.plugins.lookup.{plugin}"] = module
 
         # Run the run function of the imported module
-        return getattr(  # noqa: B009
-            sys.modules[f"opentaskpy.plugins.lookup.{plugin}"], "run"
-        )(**kwargs)
+        return str(
+            getattr(  # noqa: B009
+                sys.modules[f"opentaskpy.plugins.lookup.{plugin}"], "run"
+            )(**kwargs)
+        )
 
     # TASK DEFINITION FIND FILE
-    def load_task_definition(self, task_id):
+    def load_task_definition(self, task_id: str) -> dict:
+        """Load the task definition from the config directory.
+
+        Args:
+            task_id (str): The id of the task to load
+
+        Raises:
+            DuplicateConfigFileError: Raised if more than one config file is found
+            matching the task_id
+            FileNotFoundError: Raised if no config file is found matching the task_id
+
+        Returns:
+            dict: A dictionary representing the task definition
+        """
         json_config = glob(f"{self.config_dir}/**/{task_id}.json", recursive=True)
         if not json_config or len(json_config) != 1:
             if len(json_config) > 1:
@@ -105,7 +163,7 @@ class ConfigLoader:
 
         # Check to see if this is not a batch type
         if "type" in task_definition and task_definition["type"] == "batch":
-            self.logger.warn("Cannot apply overrides to batch tasks. Ignoring")
+            self.logger.warning("Cannot apply overrides to batch tasks. Ignoring")
             return task_definition
 
         # Finally, attributes of the task definition can also be overridden by environment variables
@@ -125,8 +183,8 @@ class ConfigLoader:
         return task_definition
 
     def _apply_env_var_overrides_to_task_definition(
-        self, task_definition, split_key, value
-    ):
+        self, task_definition: dict, split_key: str, value: str
+    ) -> None:
         attribute = split_key[0]
 
         # Match the attribute, to an attribute in the task_definition, bearing in mind that the case may not match
@@ -159,9 +217,9 @@ class ConfigLoader:
 
     # POPULATE VARIABLES INSIDE TASK DEFINITION
     # AND LOAD ADDITIONAL VARIABLES FROM TASK DEFINITION
-    def _enrich_variables(self, task_definition_file):
+    def _enrich_variables(self, task_definition_file: str) -> dict:
         active_task_definition = None
-        with open(task_definition_file) as json_file:
+        with open(task_definition_file, encoding="utf-8") as json_file:
             json_content = json_file.read()
             template = self.template_env.from_string(json_content)
 
@@ -181,7 +239,7 @@ class ConfigLoader:
             template.globals["lookup"] = self.template_lookup
 
             rendered_template = template.render(self.global_variables)
-            active_task_definition = json.loads(rendered_template)
+            active_task_definition = dict(json.loads(rendered_template))
             self.logger.log(
                 12, f"Evaluated task definition: {json.dumps(active_task_definition)}"
             )
@@ -189,8 +247,8 @@ class ConfigLoader:
         return active_task_definition
 
     # READ AND PARSE ACTUAL VARIABLE FILES
-    def _load_global_variables(self):
-        global_variables = dict()
+    def _load_global_variables(self) -> None:
+        global_variables: dict = {}
         variable_configs = []
         file_types = (".json.j2", ".json")
         for file_type in file_types:
@@ -198,23 +256,22 @@ class ConfigLoader:
                 glob(f"{self.config_dir}/**/variables{file_type}", recursive=True)
             )
         if not variable_configs:
-            # self.logger.error("Couldn't find any variables.(json|json.j2) files")
             raise FileNotFoundError(
-                f"Couldn't find any variables.(json|json.j2) files under {self.config_dir}"
+                "Couldn't find any variables.(json|json.j2) files under"
+                f" {self.config_dir}"
             )
-        else:
-            for variable_file in variable_configs:
-                with open(variable_file) as json_file:
-                    this_variable_config = json.load(json_file)
-                    global_variables = global_variables | this_variable_config
+
+        for variable_file in variable_configs:
+            with open(variable_file, encoding="utf-8") as json_file:
+                this_variable_config = json.load(json_file)
+                global_variables = global_variables | this_variable_config
 
         self.global_variables = global_variables
 
     # RESOLVE ANY VARIABLES THAT USE OTHER VARIABLES IN THE VARIABLE FILES
-    def _resolve_templated_variables(self):
-        # We need to evaluate the variables themselves, incase theres any recursion
+    def _resolve_templated_variables(self) -> None:
+        # We need to evaluate the variables themselves, in case there's any recursion
         # Convert the variables to a JSON string which we can process with the jinja2 templater
-        global MAX_DEPTH
         current_depth = 0
         previous_render = None
 
@@ -239,8 +296,11 @@ class ConfigLoader:
             current_depth += 1
             if current_depth >= MAX_DEPTH:
                 self.logger.error(
-                    "Reached max depth of recursive template evaluation. Please check the task as variable definitions for infinite recursion"
+                    "Reached max depth of recursive template evaluation. Please check"
+                    " the task as variable definitions for infinite recursion"
                 )
-                raise Exception("Reached max depth of recursive template evaluation")
+                raise VariableResolutionTooDeepError(
+                    "Reached max depth of recursive template evaluation"
+                )
 
         self.global_variables = json.loads(evaluated_variables)

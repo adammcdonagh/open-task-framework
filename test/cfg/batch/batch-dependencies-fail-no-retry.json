@@ -10,17 +10,13 @@
       "order_id": 2,
       "task_id": "sleep-300",
       "timeout": 6,
-      "dependencies": [
-        1
-      ]
+      "dependencies": [1]
     },
     {
       "order_id": 3,
       "task_id": "touch",
       "timeout": 60,
-      "dependencies": [
-        1
-      ]
+      "dependencies": [1]
     }
   ]
 }

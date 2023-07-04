@@ -1,3 +1,4 @@
+# pylint: skip-file
 import pytest
 
 from opentaskpy.plugins.lookup.http_json import run

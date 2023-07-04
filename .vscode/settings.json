@@ -1,22 +1,33 @@
 {
-  "python.testing.unittestArgs": [
-    "-v",
-    "-s",
-    "tests",
-    "-p",
-    "test_*.py",
-  ],
-  "python.testing.pytestEnabled": true,
+  "python.testing.unittestArgs": ["-v", "-s", "tests", "-p", "test_*.py"],
   "python.testing.unittestEnabled": false,
+  "python.autoComplete.extraPaths": ["src/python/sensu_plugin/lib"],
+  "python.analysis.extraPaths": ["src/python/sensu_plugin/lib"],
+  "python.analysis.typeCheckingMode": "off",
   "python.linting.enabled": true,
-  "python.linting.flake8Enabled": true,
-  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+  "http.systemCertificates": true,
   "python.formatting.provider": "black",
-  "python.formatting.blackArgs": [
-    "--line-length=88"
-  ],
+  "files.associations": {
+    "*.json": "jsonc"
+  },
+  "files.autoSave": "off", // needed for editor.formatOnSave
+  "files.insertFinalNewline": true, // needed for pre-commit check
+  "files.trimTrailingWhitespace": true,
   "editor.formatOnSave": true,
-  "python.testing.pytestArgs": [
-    "--keepalive"
-  ]
+  "editor.rulers": [88],
+  "isort.args": ["--profile", "black"],
+  "pylint.severity": {
+    "convention": "Warning",
+    "refactor": "Warning",
+    "info": "Warning"
+  },
+  "black-formatter.args": ["--preview"],
+  "mypy.enabled": true,
+  "ruff.run": "onType",
+  "python.testing.pytestEnabled": true,
+  "python.linting.pylintEnabled": true,
+  "editor.formatOnType": true,
+  "python.testing.pytestArgs": ["."],
+  "python.linting.pylintCategorySeverity.refactor": "Warning"
 }

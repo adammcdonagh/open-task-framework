@@ -1,3 +1,4 @@
+# pylint: skip-file
 import pytest
 
 from opentaskpy.config.schemas import validate_execution_json

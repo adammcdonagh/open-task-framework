@@ -5,7 +5,7 @@ __pycache__
 # Test stuff
 test/testFiles
 test/testLogs
-cfg
+
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
@@ -179,3 +179,5 @@ poetry.toml
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+bin/act

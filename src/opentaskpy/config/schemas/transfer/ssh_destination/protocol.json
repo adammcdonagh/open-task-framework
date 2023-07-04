@@ -3,9 +3,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "enum": [
-        "ssh"
-      ]
+      "enum": ["ssh"]
     },
     "credentials": {
       "type": "object",
@@ -20,15 +18,10 @@
           "type": "string"
         }
       },
-      "required": [
-        "username"
-      ],
+      "required": ["username"],
       "additionalProperties": false
     }
   },
-  "required": [
-    "name",
-    "credentials"
-  ],
+  "required": ["name", "credentials"],
   "additionalProperties": false
 }

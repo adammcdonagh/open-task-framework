@@ -1,54 +1,93 @@
+"""Task handler for running transfers."""
 import random
 import shutil
+import threading
 import time
 from importlib import import_module
 from math import ceil, floor
 from os import environ, getpid, makedirs, path
 from sys import modules
+from typing import NamedTuple
 
-import opentaskpy.logging
+import opentaskpy.otflogging
 from opentaskpy import exceptions
+from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 
 # Full transfers expect that the remote host has a base install of python3
 # We transfer over the wrapper script to the remote host and trigger it, which is responsible
 # for doing some of the more complex work, rather than triggering a tonne of shell commands
 
+
+class DefaultProtocolCharacteristics(NamedTuple):
+    """Class defining the configuration for default protocols."""
+
+    module: str
+    class_: str
+
+
 TASK_TYPE = "T"
 DEFAULT_PROTOCOL_MAP = {
-    "ssh": {"module": "opentaskpy.remotehandlers.ssh", "class": "SSHTransfer"},
-    "email": {"module": "opentaskpy.remotehandlers.email", "class": "EmailTransfer"},
+    "ssh": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.ssh", "SSHTransfer"
+    ),
+    "email": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.email", "EmailTransfer"
+    ),
 }
+DEFAULT_STAGING_DIR_BASE = "/tmp"  # nosec B108
 
 
-class Transfer(TaskHandler):
-    def __init__(self, global_config, task_id, transfer_definition):
+class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
+    """Task handler for running transfers."""
+
+    source_remote_handler: RemoteTransferHandler
+    dest_remote_handlers: RemoteTransferHandler = None
+    source_file_spec: dict
+    dest_file_specs: list[dict] | None = None
+    overall_result: bool = False
+
+    def __init__(self, global_config: dict, task_id: str, transfer_definition: dict):
+        """Create a new transfer task handler.
+
+        Args:
+            global_config (dict): Global configuration dictionary
+            task_id (str): Task ID
+            transfer_definition (dict): Transfer definition
+        """
         self.task_id = task_id
         self.transfer_definition = transfer_definition
-        self.source_remote_handler = None
-        self.dest_remote_handlers = None
-        self.source_file_spec = None
-        self.dest_file_specs = None
-        self.overall_result = False
 
-        self.local_staging_dir = f"/tmp/staging/{getpid()}.{random.randint(0, 1000000)}"
+        # Set up the local staging directory
+        # Allow for a custom staging directory to be set via environment variable
+        staging_dir_name = f"OTF_STAGING_{getpid()}.{random.randint(0, 1000000)}"
+        if "OTF_STAGING_DIR" in environ:
+            self.local_staging_dir = f"{environ['OTF_STAGING_DIR']}/{staging_dir_name}"
+        else:
+            self.local_staging_dir = f"/{DEFAULT_STAGING_DIR_BASE}/{staging_dir_name}"
 
-        self.logger = opentaskpy.logging.init_logging(
+        self.logger = opentaskpy.otflogging.init_logging(
             "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
         )
 
         super().__init__(global_config)
 
-    def return_result(self, status, message=None, exception=None):
-        if message:
-            if status == 0:
-                self.logger.info(message)
-            else:
-                self.logger.error(message)
+    def return_result(
+        self,
+        status: int,
+        message: str | None = None,
+        exception: Exception | None = None,
+    ) -> bool:
+        """Return the result of the task run.
 
-        if status == 0:
-            self.overall_result = True
+        Args:
+            status (int): The status code to return.
+            message (str, optional): The message to return. Defaults to None.
+            exception (Exception, optional): The exception to return. Defaults to None.
 
+        Returns:
+            bool: The result of the task run.
+        """
         # Delete the remote connection objects
         if self.source_remote_handler:
             self.logger.log(12, "Closing source connection")
@@ -65,26 +104,20 @@ class Transfer(TaskHandler):
             )
             shutil.rmtree(self.local_staging_dir)
 
-        self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        # Call super to do the rest
+        return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
-        # Throw an exception if we have one
-        if exception:
-            raise exception(message)
-
-        return status == 0
-
-    def _get_default_class(self, protocol_name):
-        class_name = DEFAULT_PROTOCOL_MAP[protocol_name]["class"]
-        module_name = DEFAULT_PROTOCOL_MAP[protocol_name]["module"]
+    def _get_default_class(self, protocol_name: str) -> type:
+        class_name = DEFAULT_PROTOCOL_MAP[protocol_name].class_
+        module_name = DEFAULT_PROTOCOL_MAP[protocol_name].module
 
         # Load module
         if module_name not in modules:
             import_module(module_name)
 
-        return getattr(modules[module_name], class_name)
+        return getattr(modules[module_name], class_name)  # type: ignore[no-any-return]
 
-    def _set_remote_handlers(self):
+    def _set_remote_handlers(self) -> None:
         # Based on the transfer definition, determine what to do first
         self.source_file_spec = self.transfer_definition["source"]
         source_protocol = self.source_file_spec["protocol"]["name"]
@@ -131,7 +164,15 @@ class Transfer(TaskHandler):
                 self.dest_remote_handlers.append(remote_handler)
                 super()._set_handler_vars(remote_protocol, remote_handler)
 
-    def run(self, kill_event=None):
+    def run(self, kill_event: threading.Event | None = None) -> bool:  # noqa: C901
+        """Run the transfer task.
+
+        Args:
+            kill_event (threading.Event, optional): Event to kill the task. Defaults to None.
+
+        Returns:
+            bool: The result of the task run.
+        """
         self.logger.info("Running transfer")
         environ["OTF_TASK_ID"] = self.task_id
 
@@ -140,7 +181,8 @@ class Transfer(TaskHandler):
         # If log watching, do that first
         if "logWatch" in self.source_file_spec:
             self.logger.info(
-                f"Performing a log watch of {self.source_file_spec['logWatch']['directory']}/{self.source_file_spec['logWatch']['log']}"
+                "Performing a log watch of"
+                f" {self.source_file_spec['logWatch']['directory']}/{self.source_file_spec['logWatch']['log']}"
             )
 
             if self.source_remote_handler.init_logwatch() != 0:
@@ -166,23 +208,22 @@ class Transfer(TaskHandler):
                 if self.source_remote_handler.do_logwatch() == 0:
                     found_log_entry = True
                     break
+
+                remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
+                if remaining_seconds == 0:
+                    break
+
+                # If the sleep time is longer than the time remaining, sleep for that long instead
+                if remaining_seconds < sleep_seconds:
+                    actual_sleep_seconds = remaining_seconds
                 else:
-                    remaining_seconds = ceil(
-                        (start_time + timeout_seconds) - time.time()
-                    )
-                    if remaining_seconds == 0:
-                        break
+                    actual_sleep_seconds = sleep_seconds
 
-                    # If the sleep time is longer than the time remaining, sleep for that long instead
-                    if remaining_seconds < sleep_seconds:
-                        actual_sleep_seconds = remaining_seconds
-                    else:
-                        actual_sleep_seconds = sleep_seconds
-
-                    self.logger.info(
-                        f"No entry found in log. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain"
-                    )
-                    time.sleep(actual_sleep_seconds)
+                self.logger.info(
+                    f"No entry found in log. Sleeping for {sleep_seconds} secs."
+                    f" {remaining_seconds} seconds remain"
+                )
+                time.sleep(actual_sleep_seconds)
 
             if found_log_entry:
                 self.logger.info("Found pattern in log file")
@@ -208,7 +249,7 @@ class Transfer(TaskHandler):
             )
 
             start_time = time.time()
-            remote_files = []
+            remote_files: dict = {}
 
             # Determine if we're doing a plain filewatch, or looking for a different file to what we are transferring
             watch_directory = (
@@ -232,35 +273,34 @@ class Transfer(TaskHandler):
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
-                # TODO: #5 Change all references to remote_files to expect a generato
+                # TODO: #5 Change all references to remote_files to expect a generator # pylint: disable=fixme
                 if remote_files:
                     self.logger.info("Filewatch found remote file(s)")
                     break
+
+                remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
+                if remaining_seconds == 0:
+                    break
+
+                # If the sleep time is longer than the time remaining, sleep for that long instead
+                if remaining_seconds < sleep_seconds:
+                    actual_sleep_seconds = remaining_seconds
                 else:
-                    remaining_seconds = ceil(
-                        (start_time + timeout_seconds) - time.time()
-                    )
-                    if remaining_seconds == 0:
-                        break
+                    actual_sleep_seconds = sleep_seconds
 
-                    # If the sleep time is longer than the time remaining, sleep for that long instead
-                    if remaining_seconds < sleep_seconds:
-                        actual_sleep_seconds = remaining_seconds
-                    else:
-                        actual_sleep_seconds = sleep_seconds
-
-                    self.logger.info(
-                        f"No files found. Sleeping for {sleep_seconds} secs. {remaining_seconds} seconds remain"
-                    )
-                    time.sleep(actual_sleep_seconds)
+                self.logger.info(
+                    f"No files found. Sleeping for {sleep_seconds} secs."
+                    f" {remaining_seconds} seconds remain"
+                )
+                time.sleep(actual_sleep_seconds)
 
             if (
                 remote_files
                 and "watchOnly" in self.source_file_spec["fileWatch"]
                 and self.source_file_spec["fileWatch"]["watchOnly"]
             ):
-                return self.return_result("0", "Just performing filewatch")
-            elif not remote_files:
+                return self.return_result(0, "Just performing filewatch")
+            if not remote_files:
                 # Only error if error is not set to false
                 if (
                     "error" in self.source_file_spec
@@ -270,12 +310,12 @@ class Transfer(TaskHandler):
                         "No files found after timeout, but error is set to false"
                     )
                     return self.return_result(0, "No files found")
-                else:
-                    return self.return_result(
-                        1,
-                        f"No files found after {timeout_seconds} seconds",
-                        exception=exceptions.RemoteFileNotFoundError,
-                    )
+
+                return self.return_result(
+                    1,
+                    f"No files found after {timeout_seconds} seconds",
+                    exception=exceptions.RemoteFileNotFoundError,
+                )
 
         # Determine what needs to be transferred
 
@@ -306,13 +346,15 @@ class Transfer(TaskHandler):
 
                     if min_size and file_size <= min_size:
                         self.logger.info(
-                            f"File is too small: Min size: [{min_size} B] Actual size: [{file_size} B]"
+                            f"File is too small: Min size: [{min_size} B] Actual size:"
+                            f" [{file_size} B]"
                         )
                         meets_condition = False
 
                     if max_size and file_size >= max_size:
                         self.logger.info(
-                            f"File is too big: Max size: [{max_size} B] Actual size: [{file_size} B]"
+                            f"File is too big: Max size: [{max_size} B] Actual size:"
+                            f" [{file_size} B]"
                         )
                         meets_condition = False
 
@@ -333,18 +375,24 @@ class Transfer(TaskHandler):
 
                     self.logger.log(
                         12,
-                        f"Checking file age - Last modified time: {time.ctime(file_modified_time)} - Age in secs: {file_age} secs",
+                        (
+                            "Checking file age - Last modified time:"
+                            f" {time.ctime(file_modified_time)} - Age in secs:"
+                            f" {file_age} secs"
+                        ),
                     )
 
                     if min_age and file_age <= min_age:
                         self.logger.info(
-                            f"File is too new: Min age: [{min_age} secs] Actual age: [{file_age} secs]"
+                            f"File is too new: Min age: [{min_age} secs] Actual age:"
+                            f" [{file_age} secs]"
                         )
                         meets_condition = False
 
                     if max_age and file_age >= max_age:
                         self.logger.info(
-                            f"File is too old: Max age: [{max_age} secs] Actual age: [{file_age} secs]"
+                            f"File is too old: Max age: [{max_age} secs] Actual age:"
+                            f" [{file_age} secs]"
                         )
                         meets_condition = False
 
@@ -355,39 +403,44 @@ class Transfer(TaskHandler):
             if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,
-                    "No remote files could be found to transfer. But not erroring due to config",
+                    (
+                        "No remote files could be found to transfer. But not erroring"
+                        " due to config"
+                    ),
                     exception=exceptions.FilesDoNotMeetConditionsError,
                 )
-            else:
-                return self.return_result(
-                    1,
-                    "No remote files could be found to transfer",
-                    exception=exceptions.FilesDoNotMeetConditionsError,
-                )
-        else:
-            self.logger.info("Found the following file(s) that match all requirements:")
-            for file in remote_files:
-                self.logger.info(f" * {file}")
 
-            # If there's a destination file spec, then we need to transfer the files
-            if self.dest_file_specs:
-                # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
-                # If there are, then we need to do a pull transfer first, then a push transfer
-                different_protocols = False
-                i = 0
-                for dest_file_spec in self.dest_file_specs:
-                    if (
+            return self.return_result(
+                1,
+                "No remote files could be found to transfer",
+                exception=exceptions.FilesDoNotMeetConditionsError,
+            )
+
+        self.logger.info("Found the following file(s) that match all requirements:")
+        for file in remote_files:
+            self.logger.info(f" * {file}")
+
+        # If there's a destination file spec, then we need to transfer the files
+        if self.dest_file_specs:
+            # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
+            # If there are, then we need to do a pull transfer first, then a push transfer
+            different_protocols = False
+            i = 0
+            for dest_file_spec in self.dest_file_specs:
+                if (
+                    (
                         "transferType" not in dest_file_spec
                         or dest_file_spec["transferType"] == "push"
-                        # And the destination and source remote handler classes are the same
-                        and (
-                            self.source_remote_handler.__class__
-                            != self.dest_remote_handlers[i].__class__
-                        )
-                    ):
-                        different_protocols = True
-                        i += 1
-                        break
+                    )
+                    # And the destination and source remote handler classes are not the same
+                    and (
+                        self.source_remote_handler.__class__
+                        != self.dest_remote_handlers[i].__class__
+                    )
+                ):
+                    different_protocols = True
+                    i += 1
+                    break
 
                 # If there are differences, download the file locally first
                 # so it's ready to upload to multiple destinations at once
@@ -407,124 +460,126 @@ class Transfer(TaskHandler):
                             exception=exceptions.RemoteTransferError,
                         )
 
-                i = 0
-                for dest_file_spec in self.dest_file_specs:
-                    # Handle the push transfers first
-                    associated_dest_remote_handler = self.dest_remote_handlers[i]
-                    # If this is a default push transfer, and both source and dest protocols are the same
-                    if (
-                        "transferType" not in dest_file_spec
-                        or dest_file_spec["transferType"] == "push"
-                        # And the destination and source remote handler classes are the same
-                    ) and not different_protocols:
-                        transfer_result = self.source_remote_handler.transfer_files(
-                            remote_files,
-                            dest_file_spec,
-                            dest_remote_handler=associated_dest_remote_handler,
-                        )
-                        if transfer_result != 0:
-                            return self.return_result(
-                                1,
-                                "Remote transfer errored",
-                                exception=exceptions.RemoteTransferError,
-                            )
-
-                        self.logger.info("Transfer completed successfully")
-                    # If this is a default push transfer, and source and dest protocols are different
-                    elif (
-                        "transferType" in dest_file_spec
-                        and (
-                            dest_file_spec["transferType"] == "push"
-                            or dest_file_spec["transferType"] == "proxy"
-                        )
-                    ) or different_protocols:
-                        self.logger.debug(
-                            "Transfer protocols are different, or proxy transfer is requested"
-                        )
-
-                        transfer_result = (
-                            associated_dest_remote_handler.push_files_from_worker(
-                                self.local_staging_dir
-                            )
-                        )
-
-                        if transfer_result != 0:
-                            return self.return_result(
-                                1,
-                                "Push of files to destination errored",
-                                exception=exceptions.RemoteTransferError,
-                            )
-
-                    elif (
-                        "transferType" in dest_file_spec
-                        and dest_file_spec["transferType"] == "pull"
-                    ):
-                        transfer_result = associated_dest_remote_handler.pull_files(
-                            remote_files, self.source_file_spec
-                        )
-                        if transfer_result != 0:
-                            return self.return_result(
-                                1,
-                                "Remote PULL transfer errored",
-                                exception=exceptions.RemoteTransferError,
-                            )
-
-                        self.logger.info("Transfer completed successfully")
-
-                    # Handle any ownership and permissions changes
-                    if dest_file_spec["protocol"]["name"] == "ssh":
-                        move_result = self.dest_remote_handlers[
-                            i
-                        ].move_files_to_final_location(remote_files)
-                        if move_result != 0:
-                            return self.return_result(
-                                1,
-                                "Error moving file into final location",
-                                exception=exceptions.RemoteTransferError,
-                            )
-
-                    # Create any flag files that might need creating
-                    if "flags" in dest_file_spec:
-                        flag_result = self.dest_remote_handlers[i].create_flag_files()
-                        if flag_result != 0:
-                            return self.return_result(
-                                1,
-                                "Error creating flag files",
-                                exception=exceptions.RemoteTransferError,
-                            )
-
-                    i += 1
-
-                if different_protocols:
-                    self.logger.debug("Removing local staging directory")
-                    shutil.rmtree(self.local_staging_dir)
-            else:
-                self.logger.info("Performing filewatch only")
-
-            if "postCopyAction" in self.source_file_spec:
-                try:
-                    pca_result = self.source_remote_handler.handle_post_copy_action(
-                        remote_files
+            i = 0
+            for dest_file_spec in self.dest_file_specs:
+                # Handle the push transfers first
+                associated_dest_remote_handler = self.dest_remote_handlers[i]
+                # If this is a default push transfer, and both source and dest protocols are the same
+                if (
+                    "transferType" not in dest_file_spec
+                    or dest_file_spec["transferType"] == "push"
+                    # And the destination and source remote handler classes are the same
+                ) and not different_protocols:
+                    transfer_result = self.source_remote_handler.transfer_files(
+                        remote_files,
+                        dest_file_spec,
+                        dest_remote_handler=associated_dest_remote_handler,
                     )
-                except Exception as e:
-                    pca_result = 1
-                    return self.return_result(
-                        1,
-                        "Error performing post copy action",
-                        exception=e,
+                    if transfer_result != 0:
+                        return self.return_result(
+                            1,
+                            "Remote transfer errored",
+                            exception=exceptions.RemoteTransferError,
+                        )
+
+                    self.logger.info("Transfer completed successfully")
+                # If this is a default push transfer, and source and dest protocols are different
+                elif (
+                    "transferType" in dest_file_spec
+                    and (
+                        dest_file_spec["transferType"] == "push"
+                        or dest_file_spec["transferType"] == "proxy"
                     )
-                if pca_result != 0:
-                    return self.return_result(
-                        1,
-                        "Error performing post copy action",
-                        exception=exceptions.RemoteTransferError,
+                ) or different_protocols:
+                    self.logger.debug(
+                        "Transfer protocols are different, or proxy transfer is"
+                        " requested"
                     )
 
-            return self.return_result(0)
+                    transfer_result = (
+                        associated_dest_remote_handler.push_files_from_worker(
+                            self.local_staging_dir
+                        )
+                    )
+
+                    if transfer_result != 0:
+                        return self.return_result(
+                            1,
+                            "Push of files to destination errored",
+                            exception=exceptions.RemoteTransferError,
+                        )
+
+                elif (
+                    "transferType" in dest_file_spec
+                    and dest_file_spec["transferType"] == "pull"
+                ):
+                    transfer_result = associated_dest_remote_handler.pull_files(
+                        remote_files, self.source_file_spec
+                    )
+                    if transfer_result != 0:
+                        return self.return_result(
+                            1,
+                            "Remote PULL transfer errored",
+                            exception=exceptions.RemoteTransferError,
+                        )
+
+                    self.logger.info("Transfer completed successfully")
+
+                # Handle any ownership and permissions changes
+                if dest_file_spec["protocol"]["name"] == "ssh":
+                    move_result = self.dest_remote_handlers[
+                        i
+                    ].move_files_to_final_location(remote_files)
+                    if move_result != 0:
+                        return self.return_result(
+                            1,
+                            "Error moving file into final location",
+                            exception=exceptions.RemoteTransferError,
+                        )
+
+                # Create any flag files that might need creating
+                if "flags" in dest_file_spec:
+                    flag_result = self.dest_remote_handlers[i].create_flag_files()
+                    if flag_result != 0:
+                        return self.return_result(
+                            1,
+                            "Error creating flag files",
+                            exception=exceptions.RemoteTransferError,
+                        )
+
+                i += 1
+
+            if different_protocols:
+                self.logger.debug("Removing local staging directory")
+                shutil.rmtree(self.local_staging_dir)
+        else:
+            self.logger.info("Performing filewatch only")
+
+        if "postCopyAction" in self.source_file_spec:
+            try:
+                pca_result = self.source_remote_handler.handle_post_copy_action(
+                    remote_files
+                )
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                pca_result = 1
+                return self.return_result(
+                    1,
+                    "Error performing post copy action",
+                    exception=e,
+                )
+            if pca_result != 0:
+                return self.return_result(
+                    1,
+                    "Error performing post copy action",
+                    exception=exceptions.RemoteTransferError,
+                )
+
+        return self.return_result(0)
 
     # Destructor to handle when the transfer is finished. Make sure the log file
     # gets renamed as appropriate
-    def __del__(self):
+    def __del__(self) -> None:
+        """Destructor to handle closing log file correctly."""
         self.logger.debug("Transfer object deleted")
         self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

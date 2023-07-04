@@ -20,12 +20,6 @@
       "$ref": "protocol.json"
     }
   },
-  "required": [
-    "type",
-    "hosts",
-    "directory",
-    "command",
-    "protocol"
-  ],
+  "required": ["type", "hosts", "directory", "command", "protocol"],
   "additionalProperties": false
 }

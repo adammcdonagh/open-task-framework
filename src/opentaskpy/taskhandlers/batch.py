@@ -1,9 +1,12 @@
+"""Batch task handler class."""
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from os import environ
 
-import opentaskpy.logging
+import opentaskpy.otflogging
+from opentaskpy.config.loader import ConfigLoader
+from opentaskpy.exceptions import InvalidConfigError
 from opentaskpy.taskhandlers.execution import Execution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
 from opentaskpy.taskhandlers.transfer import Transfer
@@ -17,30 +20,49 @@ BATCH_TASK_LOG_MARKER = "__OTF_BATCH_TASK_MARKER__"
 
 
 class Batch(TaskHandler):
+    """Batch task handler class."""
+
     overall_result = False
 
-    def __init__(self, global_config, task_id, batch_definition, config_loader):
+    def __init__(
+        self,
+        global_config: dict,
+        task_id: str,
+        batch_definition: dict,
+        config_loader: ConfigLoader,
+    ):
+        """Initialise the batch task handler.
+
+        Args:
+            global_config (dict): The global configuration for the task.
+            task_id (str): The ID of the task.
+            batch_definition (dict): The definition of the batch task.
+            config_loader (ConfigLoader): The config loader to use to load
+            task definitions within the batch.
+        """
         self.task_id = task_id
         self.batch_definition = batch_definition
         self.config_loader = config_loader
-        self.tasks = dict()
-        self.task_order_tree = dict()
+        self.tasks = {}
+        self.task_order_tree = {}
 
         super().__init__(global_config)
 
-        self.logger = opentaskpy.logging.init_logging(__name__, self.task_id, TASK_TYPE)
+        self.logger = opentaskpy.otflogging.init_logging(
+            __name__, self.task_id, TASK_TYPE
+        )
 
         # We need to get the latest log file (if there is one), to determine
         # where to start from (if we are resuming a batch)
-        previous_log_file = opentaskpy.logging.get_latest_log_file(
+        previous_log_file = opentaskpy.otflogging.get_latest_log_file(
             self.task_id, TASK_TYPE
         )
-        previous_status = dict()
+        previous_status = {}
         if previous_log_file:
             self.logger.info("Parsing previous log file for log marks")
 
             # Parse the previous log file to determine where we left off
-            with open(previous_log_file, "r") as f:
+            with open(previous_log_file, encoding="utf-8") as f:
                 for line in f:
                     if BATCH_TASK_LOG_MARKER in line:
                         log_mark = line.split(f"{BATCH_TASK_LOG_MARKER}: ")[1].strip()
@@ -65,10 +87,7 @@ class Batch(TaskHandler):
 
             # Set the timeout for the task
             timeout = None
-            if "timeout" in task:
-                timeout = task["timeout"]
-            else:
-                timeout = DEFAULT_TASK_TIMEOUT
+            timeout = task.get("timeout", DEFAULT_TASK_TIMEOUT)
 
             # Same for continue on fail
             continue_on_fail = None
@@ -79,10 +98,7 @@ class Batch(TaskHandler):
 
             # Same for retry on rerun
             retry_on_rerun = None
-            if "retry_on_rerun" in task:
-                retry_on_rerun = task["retry_on_rerun"]
-            else:
-                retry_on_rerun = DEFAULT_TASK_RETRY_ON_RERUN
+            retry_on_rerun = task.get("retry_on_rerun", DEFAULT_TASK_RETRY_ON_RERUN)
 
             # Set the status of the task
             status = "NOT_STARTED"
@@ -92,17 +108,19 @@ class Batch(TaskHandler):
                     if previous_status[order_id] == "COMPLETED":
                         # Log something to make it clear that we are rerunning
                         self.logger.info(
-                            f"Task {task_id} succeeded last time, but is marked to be rerun"
+                            f"Task {task_id} succeeded last time, but is marked to be"
+                            " rerun"
                         )
                     status = "NOT_STARTED"
                 elif previous_status[order_id] == "COMPLETED":
                     self.logger.info(
-                        f"Task {task_id} succeeded last time, and is not marked to be rerun, so marking as complete"
+                        f"Task {task_id} succeeded last time, and is not marked to be"
+                        " rerun, so marking as complete"
                     )
                     # Output the log mark
                     self._log_task_result(
                         "COMPLETED",
-                        order_id,
+                        str(order_id),
                         task["task_id"],
                     )
                     status = "COMPLETED"
@@ -127,7 +145,7 @@ class Batch(TaskHandler):
                         self.config_loader,
                     )
                 else:
-                    raise Exception("Unknown task type")
+                    raise InvalidConfigError("Unknown task type")
 
             self.task_order_tree[order_id] = {
                 "task_id": task["task_id"],
@@ -144,28 +162,36 @@ class Batch(TaskHandler):
         # Debug to show the structure of the tree
         self.logger.debug(f"Task order tree: {self.task_order_tree}")
 
-    def _set_remote_handlers(self):
+    def _set_remote_handlers(self) -> None:
         pass
 
-    def return_result(self, status, message=None, exception=None):
-        if message:
-            if status == 0:
-                self.logger.info(message)
-            else:
-                self.logger.error(message)
-                self.overall_result = False
+    def return_result(
+        self,
+        status: int,
+        message: str | None = None,
+        exception: type[Exception] | None = None,
+    ) -> bool:
+        """Return the result of the task run.
 
-        # Close the file handler
-        self.logger.info("Closing log file handler")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        Args:
+            status (int): The status code to return.
+            message (str, optional): The message to return. Defaults to None.
+            exception (Exception, optional): The exception to return. Defaults to None.
 
-        # Throw an exception if we have one
-        if exception:
-            raise exception(message)
+        Returns:
+            bool: The result of the task run.
+        """
+        return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
-        return status == 0
+    def run(self, kill_event: threading.Event | None = None) -> bool:
+        """Run the batch.
 
-    def run(self, kill_event=None):
+        Args:
+            kill_event (threading.Event, optional): An event to kill the batch. Defaults to None.
+
+        Returns:
+            bool: True if the batch completed successfully, False otherwise.
+        """
         self.logger.info("Running batch")
         environ["OTF_TASK_ID"] = self.task_id
 
@@ -190,12 +216,17 @@ class Batch(TaskHandler):
                         if self.task_order_tree[dependency]["status"] != "COMPLETED":
                             self.logger.log(
                                 12,
-                                f"Skipping task {order_id} ({batch_task['task_id']}) as dependency {dependency} has not completed",
+                                (
+                                    "Skipping task"
+                                    f" {order_id} ({batch_task['task_id']}) as"
+                                    f" dependency {dependency} has not completed"
+                                ),
                             )
                             all_dependencies_complete = False
                             continue
                         self.logger.info(
-                            f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
+                            "All dependencies for task"
+                            f" {order_id} ({batch_task['task_id']}) have completed"
                         )
                     if not all_dependencies_complete:
                         continue
@@ -259,7 +290,8 @@ class Batch(TaskHandler):
                     and batch_task["continue_on_fail"]
                 ):
                     self.logger.info(
-                        f"Task {order_id} ({batch_task['task_id']}) has failed, but continuing on fail"
+                        f"Task {order_id} ({batch_task['task_id']}) has failed, but"
+                        " continuing on fail"
                     )
                     batch_task["status"] = "COMPLETED"
                     batch_task["result"] = False
@@ -302,12 +334,16 @@ class Batch(TaskHandler):
 
         if self.overall_result:
             return self.return_result(0, "All batch tasks completed successfully")
-        else:
-            return self.return_result(1, "Batch failed", ex)
 
-    def task_runner(self, batch_task, event):
-        # Thread to trigger the task itself
+        return self.return_result(1, "Batch failed", ex)
 
+    def task_runner(self, batch_task: dict, event: threading.Event) -> None:
+        """Run the task in a separate thread.
+
+        Args:
+            batch_task (dict): The task to run
+            event (threading.Event): The event to use to kill the thread
+        """
         self.logger.info(f"Running task {batch_task['task_id']}")
         with ThreadPoolExecutor(
             max_workers=1, thread_name_prefix=batch_task["task_id"]
@@ -348,49 +384,53 @@ class Batch(TaskHandler):
                             batch_task["task_id"],
                         )
                         break
-                    else:
-                        # Check if we have been asked to kill the thread
-                        if event.is_set():
-                            self.logger.log(
-                                12, f"Killing task handler for {batch_task['task_id']}"
-                            )
-                            # Kill the thread and all it's child processes
-                            batch_task["executing_thread"][0].cancel()
-                            executor.shutdown(wait=False)
-                            self._log_task_result(
-                                "FAILED",
-                                batch_task["batch_task_spec"]["order_id"],
-                                batch_task["task_id"],
-                            )
 
-                            break
-
-                        # Wait for the thread to complete
+                    # Check if we have been asked to kill the thread
+                    if event.is_set():
                         self.logger.log(
-                            12, f"Waiting for task handler for {batch_task['task_id']}"
+                            12, f"Killing task handler for {batch_task['task_id']}"
                         )
-                        wait(batch_task["executing_thread"], timeout=2)
+                        # Kill the thread and all it's child processes
+                        batch_task["executing_thread"][0].cancel()
+                        executor.shutdown(wait=False)
+                        self._log_task_result(
+                            "FAILED",
+                            batch_task["batch_task_spec"]["order_id"],
+                            batch_task["task_id"],
+                        )
+
+                        break
+
+                    # Wait for the thread to complete
+                    self.logger.log(
+                        12, f"Waiting for task handler for {batch_task['task_id']}"
+                    )
+                    wait(batch_task["executing_thread"], timeout=2)
 
             batch_task["end_time"] = time.time()
 
-    def _log_task_result(self, status, order_id, task_id):
+    def _log_task_result(self, status: str, order_id: str, task_id: str) -> None:
         self.logger.info(
             f"{BATCH_TASK_LOG_MARKER}: ORDER_ID::{order_id}::TASK::{task_id}::{status}"
         )
 
-    def _execute(self, remote_handler, event=None):
+    def _execute(
+        self, task_handler: TaskHandler, event: threading.Event | None = None
+    ) -> bool:  #
+        result = False
         try:
-            result = remote_handler.run(kill_event=event)
-        except Exception as ex:
-            self.logger.error(f"[{remote_handler.task_id}] Failed to run task")
+            result = task_handler.run(kill_event=event)
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            self.logger.error(f"[{task_handler.task_id}] Failed to run task")
             self.logger.error(ex)
             result = False
 
-        self.logger.info(f"[{remote_handler.task_id}] Returned {result}")
+        self.logger.info(f"[{task_handler.task_id}] Returned {result}")
         return result
 
     # Destructor to handle when the batch is finished. Make sure the log file
     # gets renamed as appropriate
-    def __del__(self):
+    def __del__(self) -> None:
+        """Destructor to handle closing log file correctly."""
         self.logger.debug("Batch object deleted")
-        opentaskpy.logging.close_log_file(self.logger, self.overall_result)
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

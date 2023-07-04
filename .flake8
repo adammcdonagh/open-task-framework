@@ -1,4 +1,9 @@
 [flake8]
-ignore = F405,F403,E501
+# Ignore  E501 (line too long) - black sorts this out
+ignore = E501
 extend-ignore = W503
-#max-line-length = 200
+exclude =
+  .venv,
+  build/*/bin/*.py
+
+per-file-ignores =

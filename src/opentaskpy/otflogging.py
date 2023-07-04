@@ -1,3 +1,4 @@
+"""Logging module."""
 import logging
 import os
 import re
@@ -11,8 +12,8 @@ LOG_DIRECTORY = (
 )
 
 
-def _define_log_file_name(task_id, task_type):
-    global LOG_DIRECTORY
+def _define_log_file_name(task_id: str | None, task_type: str | None) -> str:
+    global LOG_DIRECTORY  # pylint: disable=global-statement
     LOG_DIRECTORY = (
         "logs"
         if os.environ.get("OTF_LOG_DIRECTORY") is None
@@ -27,20 +28,38 @@ def _define_log_file_name(task_id, task_type):
     else:
         os.environ["OTF_LOG_RUN_PREFIX"] = prefix
 
+    if task_type:
+        task_type = f"_{task_type}"
+    else:
+        task_type = ""
+
     directory = f"{LOG_DIRECTORY}"
     if os.environ.get("OTF_RUN_ID") is not None:
         directory = f"{directory}/{os.environ.get('OTF_RUN_ID')}"
-        filename = f"{prefix}_{task_type}_{task_id}_running.log"
+        filename = f"{prefix}{task_type}_{task_id}_running.log"
     else:
         if task_id is None:
             task_id = "no_task_id"
         directory = f"{directory}/{task_id}"
-        filename = f"{prefix}_{task_type}_running.log"
+        filename = f"{prefix}{task_type}_running.log"
 
     return f"{directory}/{filename}"
 
 
-def init_logging(name, task_id=None, task_type=None):
+def init_logging(
+    name: str, task_id: str | None = None, task_type: str | None = None
+) -> logging.Logger:
+    """Setup a logger with the custom format and output filename.
+
+    Args:
+        name (str): The name of the logger, usually the class name, but can also
+        reference the thread, or batch task
+        task_id (str | None, optional): The Task ID. Defaults to None.
+        task_type (str | None, optional): The Task Type, either T for transfer, E for execution or B for batch. Defaults to None.
+
+    Returns:
+        logging.Logger: The logger object used for logging output.
+    """
     # Check if there's a root logger already
     if not logging.getLogger().hasHandlers():
         # Set the root logger
@@ -57,23 +76,23 @@ def init_logging(name, task_id=None, task_type=None):
 
     # Create a unique logger object for this task
     if not task_id:
-        logger = logging.getLogger(f"{name}")
+        otf_logger = logging.getLogger(f"{name}")
     else:
-        logger = logging.getLogger(f"{name}.{task_id}")
+        otf_logger = logging.getLogger(f"{name}.{task_id}")
 
     # Set verbosity
-    logger.setLevel(logging.getLogger().getEffectiveLevel())
+    otf_logger.setLevel(logging.getLogger().getEffectiveLevel())
     # Ensure the logger is at least at INFO level
-    if logger.getEffectiveLevel() > logging.INFO:
-        logger.setLevel(logging.INFO)
+    if otf_logger.getEffectiveLevel() > logging.INFO:
+        otf_logger.setLevel(logging.INFO)
 
     # If the log level is set in the environment, then use that
     if os.environ.get("OTF_LOG_LEVEL") is not None:
-        logger.setLevel(os.environ.get("OTF_LOG_LEVEL"))
+        otf_logger.setLevel(os.environ["OTF_LOG_LEVEL"])
 
     # If OTF_NO_LOG is set, then don't create the handler
     if os.environ.get("OTF_NO_LOG") is not None or not task_id:
-        return logger
+        return otf_logger
 
     log_file_name = _define_log_file_name(task_id, task_type)
 
@@ -82,23 +101,32 @@ def init_logging(name, task_id=None, task_type=None):
     if not any(
         isinstance(handler, TaskFileHandler)
         and handler.baseFilename == tfh.baseFilename
-        for handler in logger.handlers
+        for handler in otf_logger.handlers
     ):
-        logger.addHandler(tfh)
+        otf_logger.addHandler(tfh)
         tfh.setFormatter(formatter)
 
-    logger.info("Logging initialised")
+    otf_logger.info("Logging initialised")
 
-    return logger
+    return otf_logger
 
 
-def get_latest_log_file(task_id, task_type):
-    # Get the latest log file for this task
+def get_latest_log_file(task_id: str, task_type: str) -> str | None:
+    """Get the latest log file for this task.
+
+    Args:
+        task_id (str): The Task ID
+        task_type (str): The task type
+
+    Returns:
+        str | None: Either the latest log file name, or None if there are no previous
+        logs
+    """
     log_file_name = _define_log_file_name(task_id, task_type)
     # Obviously the date/time in the filename needs to be replaced with the latest
     # log file
     # Replace the prefix with a regex wildcard
-    log_file_name = log_file_name.replace(os.environ.get("OTF_LOG_RUN_PREFIX"), ".*")
+    log_file_name = log_file_name.replace(os.environ["OTF_LOG_RUN_PREFIX"], ".*")
     # Also, we don't want to limit to running jobs, only failed or successful ones
     log_file_name = log_file_name.replace("_running", "(_failed)*")
 
@@ -124,17 +152,26 @@ def get_latest_log_file(task_id, task_type):
         # If the last log was a failure, return that, otherwise we just start from scratch, so return nothing
         if "_failed" in log_file_name:
             return log_file_name
-        else:
-            logger.info("No failed log file found. Starting from scratch.")
+
+        logger.info("No failed log file found. Starting from scratch.")
 
     return None
 
 
-def _mkdir(path):
+def _mkdir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
-def close_log_file(logger__, result=None):
+def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
+    """Closes the log file handle.
+
+    Closes the log file, and renames the log file using the handler, based on the result
+    argument
+
+    Args:
+        logger__ (_type_): The logger that needs to be closed.
+        result (bool, optional): The return status of the task that was run. Defaults to False.
+    """
     # Close the log file
     for handler in logger__.handlers:
         # If its a task file handler, and the log file still exists
@@ -147,13 +184,33 @@ def close_log_file(logger__, result=None):
 logger = init_logging(__name__)
 
 
+# mypy: ignore-errors
 class TaskFileHandler(logging.FileHandler):
+    """Custom file handler to ensure logs get correct naming.
+
+    This class handles the closing of log files. It will rename based on the argument
+    passed into the close method.
+    """
+
     def __init__(self, filename, mode="a", encoding=None, delay=True):
+        """Create the log directory.
+
+        Overrides the default __init_ to ensure that the path containing the log exists
+        before attempting to write to it.
+
+        """
         _mkdir(os.path.dirname(filename))
         logging.FileHandler.__init__(self, filename, mode, encoding, delay)
 
     # Override the close method
-    def close(self, result=None):
+    def close(self, result: bool = False):
+        """Close the file handle for the log file.
+
+        Args:
+            result (bool, optional): Uodate the filename of the log file to match the
+            result status. If set to False, then the _running suffix in the filename
+            will be replaced with _failed, otherwise "". Defaults to False.
+        """
         logging.FileHandler.close(self)
         # If result is True, then rename the file and remove _running from the name
         if result:
