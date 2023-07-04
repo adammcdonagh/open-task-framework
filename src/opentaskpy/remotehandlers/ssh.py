@@ -544,8 +544,8 @@ class SSHTransfer(RemoteTransferHandler):
         )
         mode_args = f"--mode {quote(self.spec['mode'])}" if "mode" in self.spec else ""
         rename_args = (
-            f"--renameRegex '{quote(self.spec['rename']['pattern'])}' --renameSub"
-            f" '{quote(self.spec['rename']['sub'])}'"
+            f"--renameRegex {quote(self.spec['rename']['pattern'])} --renameSub"
+            f" {quote(self.spec['rename']['sub'])}"
             if "rename" in self.spec
             else ""
         )
