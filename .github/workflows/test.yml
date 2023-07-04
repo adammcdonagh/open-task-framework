@@ -52,7 +52,6 @@ jobs:
           python -m venv venv
           . venv/bin/activate
           python -m pip install -U pip setuptools wheel
-          pip install -U .
           pip install -U ".[dev]"
       - name: Generate pre-commit restore key
         id: generate-pre-commit-key
@@ -178,6 +177,7 @@ jobs:
       - name: Run pylint checks
         run: |
           . venv/bin/activate
+          pip install -U .
           pre-commit run --hook-stage manual pylint --all-files
 
   mypy:
@@ -215,6 +215,7 @@ jobs:
       - name: Run mypy checks
         run: |
           . venv/bin/activate
+          pip install -U .
           pre-commit run mypy --all-files
 
   lint-other:
@@ -314,6 +315,7 @@ jobs:
       - name: Run tests
         run: |
           . venv/bin/activate
+          pip install -U .
           python -m pytest
 
   changelog:
