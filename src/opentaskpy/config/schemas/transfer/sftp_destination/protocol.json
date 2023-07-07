@@ -11,8 +11,14 @@
         "username": {
           "type": "string"
         },
+        "transferUsername": {
+          "type": "string"
+        },
         "port": {
           "type": "integer"
+        },
+        "password": {
+          "type": "string"
         },
         "keyFile": {
           "type": "string"

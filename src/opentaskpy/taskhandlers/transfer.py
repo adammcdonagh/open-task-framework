@@ -31,6 +31,9 @@ DEFAULT_PROTOCOL_MAP = {
     "ssh": DefaultProtocolCharacteristics(
         "opentaskpy.remotehandlers.ssh", "SSHTransfer"
     ),
+    "sftp": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.sftp", "SFTPTransfer"
+    ),
     "email": DefaultProtocolCharacteristics(
         "opentaskpy.remotehandlers.email", "EmailTransfer"
     ),
@@ -466,10 +469,14 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
                 # If this is a default push transfer, and both source and dest protocols are the same
                 if (
-                    "transferType" not in dest_file_spec
-                    or dest_file_spec["transferType"] == "push"
-                    # And the destination and source remote handler classes are the same
-                ) and not different_protocols:
+                    (
+                        "transferType" not in dest_file_spec
+                        or dest_file_spec["transferType"] == "push"
+                        # And the destination and source remote handler classes are the same
+                    )
+                    and not different_protocols
+                    and self.source_remote_handler.supports_direct_transfer()
+                ):
                     transfer_result = self.source_remote_handler.transfer_files(
                         remote_files,
                         dest_file_spec,

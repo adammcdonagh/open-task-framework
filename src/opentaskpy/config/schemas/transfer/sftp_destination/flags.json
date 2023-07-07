@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "fullPath": {
+      "type": "string"
+    }
+  },
+  "required": ["fullPath"],
+  "additionalProperties": false
+}

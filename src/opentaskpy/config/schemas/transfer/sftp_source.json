@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "properties": {
+    "hostname": {
+      "type": "string"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "fileRegex": {
+      "type": "string"
+    },
+    "conditionals": {
+      "$ref": "sftp_source/conditionals.json"
+    },
+    "fileWatch": {
+      "$ref": "sftp_source/fileWatch.json"
+    },
+    "logWatch": {
+      "$ref": "sftp_source/logWatch.json"
+    },
+    "error": {
+      "type": "boolean"
+    },
+    "postCopyAction": {
+      "$ref": "sftp_source/postCopyAction.json"
+    },
+    "protocol": {
+      "$ref": "sftp_source/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["hostname", "fileRegex", "protocol"]
+}

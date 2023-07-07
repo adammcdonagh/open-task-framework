@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "timeout": {
+      "type": "integer"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "fileRegex": {
+      "type": "string"
+    },
+    "watchOnly": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

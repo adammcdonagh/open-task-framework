@@ -60,6 +60,10 @@ class SSHTransfer(RemoteTransferHandler):
 
         super().__init__(spec)
 
+    def supports_direct_transfer(self) -> bool:
+        """Return True, as SSH allows direct transfers by using the scp command."""
+        return True
+
     def connect(self, hostname: str, ssh_client: SSHClient | None = None) -> None:
         """Connect to the remote host.
 
@@ -85,6 +89,11 @@ class SSHTransfer(RemoteTransferHandler):
         try:
             kwargs = {
                 "hostname": hostname,
+                "port": (
+                    self.spec["protocol"]["port"]
+                    if "port" in self.spec["protocol"]
+                    else 22
+                ),
                 "username": self.spec["protocol"]["credentials"]["username"],
                 "timeout": 5,
             }
@@ -867,6 +876,9 @@ class SSHExecution(RemoteExecutionHandler):
 
         kwargs = {
             "hostname": self.remote_host,
+            "port": (
+                self.spec["protocol"]["port"] if "port" in self.spec["protocol"] else 22
+            ),
             "username": self.spec["protocol"]["credentials"]["username"],
             "timeout": 5,
         }
@@ -885,11 +897,15 @@ class SSHExecution(RemoteExecutionHandler):
             self.logger.info("Using key file from task spec")
             kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
 
-        self.ssh_client.connect(**kwargs)
-        _, stdout, _ = self.ssh_client.exec_command("uname -a")  # nosec B601
-        with stdout as stdout_fh:
-            output = stdout_fh.read().decode("UTF-8")
-            self.logger.log(11, f"[{self.remote_host}] Remote uname: {output}")
+        try:
+            self.ssh_client.connect(**kwargs)
+            _, stdout, _ = self.ssh_client.exec_command("uname -a")  # nosec B601
+            with stdout as stdout_fh:
+                output = stdout_fh.read().decode("UTF-8")
+                self.logger.log(11, f"[{self.remote_host}] Remote uname: {output}")
+        except Exception as ex:
+            self.logger.error(f"Unable to connect to {self.remote_host}: {ex}")
+            raise ex
 
     def _get_child_processes(self, parent_pid: int, process_listing: list) -> list:
         """Get the child processes of a given PID.

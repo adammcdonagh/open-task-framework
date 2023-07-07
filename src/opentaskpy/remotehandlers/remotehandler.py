@@ -29,6 +29,10 @@ class RemoteTransferHandler(RemoteHandler):
         super().__init__(spec)
 
     @abstractmethod
+    def supports_direct_transfer(self) -> bool:
+        """Check if the remote handler supports direct transfers."""
+
+    @abstractmethod
     def list_files(
         self, directory: str | None = None, file_pattern: str | None = None
     ) -> dict:

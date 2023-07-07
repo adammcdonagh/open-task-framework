@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "hostname": {
+      "type": "string"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "rename": {
+      "$ref": "sftp_destination/rename.json"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "flags": {
+      "$ref": "sftp_destination/flags.json"
+    },
+    "protocol": {
+      "$ref": "sftp_destination/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["hostname", "directory", "protocol"]
+}

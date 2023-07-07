@@ -14,6 +14,9 @@
         "port": {
           "type": "integer"
         },
+        "password": {
+          "type": "string"
+        },
         "keyFile": {
           "type": "string"
         }

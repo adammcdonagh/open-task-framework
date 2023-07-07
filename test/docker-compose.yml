@@ -27,6 +27,34 @@ services:
     volumes:
       - ./testFiles/ssh_2:/tmp/testFiles
 
+  sftp_1:
+    image: webdevops/ssh
+    restart: always
+    hostname: sftp_1
+    container_name: sftp_1
+    ports:
+      - "127.0.0.1:2231:22"
+    networks:
+      test-network:
+        ipv4_address: 172.16.0.21
+    volumes:
+      - ./testFiles/sftp_1:/home/application/testFiles
+      - ./sshd_config.sftp:/etc/ssh/sshd_config
+
+  sftp_2:
+    image: webdevops/ssh
+    restart: always
+    hostname: sftp_2
+    container_name: sftp_2
+    ports:
+      - "127.0.0.1:2232:22"
+    networks:
+      test-network:
+        ipv4_address: 172.16.0.22
+    volumes:
+      - ./testFiles/sftp_2:/home/application/testFiles
+      - ./sshd_config.sftp:/etc/ssh/sshd_config
+
 networks:
   test-network:
     driver: bridge
