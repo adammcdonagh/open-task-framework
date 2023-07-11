@@ -6,7 +6,7 @@ import sys
 from importlib.resources import files
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, validate
+from jsonschema import Draft202012Validator, validate, validators
 from jsonschema.exceptions import ValidationError
 from referencing import Registry, Resource
 
@@ -89,6 +89,30 @@ BATCH_SCHEMA = {
 logger = opentaskpy.otflogging.init_logging(__name__)
 
 SCHEMAS = Path(str(files("opentaskpy.config").joinpath("schemas")))
+
+
+def _extend_with_default(validator_class):  # type: ignore[no-untyped-def]
+    validate_properties = validator_class.VALIDATORS["properties"]
+
+    def set_defaults(validator, properties, instance, schema):  # type: ignore[no-untyped-def]
+        for _property, subschema in properties.items():
+            if "default" in subschema:
+                instance.setdefault(_property, subschema["default"])
+
+        yield from validate_properties(
+            validator,
+            properties,
+            instance,
+            schema,
+        )
+
+    return validators.extend(
+        validator_class,
+        {"properties": set_defaults},
+    )
+
+
+DefaultValidatingValidator = _extend_with_default(Draft202012Validator)  # type: ignore[no-untyped-call]
 
 
 def _retrieve_from_filesystem(uri: str):  # type: ignore[no-untyped-def]
@@ -211,7 +235,7 @@ def validate_transfer_json(json_data: dict) -> bool:
             }
 
         # Validate the new schema
-        validator = Draft202012Validator(
+        validator = DefaultValidatingValidator(
             new_schema,
             registry=resolver,
         )
@@ -274,7 +298,7 @@ def validate_execution_json(json_data: dict) -> bool:
 
         # Validate the new schema
         # Validate the new schema
-        validator = Draft202012Validator(
+        validator = DefaultValidatingValidator(
             new_schema,
             registry=resolver,
         )
@@ -299,7 +323,7 @@ def validate_batch_json(json_data: dict) -> bool:
         # Load the schema file for xxx
         resolver = Registry(retrieve=_retrieve_from_filesystem)
 
-        validator = Draft202012Validator(
+        validator = DefaultValidatingValidator(
             BATCH_SCHEMA,
             registry=resolver,
         )
