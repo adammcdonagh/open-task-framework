@@ -1,5 +1,11 @@
 # Changelog
 
+# v0.10.0
+
+- Migrated deprecated jsonschema validation to use `referencing` package instead of `RefResolver`
+- Added default SFTP protocol for transfers
+- Added optional (unused) `createDirectoryIfNotExists` property to transfers for transfer destinations (SSH & SFTP). If `true` directory will be created with default permissions
+
 # v0.9.0
 
 - Linting updates

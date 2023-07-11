@@ -58,6 +58,10 @@ class SSHTransfer(RemoteTransferHandler):
             global REMOTE_SCRIPT_BASE_DIR  # pylint: disable=global-statement
             REMOTE_SCRIPT_BASE_DIR = str(os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"))
 
+        # Handle default values
+        if "createDirectoryIfNotExists" not in spec:
+            spec["createDirectoryIfNotExists"] = False
+
         super().__init__(spec)
 
     def supports_direct_transfer(self) -> bool:
@@ -561,10 +565,19 @@ class SSHTransfer(RemoteTransferHandler):
 
         directory = quote(self.spec["directory"])
 
+        # Check if the destination directory exists on the remote host
+        dest_dir_args = ""
+        if (
+            self.sftp_connection
+            and not self.sftp_connection.stat(directory)
+            and self.spec["createDirectoryIfNotExists"]
+        ):
+            dest_dir_args = "--createDestDir"
+
         remote_command = (
             f"python3 {REMOTE_SCRIPT_BASE_DIR}/transfer.py --moveFiles"
             f" '{file_names_str}' --destination"
-            f" {directory} {owner_args} {group_args} {mode_args} {rename_args}"
+            f" {directory} {owner_args} {group_args} {mode_args} {rename_args} {dest_dir_args}"
         )
         self.logger.info(f"[{self.spec['hostname']}] Running: {remote_command}")
 

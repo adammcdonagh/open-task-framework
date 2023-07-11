@@ -28,7 +28,7 @@
 
 Open Task Framework (OTF) is a Python based framework to make it easy to run predefined file transfers and scripts/commands on remote machines.
 
-Currently the framework is primarily based around being able to use SSH to communicate with remote hosts in order to manipulate files and run commands. This is done via the use of SSH keys, which must be set up in advance.
+Currently the framework is primarily based around being able to use SSH or SFTP to communicate with remote hosts in order to manipulate files and run commands. This is done via the use of SSH keys, which must be set up in advance.
 
 OTF has 3 main concepts for tasks. These are:
 

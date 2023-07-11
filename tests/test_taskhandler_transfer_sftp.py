@@ -1,5 +1,6 @@
 # pylint: skip-file
 import os
+import random
 
 import pytest
 from pytest_shell import fs
@@ -23,7 +24,7 @@ sftp_task_definition = {
     "destination": [
         {
             "hostname": "172.16.0.22",
-            "directory": "/tmp/testFiles/dest",
+            "directory": "/home/application/testFiles/dest",
             "protocol": {"name": "sftp", "credentials": {"username": "application"}},
         },
     ],
@@ -119,7 +120,7 @@ sftp_pca_invalid_move_task_definition = {
     "destination": [
         {
             "hostname": "172.16.0.22",
-            "directory": "/home/applicationmp/testFiles/dest",
+            "directory": "/home/application/testFiles/dest",
             "protocol": {"name": "sftp", "credentials": {"username": "application"}},
         },
     ],
@@ -238,6 +239,38 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     # Check the destination file exists
     assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/test.taskhandler.txt")
 
+    # Generate a random number
+    random_number = random.randint(1, 1000000)
+    # Test transferring to a subdir that doesn't exist, and creating it
+    sftp_task_definition["destination"][0][
+        "directory"
+    ] = f"/home/application/testFiles/dest/{random_number}"
+
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+
+    # Run the transfer and expect a false status, as we've not asked the directory to be created
+    # Expect a RemoteTransferError
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
+
+    assert not os.path.exists(
+        f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
+    )
+
+    # Now run again, but ask for the dir to be created
+
+    sftp_task_definition["destination"][0]["createDirectoryIfNotExists"] = True
+
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+    # Check the destination file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
+    )
+
 
 def test_sftp_filewatch_no_error(setup_ssh_keys):
     # Create a transfer object
@@ -328,7 +361,7 @@ def test_pca_move(root_dir, setup_ssh_keys):
         None, "scp-pca-move-invalid", sftp_pca_invalid_move_task_definition
     )
 
-    # Run the transfer and expect a true status
+    # Run the transfer and expect a failure status
     with pytest.raises(exceptions.RemoteTransferError):
         transfer_obj.run()
     # Check the destination file exists

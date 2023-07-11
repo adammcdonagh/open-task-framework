@@ -2,8 +2,11 @@
 
 This module contains the SSH remote handlers for transfers and executions.
 """
+import glob
 import os
 import re
+import stat
+from shlex import quote
 
 from paramiko import AutoAddPolicy, Channel, RSAKey, SFTPClient, SSHClient
 
@@ -39,6 +42,10 @@ class SFTPTransfer(RemoteTransferHandler):
         if os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"):
             global REMOTE_SCRIPT_BASE_DIR  # pylint: disable=global-statement
             REMOTE_SCRIPT_BASE_DIR = str(os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"))
+
+        # Handle default values
+        if "createDirectoryIfNotExists" not in spec:
+            spec["createDirectoryIfNotExists"] = False
 
         super().__init__(spec)
 
@@ -114,23 +121,6 @@ class SFTPTransfer(RemoteTransferHandler):
             )
             self.sftp_client.close()
 
-    # Create abstract methods handle_post_copy_action, list_files, move_files_to_final_location, pull_files, pull_files_to_worker, push_files_from_worker, transfer_files
-    def handle_post_copy_action(self, files: list[str]) -> int:
-        """Implement this later."""
-        raise NotImplementedError
-
-    def move_files_to_final_location(self, files: list[str]) -> None:
-        """Implement this later."""
-        raise NotImplementedError
-
-    def pull_files_to_worker(self, files: list[str]) -> None:
-        """Implement this later."""
-        raise NotImplementedError
-
-    def push_files_from_worker(self, local_staging_directory: str) -> int:
-        """Implement this later."""
-        raise NotImplementedError
-
     def list_files(
         self, directory: str | None = None, file_pattern: str | None = None
     ) -> dict:
@@ -171,114 +161,115 @@ class SFTPTransfer(RemoteTransferHandler):
 
         return remote_files
 
-    # def pull_files_to_worker(
-    #     self, files: list[str], local_staging_directory: str
-    # ) -> int:
-    #     """Pull files to the worker.
+    def pull_files_to_worker(
+        self, files: list[str], local_staging_directory: str
+    ) -> int:
+        """Pull files to the worker.
 
-    #     This function is used when we need to download source files from the source
-    #     server onto the worker. These are then later pushed to the destination server
+        This function is used when we need to download source files from the source
+        server onto the worker. These are then later pushed to the destination server
 
-    #     Args:
-    #         files (list): A list of files to download.
-    #         local_staging_directory (str): The local staging directory to download the
-    #         files to.
+        Args:
+            files (list): A list of files to download.
+            local_staging_directory (str): The local staging directory to download the
+            files to.
 
-    #     Returns:
-    #         int: 0 if successful, 1 if not.
-    #     """
-    #     result = 0
-    #     # Connect to the source
-    #     self.connect(self.spec["hostname"])
+        Returns:
+            int: 0 if successful, 1 if not.
+        """
+        result = 0
+        # Connect to the source
+        self.connect(self.spec["hostname"])
 
-    #     # Create the staging directory locally
-    #     if not os.path.exists(local_staging_directory):
-    #         os.makedirs(local_staging_directory)
+        # Create the staging directory locally
+        if not os.path.exists(local_staging_directory):
+            os.makedirs(local_staging_directory)
 
-    #     # Download the files via SFTP
-    #     for file in files:
-    #         self.logger.info(
-    #             f"[LOCALHOST] Downloading file {file} to {local_staging_directory}"
-    #         )
-    #         file_name = os.path.basename(file)
-    #         try:
-    #             self.sftp_client.get(file, f"{local_staging_directory}/{file_name}")  # type: ignore[union-attr]
-    #         except Exception as ex:  # pylint: disable=broad-exception-caught
-    #             self.logger.error(
-    #                 f"[LOCALHOST] Unable to download file locally via SFTP: {ex}"
-    #             )
-    #             result = 1
+        # Download the files via SFTP
+        for file in files:
+            self.logger.info(
+                f"[LOCALHOST] Downloading file {file} to {local_staging_directory}"
+            )
+            file_name = os.path.basename(file)
+            try:
+                self.sftp_client.get(file, f"{local_staging_directory}/{file_name}")  # type: ignore[union-attr]
+            except Exception as ex:  # pylint: disable=broad-exception-caught
+                self.logger.error(
+                    f"[LOCALHOST] Unable to download file locally via SFTP: {ex}"
+                )
+                result = 1
 
-    #     return result
+        return result
 
-    # def push_files_from_worker(self, local_staging_directory: str) -> int:
-    #     """Push files from the worker to the destination server.
+    def push_files_from_worker(self, local_staging_directory: str) -> int:
+        """Push files from the worker to the destination server.
 
-    #     This function is used when the source files have been downloaded locally and
-    #     need to be uploaded to the destination server. This would be expected to be
-    #     called against the remote handler for the destination server.
+        This function is used when the source files have been downloaded locally and
+        need to be uploaded to the destination server. This would be expected to be
+        called against the remote handler for the destination server.
 
-    #     Args:
-    #         local_staging_directory (str): The local staging directory to upload the
-    #         files from.
+        Args:
+            local_staging_directory (str): The local staging directory to upload the
+            files from.
 
-    #     Returns:
-    #         int: 0 if successful, 1 if not.
-    #     """
-    #     # Connect to the destination server
-    #     self.connect(self.spec["hostname"])
-    #     # Check that the SFTP client is connected and active
-    #     if not isinstance(self.sftp_client, SFTPClient):
-    #         self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SFTP")
-    #         return 1
+        Returns:
+            int: 0 if successful, 1 if not.
+        """
+        # Connect to the destination server
+        self.connect(self.spec["hostname"])
+        # Check that the SFTP client is connected and active
+        if not isinstance(self.sftp_client, SFTPClient):
+            self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SFTP")
+            return 1
 
-    #     # Handle the staging directory
-    #     destination_directory = self.get_staging_directory(self.spec)
+        # For SFTP, there is no staging directory, the files just go straight to where
+        # they should do.
 
-    #     # Sanitize the destination directory
-    #     destination_directory = quote(destination_directory)
+        destination_directory = quote(self.spec["directory"])
 
-    #     # Create/validate staging directory exists on destination
-    #     remote_command = (
-    #         f"test -e {destination_directory} || mkdir -p {destination_directory}"
-    #     )
+        # Sanitize the destination directory
+        destination_directory = quote(destination_directory)
 
-    #     self.logger.info(
-    #         f"[{self.spec['hostname']}] Validating staging dir via SSH:"
-    #         f" {remote_command}"
-    #     )
+        self.logger.info(f"[{self.spec['hostname']}] Validating destination dir")
+        # Use the SFTP client to check if the destination directory exists on the server
+        remote_dir_exists = False
+        try:
+            self.sftp_client.stat(destination_directory)
+            remote_dir_exists = True
+        except OSError:
+            self.logger.info(
+                f"[{self.spec['hostname']}] Destination dir does not exist:"
+                f" {destination_directory}"
+            )
 
-    #     _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601 # We've sanitised as much as possible above
-    #     with stdout as stdout_fh:
-    #         if str_stdout := stdout_fh.read().decode("UTF-8"):
-    #             log_stdout(str_stdout, self.spec["hostname"], self.logger)
+        if not remote_dir_exists and not self.spec["createDirectoryIfNotExists"]:
+            self.logger.error(
+                f"[{self.spec['hostname']}] Destination dir does not exist:"
+                f" {destination_directory}"
+            )
+            return 1
 
-    #     with stderr as stderr_fh:
-    #         str_stderr = stderr_fh.read().decode("UTF-8")
-    #         if str_stderr and len(str_stderr) > 0:
-    #             self.logger.info(
-    #                 f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
-    #             )
+        if not remote_dir_exists and self.spec["createDirectoryIfNotExists"]:
+            self.logger.info(
+                f"[{self.spec['hostname']}] Creating destination directory:"
+                f" {destination_directory}"
+            )
+            self.sftp_client.mkdir(destination_directory)
 
-    #     remote_rc = stdout.channel.recv_exit_status()
-    #     self.logger.info(
-    #         f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH command"
-    #     )
+        # Transfer the files
+        result = 0
+        # Get list of files in local_staging_directory
+        files = glob.glob(f"{local_staging_directory}/*")
+        for file in files:
+            self.logger.info(f"[LOCALHOST] Transferring file via SFTP: {file}")
+            file_name = os.path.basename(file)
+            try:
+                self.sftp_client.put(file, f"{destination_directory}/{file_name}")
+            except Exception as ex:  # pylint: disable=broad-exception-caught
+                self.logger.error(f"[LOCALHOST] Unable to transfer file via SFTP: {ex}")
+                result = 1
 
-    #     # Transfer the files, just use SFTP
-    #     result = 0
-    #     # Get list of files in local_staging_directory
-    #     files = glob.glob(f"{local_staging_directory}/*")
-    #     for file in files:
-    #         self.logger.info(f"[LOCALHOST] Transferring file via SFTP: {file}")
-    #         file_name = os.path.basename(file)
-    #         try:
-    #             self.sftp_client.put(file, f"{destination_directory}{file_name}")
-    #         except Exception as ex:  # pylint: disable=broad-exception-caught
-    #             self.logger.error(f"[LOCALHOST] Unable to transfer file via SFTP: {ex}")
-    #             result = 1
-
-    #     return result
+        return result
 
     def transfer_files(self, files: list[str]) -> None:
         """Not implemented for this handler."""
@@ -288,174 +279,109 @@ class SFTPTransfer(RemoteTransferHandler):
         """Not implemented for this handler."""
         raise NotImplementedError
 
-    # def move_files_to_final_location(self, files: dict) -> int:
-    #     """Move files from the staging directory to their final location.
+    def move_files_to_final_location(self, files: list[str]) -> None:
+        """Not implemented for this handler."""
+        raise NotImplementedError
 
-    #     Args:
-    #         files (dict): A dictionary of files to move.
+    def handle_post_copy_action(self, files: list[str]) -> int:
+        """Handle the post copy action specified in the config.
 
-    #     Returns:
-    #         int: 0 if successful, if not, the return code from the remotely executed
-    #         transfer.py
-    #     """
-    #     self.connect(self.spec["hostname"])
+        Args:
+            files (list[str]): A list of files that need to be handled.
 
-    #     # Convert all the source file names into the filename with the destination directory as a prefix
-    #     file_names_str = ""
-    #     files_with_directory = []
-    #     for file in list(files):
-    #         files_with_directory.append(
-    #             quote(
-    #                 f"{self.get_staging_directory(self.spec)}{os.path.basename(file)}"
-    #             )
-    #         )
-    #     file_names_str = self.FILE_NAME_DELIMITER.join(files_with_directory).strip()
+        Returns:
+            int: 0 if successful, 1 if not.
+        """
+        self.connect(self.spec["hostname"])
 
-    #     # Next step is to move the file to it's final resting place with the correct permissions and ownership
-    #     # Build a command to pass to the remote transfer.py to do the work
-    #     owner_args = (
-    #         f"--owner {quote(self.spec['permissions']['owner'])}"
-    #         if "permissions" in self.spec and "owner" in self.spec["permissions"]
-    #         else ""
-    #     )
-    #     group_args = (
-    #         f"--group {quote(self.spec['permissions']['group'])}"
-    #         if "permissions" in self.spec and "group" in self.spec["permissions"]
-    #         else ""
-    #     )
-    #     mode_args = f"--mode {quote(self.spec['mode'])}" if "mode" in self.spec else ""
-    #     rename_args = (
-    #         f"--renameRegex {quote(self.spec['rename']['pattern'])} --renameSub"
-    #         f" {quote(self.spec['rename']['sub'])}"
-    #         if "rename" in self.spec
-    #         else ""
-    #     )
+        # Check that the SFTP client is connected and active
+        if not isinstance(self.sftp_client, SFTPClient):
+            self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SFTP")
+            return 1
 
-    #     directory = quote(self.spec["directory"])
+        if self.spec["postCopyAction"]["action"] == "delete":
+            # Loop through each file and use the sftp client to delete the files
 
-    #     remote_command = (
-    #         f"python3 {REMOTE_SCRIPT_BASE_DIR}/transfer.py --moveFiles"
-    #         f" '{file_names_str}' --destination"
-    #         f" {directory} {owner_args} {group_args} {mode_args} {rename_args}"
-    #     )
-    #     self.logger.info(f"[{self.spec['hostname']}] Running: {remote_command}")
+            for file in files:
+                try:
+                    self.sftp_client.remove(file)
+                except OSError:
+                    self.logger.error(
+                        f"[{self.spec['hostname']}] Could not delete file {file} on"
+                        " source host"
+                    )
+                    return 1
 
-    #     stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
+        if (
+            self.spec["postCopyAction"]["action"] == "move"
+            or self.spec["postCopyAction"]["action"] == "rename"
+        ):
+            # Use the SFTP client, and check that the destination directory exists
+            move_dir = os.path.dirname(self.spec["postCopyAction"]["destination"])
 
-    #     with stdout as stdout_fh:
-    #         str_stdout = stdout_fh.read().decode("UTF-8")
-    #         if str_stdout:
-    #             log_stdout(str_stdout, self.spec["hostname"], self.logger)
+            try:
+                stat_result = self.sftp_client.stat(move_dir)
+                # If it exists, then we need to ensure its a directory and not just a file
+                if not stat.S_ISDIR(stat_result.st_mode):  # type: ignore[arg-type]
+                    self.logger.error(
+                        f"[{self.spec['hostname']}] Destination directory {move_dir} is"
+                        " not a directory on source host"
+                    )
+                    return 1
+            except OSError:
+                self.logger.error(
+                    f"[{self.spec['hostname']}] Destination directory {move_dir} does"
+                    " not exist on source host"
+                )
+                return 1
 
-    #     with stderr as stderr_fh:
-    #         str_stderr = stderr_fh.read().decode("UTF-8")
-    #         if str_stderr and len(str_stderr) > 0:
-    #             self.logger.info(
-    #                 f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
-    #             )
+                # Loop through the files and move them
 
-    #     remote_rc: int = stdout.channel.recv_exit_status()
-    #     self.logger.info(
-    #         f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH move"
-    #         " command"
-    #     )
-    #     return remote_rc
+            for file in files:
+                try:
+                    # If this is a move, then just move the file
+                    if self.spec["postCopyAction"]["action"] == "move":
+                        self.logger.info(
+                            f"[{self.spec['hostname']}] Moving {file} to"
+                            f" {self.spec['postCopyAction']['destination']}"
+                        )
+                        # Get the actual file name
+                        file_name = os.path.basename(file)
+                        self.sftp_client.posix_rename(
+                            file,
+                            f"{self.spec['postCopyAction']['destination']}/{file_name}",
+                        )
+                    # If this is a rename, then we need to rename the file
+                    if self.spec["postCopyAction"]["action"] == "rename":
+                        # Determine the new file name
+                        new_file_dir = os.path.dirname(
+                            self.spec["postCopyAction"]["destination"]
+                        )
+                        current_file_name = os.path.basename(file)
 
-    # def handle_post_copy_action(self, files: list[str]) -> int:
-    #     """Handle the post copy action specified in the config.
+                        rename_regex = self.spec["postCopyAction"]["pattern"]
+                        rename_sub = self.spec["postCopyAction"]["sub"]
 
-    #     Args:
-    #         files (list[str]): A list of files that need to be handled.
+                        new_file_name = re.sub(
+                            rename_regex, rename_sub, current_file_name
+                        )
 
-    #     Returns:
-    #         int: 0 if successful, 1 if not.
-    #     """
-    #     self.connect(self.spec["hostname"])
-    #     sftp_client = self.ssh_client.open_sftp()  # type: ignore[union-attr]
+                        self.logger.info(
+                            f"[{self.spec['hostname']}] Renaming {file} to"
+                            f" {new_file_dir}/{new_file_name}"
+                        )
+                        self.sftp_client.posix_rename(
+                            file, f"{new_file_dir}/{new_file_name}"
+                        )
+                except OSError as e:
+                    self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
+                    self.logger.error(
+                        f"[{self.spec['hostname']}] Error moving or renaming file"
+                        f" {file}"
+                    )
+                    return 1
 
-    #     if self.spec["postCopyAction"]["action"] == "delete":
-    #         # Loop through each file and use the sftp client to delete the files
-
-    #         for file in files:
-    #             try:
-    #                 sftp_client.remove(file)
-    #             except OSError:
-    #                 self.logger.error(
-    #                     f"[{self.spec['hostname']}] Could not delete file {file} on"
-    #                     " source host"
-    #                 )
-    #                 return 1
-
-    #     if (
-    #         self.spec["postCopyAction"]["action"] == "move"
-    #         or self.spec["postCopyAction"]["action"] == "rename"
-    #     ):
-    #         # Use the SFTP client, and check that the destination directory exists
-    #         move_dir = os.path.dirname(self.spec["postCopyAction"]["destination"])
-
-    #         try:
-    #             stat_result = sftp_client.stat(move_dir)
-    #             # If it exists, then we need to ensure its a directory and not just a file
-    #             if not stat.S_ISDIR(stat_result.st_mode):  # type: ignore[arg-type]
-    #                 self.logger.error(
-    #                     f"[{self.spec['hostname']}] Destination directory {move_dir} is"
-    #                     " not a directory on source host"
-    #                 )
-    #                 return 1
-    #         except OSError:
-    #             self.logger.error(
-    #                 f"[{self.spec['hostname']}] Destination directory {move_dir} does"
-    #                 " not exist on source host"
-    #             )
-    #             return 1
-
-    #             # Loop through the files and move them
-
-    #         for file in files:
-    #             try:
-    #                 # If this is a move, then just move the file
-    #                 if self.spec["postCopyAction"]["action"] == "move":
-    #                     self.logger.info(
-    #                         f"[{self.spec['hostname']}] Moving {file} to"
-    #                         f" {self.spec['postCopyAction']['destination']}"
-    #                     )
-    #                     # Get the actual file name
-    #                     file_name = os.path.basename(file)
-    #                     sftp_client.posix_rename(
-    #                         file,
-    #                         f"{self.spec['postCopyAction']['destination']}/{file_name}",
-    #                     )
-    #                 # If this is a rename, then we need to rename the file
-    #                 if self.spec["postCopyAction"]["action"] == "rename":
-    #                     # Determine the new file name
-    #                     new_file_dir = os.path.dirname(
-    #                         self.spec["postCopyAction"]["destination"]
-    #                     )
-    #                     current_file_name = os.path.basename(file)
-
-    #                     rename_regex = self.spec["postCopyAction"]["pattern"]
-    #                     rename_sub = self.spec["postCopyAction"]["sub"]
-
-    #                     new_file_name = re.sub(
-    #                         rename_regex, rename_sub, current_file_name
-    #                     )
-
-    #                     self.logger.info(
-    #                         f"[{self.spec['hostname']}] Renaming {file} to"
-    #                         f" {new_file_dir}/{new_file_name}"
-    #                     )
-    #                     sftp_client.posix_rename(
-    #                         file, f"{new_file_dir}/{new_file_name}"
-    #                     )
-    #             except OSError as e:
-    #                 self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
-    #                 self.logger.error(
-    #                     f"[{self.spec['hostname']}] Error moving or renaming file"
-    #                     f" {file}"
-    #                 )
-    #                 return 1
-
-    #     return 0
+        return 0
 
     # def init_logwatch(self) -> int:
     #     """Initialise the logwatch process.
@@ -547,37 +473,36 @@ class SFTPTransfer(RemoteTransferHandler):
 
     #     return 1
 
-    # def create_flag_files(self) -> int:
-    #     """Create the flag files on the remote host.
+    def create_flag_files(self) -> int:
+        """Create the flag files on the remote host.
 
-    #     Returns:
-    #         int: 0 if successful, 1 if not.
-    #     """
-    #     self.connect(self.spec["hostname"])
+        Returns:
+            int: 0 if successful, 1 if not.
+        """
+        self.connect(self.spec["hostname"])
 
-    #     if not isinstance(self.ssh_client, SSHClient):
-    #         self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SSH")
-    #         return 1
+        # Check that the SFTP client is connected and active
+        if not isinstance(self.sftp_client, SFTPClient):
+            self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SFTP")
+            return 1
 
-    #     # Manually open SFTP client
-    #     sftp_client = self.ssh_client.open_sftp()
-    #     filename = self.spec["flags"]["fullPath"]
+        filename = self.spec["flags"]["fullPath"]
 
-    #     try:
-    #         # Use the SFTP client to create an empty file at this path
-    #         sftp_client.file(filename, "w").close()
+        try:
+            # Use the SFTP client to create an empty file at this path
+            self.sftp_client.file(filename, "w").close()
 
-    #         # Set permissions on the file to whatever was specified in the spec,
-    #         # otherwise we leave them as is
-    #         # We cannot change ownership without using sudo, so we don't bother
-    #         if "permissions" in self.spec:
-    #             sftp_client.chmod(filename, self.spec["permissions"])
+            # Set permissions on the file to whatever was specified in the spec,
+            # otherwise we leave them as is
+            # We cannot change ownership without using sudo, so we don't bother
+            if "permissions" in self.spec:
+                self.sftp_client.chmod(filename, self.spec["permissions"])
 
-    #     except OSError as e:
-    #         self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
-    #         self.logger.error(
-    #             f"[{self.spec['hostname']}] Error creating flag file: {filename}"
-    #         )
-    #         return 1
+        except OSError as e:
+            self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
+            self.logger.error(
+                f"[{self.spec['hostname']}] Error creating flag file: {filename}"
+            )
+            return 1
 
-    #     return 0
+        return 0
