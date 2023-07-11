@@ -1,0 +1,11 @@
+ChallengeResponseAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem       sftp    internal-sftp
+Match user application
+     X11Forwarding no
+     AllowTcpForwarding no
+     AllowAgentForwarding no
+     ForceCommand internal-sftp

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/sftp_source.json",
+  "type": "object",
+  "properties": {
+    "hostname": {
+      "type": "string"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "createDirectoryIfNotExists": {
+      "type": "boolean",
+      "default": false
+    },
+    "rename": {
+      "$ref": "http://localhost/transfer/sftp_destination/rename.json"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "flags": {
+      "$ref": "http://localhost/transfer/sftp_destination/flags.json"
+    },
+    "protocol": {
+      "$ref": "http://localhost/transfer/sftp_destination/protocol.json"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["hostname", "directory", "protocol"]
+}

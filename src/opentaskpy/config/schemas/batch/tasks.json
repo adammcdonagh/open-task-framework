@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/batch/tasks.json",
   "title": "Batch",
   "description": "JSON Schema for a batch object. This is where sets of tasks can be chained together, or run in parallel at the same time.",
   "type": "object",

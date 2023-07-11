@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "http://localhost/transfer/ssh_destination/protocol.json",
+  "$id": "http://localhost/transfer/sftp_destination/protocol.json",
   "type": "object",
   "properties": {
     "name": {
@@ -18,6 +18,9 @@
         },
         "port": {
           "type": "integer"
+        },
+        "password": {
+          "type": "string"
         },
         "keyFile": {
           "type": "string"

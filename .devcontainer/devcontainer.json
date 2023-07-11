@@ -33,7 +33,8 @@
         "matangover.mypy",
         "charliermarsh.ruff",
         "ms-python.black-formatter",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "esbenp.prettier-vscode"
       ],
       "settings": {
         "python.testing.unittestArgs": ["-v", "-s", "tests", "-p", "test_*.py"],

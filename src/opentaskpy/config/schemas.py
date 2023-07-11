@@ -1,17 +1,19 @@
 """Schemas for the configuration files."""
 import copy
 import importlib
+import json
 import sys
 from importlib.resources import files
 from pathlib import Path
 
-from jsonschema import validate
+from jsonschema import Draft202012Validator, validate, validators
 from jsonschema.exceptions import ValidationError
-from jsonschema.validators import RefResolver
+from referencing import Registry, Resource
 
 import opentaskpy.otflogging
 
 TRANSFER_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -52,6 +54,7 @@ TRANSFER_SCHEMA = {
 # Determine the type of transfer, and apply the correct sub schema based on the protocol used
 
 EXECUTION_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -71,15 +74,55 @@ EXECUTION_SCHEMA = {
 
 
 BATCH_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
         "type": {"type": "string"},
-        "tasks": {"type": "array", "items": {"$ref": "batch.json"}},
+        "tasks": {
+            "type": "array",
+            "items": {"$ref": "http://localhost/batch/tasks.json"},
+        },
     },
     "required": ["type", "tasks"],
 }
 
 logger = opentaskpy.otflogging.init_logging(__name__)
+
+SCHEMAS = Path(str(files("opentaskpy.config").joinpath("schemas")))
+
+
+def _extend_with_default(validator_class):  # type: ignore[no-untyped-def]
+    validate_properties = validator_class.VALIDATORS["properties"]
+
+    def set_defaults(validator, properties, instance, schema):  # type: ignore[no-untyped-def]
+        for _property, subschema in properties.items():
+            if "default" in subschema:
+                instance.setdefault(_property, subschema["default"])
+
+        yield from validate_properties(
+            validator,
+            properties,
+            instance,
+            schema,
+        )
+
+    return validators.extend(
+        validator_class,
+        {"properties": set_defaults},
+    )
+
+
+DefaultValidatingValidator = _extend_with_default(Draft202012Validator)  # type: ignore[no-untyped-call]
+
+
+def _retrieve_from_filesystem(uri: str):  # type: ignore[no-untyped-def]
+    if uri.startswith("http://localhost/"):
+        path = SCHEMAS.joinpath(Path(uri.removeprefix("http://localhost/")))
+    else:
+        path = Path(uri.removeprefix("file://"))
+    contents = json.loads(path.read_text(encoding="utf-8"))
+
+    return Resource.from_contents(contents)
 
 
 def validate_transfer_json(json_data: dict) -> bool:
@@ -92,6 +135,7 @@ def validate_transfer_json(json_data: dict) -> bool:
         bool: Whether the JSON data is valid or not
     """
     new_schema: dict
+
     try:
         validate(instance=json_data, schema=TRANSFER_SCHEMA)
 
@@ -108,10 +152,7 @@ def validate_transfer_json(json_data: dict) -> bool:
         # based on the protocol name, we need to find the location of the package using the files() function
 
         # Load the schema file for XXX_source
-        resolver = RefResolver(
-            base_uri=f"{schema_dir.as_uri()}/",  # type: ignore[attr-defined]
-            referrer=True,
-        )
+        resolver = Registry(retrieve=_retrieve_from_filesystem)
 
         # source_protocol is the class name within the plugin, we need to determine if it's a default protocol or a custom one
         # If it's a default protocol, then we can use the files() function to get the path to the schema file
@@ -131,7 +172,7 @@ def validate_transfer_json(json_data: dict) -> bool:
             source_protocol = source_protocol.split(".")[-2]
 
             # Append new path to the resolver
-            resolver.store[module_path.as_uri()] = module_path  # type: ignore[attr-defined]
+            resolver.with_resource(module_path.as_uri(), module_path)  # type: ignore[attr-defined]
         else:
             # Default protocol
             module_path = schema_dir
@@ -162,7 +203,7 @@ def validate_transfer_json(json_data: dict) -> bool:
                     destination_protocol = destination_protocol.split(".")[-2]
 
                     # Append new path to the resolver
-                    resolver.store[module_path.as_uri()] = module_path  # type: ignore[attr-defined]
+                    resolver.with_resource(module_path.as_uri(), module_path)  # type: ignore[attr-defined]
                 else:
                     # Default protocol
                     module_path = schema_dir
@@ -194,7 +235,11 @@ def validate_transfer_json(json_data: dict) -> bool:
             }
 
         # Validate the new schema
-        validate(instance=json_data, schema=new_schema, resolver=resolver)
+        validator = DefaultValidatingValidator(
+            new_schema,
+            registry=resolver,
+        )
+        validator.validate(json_data)
 
     except ValidationError as err:
         print(err.message)  # noqa: T201
@@ -223,10 +268,7 @@ def validate_execution_json(json_data: dict) -> bool:
         schema_dir = files("opentaskpy.config").joinpath("schemas")
 
         # Load the schema file for xxx
-        resolver = RefResolver(
-            base_uri=f"{schema_dir.as_uri()}/",  # type: ignore[attr-defined]
-            referrer=True,
-        )
+        resolver = Registry(retrieve=_retrieve_from_filesystem)
 
         if "." in protocol:
             # Get the full package name from the class name (strip the class off the end)
@@ -240,7 +282,7 @@ def validate_execution_json(json_data: dict) -> bool:
             protocol = protocol.split(".")[-2]
 
             # Append new path to the resolver
-            resolver.store[module_path.as_uri()] = module_path  # type: ignore[attr-defined]
+            resolver.with_resource(module_path.as_uri(), module_path)  # type: ignore[attr-defined]
         else:
             # Default protocol
             module_path = schema_dir
@@ -255,7 +297,12 @@ def validate_execution_json(json_data: dict) -> bool:
         new_schema["$ref"] = schema_name
 
         # Validate the new schema
-        validate(instance=json_data, schema=new_schema, resolver=resolver)
+        # Validate the new schema
+        validator = DefaultValidatingValidator(
+            new_schema,
+            registry=resolver,
+        )
+        validator.validate(json_data)
 
     except ValidationError as err:
         print(err.message)  # noqa: T201
@@ -273,15 +320,15 @@ def validate_batch_json(json_data: dict) -> bool:
         bool: Whether the JSON data is valid or not
     """
     try:
-        schema_dir = files("opentaskpy.config").joinpath("schemas")
-
         # Load the schema file for xxx
-        resolver = RefResolver(
-            base_uri=f"{schema_dir.as_uri()}/",  # type: ignore[attr-defined]
-            referrer=True,
-        )
+        resolver = Registry(retrieve=_retrieve_from_filesystem)
 
-        validate(instance=json_data, schema=BATCH_SCHEMA, resolver=resolver)
+        validator = DefaultValidatingValidator(
+            BATCH_SCHEMA,
+            registry=resolver,
+        )
+        validator.validate(json_data)
+
     except ValidationError as err:
         print(err.message)  # noqa: T201
         return False

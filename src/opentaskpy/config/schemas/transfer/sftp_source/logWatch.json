@@ -1,20 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "http://localhost/transfer/ssh_source/logWatch.json",
+  "$id": "http://localhost/transfer/sftp_source/fileWatch.json",
   "type": "object",
   "properties": {
     "timeout": {
       "type": "integer"
     },
+    "log": {
+      "type": "string"
+    },
     "directory": {
       "type": "string"
     },
-    "fileRegex": {
+    "contentRegex": {
       "type": "string"
     },
-    "watchOnly": {
+    "tail": {
       "type": "boolean"
     }
   },
+  "required": ["log", "directory", "contentRegex"],
   "additionalProperties": false
 }

@@ -31,6 +31,9 @@ DEFAULT_PROTOCOL_MAP = {
     "ssh": DefaultProtocolCharacteristics(
         "opentaskpy.remotehandlers.ssh", "SSHTransfer"
     ),
+    "sftp": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.sftp", "SFTPTransfer"
+    ),
     "email": DefaultProtocolCharacteristics(
         "opentaskpy.remotehandlers.email", "EmailTransfer"
     ),
@@ -444,9 +447,13 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 # If there are differences, download the file locally first
                 # so it's ready to upload to multiple destinations at once
-                if different_protocols or (
-                    "transferType" in dest_file_spec
-                    and dest_file_spec["transferType"] == "proxy"
+                if (
+                    different_protocols
+                    or (
+                        "transferType" in dest_file_spec
+                        and dest_file_spec["transferType"] == "proxy"
+                    )
+                    or not self.source_remote_handler.supports_direct_transfer()
                 ):
                     # Create local staging dir
                     makedirs(self.local_staging_dir, exist_ok=True)
@@ -466,10 +473,14 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
                 # If this is a default push transfer, and both source and dest protocols are the same
                 if (
-                    "transferType" not in dest_file_spec
-                    or dest_file_spec["transferType"] == "push"
-                    # And the destination and source remote handler classes are the same
-                ) and not different_protocols:
+                    (
+                        "transferType" not in dest_file_spec
+                        or dest_file_spec["transferType"] == "push"
+                        # And the destination and source remote handler classes are the same
+                    )
+                    and not different_protocols
+                    and self.source_remote_handler.supports_direct_transfer()
+                ):
                     transfer_result = self.source_remote_handler.transfer_files(
                         remote_files,
                         dest_file_spec,
@@ -485,12 +496,16 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     self.logger.info("Transfer completed successfully")
                 # If this is a default push transfer, and source and dest protocols are different
                 elif (
-                    "transferType" in dest_file_spec
-                    and (
-                        dest_file_spec["transferType"] == "push"
-                        or dest_file_spec["transferType"] == "proxy"
+                    (
+                        "transferType" in dest_file_spec
+                        and (
+                            dest_file_spec["transferType"] == "push"
+                            or dest_file_spec["transferType"] == "proxy"
+                        )
                     )
-                ) or different_protocols:
+                    or different_protocols
+                    or not self.source_remote_handler.supports_direct_transfer()
+                ):
                     self.logger.debug(
                         "Transfer protocols are different, or proxy transfer is"
                         " requested"

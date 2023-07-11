@@ -61,19 +61,36 @@ def ssh_2(docker_services) -> str:
 
 
 @pytest.fixture(scope="session")
+def sftp_1(docker_services) -> str:
+    docker_services.start("sftp_1")
+    port = docker_services.port_for("sftp_1", 22)
+    address = f"{docker_services.docker_ip}:{port}"
+    return address
+
+
+@pytest.fixture(scope="session")
+def sftp_2(docker_services) -> str:
+    docker_services.start("sftp_2")
+    port = docker_services.port_for("sftp_2", 22)
+    address = f"{docker_services.docker_ip}:{port}"
+    return address
+
+
+@pytest.fixture(scope="session")
 def test_directories(root_dir) -> None:
     # Get the root directory of the project
 
-    structure = [
-        f"{root_dir}/testFiles/ssh_1/ssh",
-        f"{root_dir}/testFiles/ssh_1/src",
-        f"{root_dir}/testFiles/ssh_1/dest",
-        f"{root_dir}/testFiles/ssh_1/archive",
-        f"{root_dir}/testFiles/ssh_2/ssh",
-        f"{root_dir}/testFiles/ssh_2/src",
-        f"{root_dir}/testFiles/ssh_2/dest",
-        f"{root_dir}/testFiles/ssh_2/archive",
-    ]
+    hosts = ["1", "2"]
+    protocols = ["ssh", "sftp"]
+    # Create the directory structure
+    structure = []
+    for host in hosts:
+        for protocol in protocols:
+            structure.append(f"{root_dir}/testFiles/{protocol}_{host}")
+            structure.append(f"{root_dir}/testFiles/{protocol}_{host}/ssh")
+            structure.append(f"{root_dir}/testFiles/{protocol}_{host}/dest")
+            structure.append(f"{root_dir}/testFiles/{protocol}_{host}/archive")
+
     fs.create_files(structure)
 
 
@@ -133,5 +150,67 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2) ->
         ("chown", "-R", "application", "/tmp/testFiles"),
     ]
     for host in ["ssh_1", "ssh_2"]:
+        for command in commands:
+            docker_services.execute(host, *command)
+
+
+@pytest.fixture(scope="session")
+def setup_sftp_keys(
+    docker_services, root_dir, test_directories, sftp_1, sftp_2
+) -> None:
+    # Run command locally
+    # if ssh key doesn't exist yet
+    ssh_private_key_file = f"{root_dir}/testFiles/id_rsa"
+    # Load the ssh key and validate it
+    from paramiko import RSAKey
+
+    key = None
+    with contextlib.suppress(Exception):
+        key = RSAKey.from_private_key_file(ssh_private_key_file)
+
+    if not os.path.isfile(ssh_private_key_file) or not key:
+        # If it exists, delete it first
+        if os.path.isfile(ssh_private_key_file):
+            os.remove(ssh_private_key_file)
+        # Generate the key
+        subprocess.run(
+            ["ssh-keygen", "-t", "rsa", "-N", "", "-f", ssh_private_key_file]
+        ).returncode
+
+    # Copy the file into the ssh directory for each host
+    for i in ["1", "2"]:
+        shutil.copy(ssh_private_key_file, f"{root_dir}/testFiles/sftp_{i}/ssh/id_rsa")
+        shutil.copy(
+            f"{root_dir}/testFiles/id_rsa.pub",
+            f"{root_dir}/testFiles/sftp_{i}/ssh/authorized_keys",
+        )
+
+    # Copy the file into the ssh directory on this host
+    # Current user's home directory
+    home_dir = os.path.expanduser("~")
+    # Make the .ssh directory if it doesn't exist
+    if not os.path.isdir(f"{home_dir}/.ssh"):
+        os.mkdir(f"{home_dir}/.ssh")
+
+    shutil.copy(ssh_private_key_file, f"{home_dir}/.ssh/id_rsa")
+
+    # Run the docker exec command to create the user
+    # Get the current uid for the running process
+    uid = str(os.getuid())
+    # commands to run
+    commands = [
+        ("usermod", "-G", "operator", "-a", "application", "-u", uid),
+        ("mkdir", "-p", "/home/application/.ssh"),
+        ("cp", "/home/application/testFiles/ssh/id_rsa", "/home/application/.ssh"),
+        (
+            "cp",
+            "/home/application/testFiles/ssh/authorized_keys",
+            "/home/application/.ssh/authorized_keys",
+        ),
+        ("chown", "-R", "application", "/home/application/.ssh"),
+        ("chmod", "-R", "700", "/home/application/.ssh"),
+        ("mkdir", "-p", "/sftp/application"),
+    ]
+    for host in ["sftp_1", "sftp_2"]:
         for command in commands:
             docker_services.execute(host, *command)
