@@ -27,6 +27,10 @@ class EmailTransfer(RemoteTransferHandler):
 
         super().__init__(spec)
 
+    def supports_direct_transfer(self) -> bool:
+        """Return whether this handler supports direct transfers."""
+        return False
+
     def set_handler_vars(self, protocol_vars: dict) -> None:
         """Set the handler variables.
 
