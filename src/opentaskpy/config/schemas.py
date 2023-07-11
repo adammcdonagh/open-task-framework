@@ -14,7 +14,6 @@ import opentaskpy.otflogging
 
 TRANSFER_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "http://localhost/schemas/transfer.json",
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -56,7 +55,6 @@ TRANSFER_SCHEMA = {
 
 EXECUTION_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "http://localhost/schemas/execution.json",
     "type": "object",
     "properties": {
         "type": {"type": "string"},
@@ -77,11 +75,13 @@ EXECUTION_SCHEMA = {
 
 BATCH_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "http://localhost/schemas/batch.json",
     "type": "object",
     "properties": {
         "type": {"type": "string"},
-        "tasks": {"type": "array", "items": {"$ref": "batch.json"}},
+        "tasks": {
+            "type": "array",
+            "items": {"$ref": "http://localhost/batch/tasks.json"},
+        },
     },
     "required": ["type", "tasks"],
 }
