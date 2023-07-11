@@ -20,7 +20,8 @@ dependencies = [
   "jsonpath-ng >= 1.5",
   "jsonschema >= 4.17",
   "paramiko >= 3.0",
-  "requests >= 2.28"
+  "requests >= 2.28",
+  "referencing >= 0.29.1",
 ]
 description = "A framework for automation execution of commands and transferring files between hosts"
 readme = "README.md"
@@ -40,7 +41,7 @@ dev = [
   "pylint",
   "pydantic",
   "mypy",
-  "ruff"
+  "ruff",
 ]
 
 [project.urls]
