@@ -1,5 +1,7 @@
 {
   "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/ssh_destination.json",
   "properties": {
     "hostname": {
       "type": "string"
@@ -7,24 +9,28 @@
     "directory": {
       "type": "string"
     },
+    "createDirectoryIfNotExists": {
+      "type": "boolean",
+      "default": false
+    },
     "rename": {
-      "$ref": "ssh_destination/rename.json"
+      "$ref": "http://localhost/transfer/ssh_destination/rename.json"
     },
     "permissions": {
-      "$ref": "ssh_destination/permissions.json"
+      "$ref": "http://localhost/transfer/ssh_destination/permissions.json"
     },
     "mode": {
       "type": "string"
     },
     "flags": {
-      "$ref": "ssh_destination/flags.json"
+      "$ref": "http://localhost/transfer/ssh_destination/flags.json"
     },
     "transferType": {
       "type": "string",
       "enum": ["push", "pull", "proxy"]
     },
     "protocol": {
-      "$ref": "ssh_destination/protocol.json"
+      "$ref": "http://localhost/transfer/ssh_destination/protocol.json"
     }
   },
   "additionalProperties": false,

@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/email_destination.json",
   "type": "object",
   "properties": {
     "recipients": {
@@ -12,7 +14,7 @@
       "type": "string"
     },
     "protocol": {
-      "$ref": "email/protocol.json"
+      "$ref": "http://localhost/transfer/email/protocol.json"
     }
   },
   "additionalProperties": false,

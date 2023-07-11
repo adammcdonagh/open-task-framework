@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/ssh_source/protocol.json",
   "type": "object",
   "properties": {
     "name": {

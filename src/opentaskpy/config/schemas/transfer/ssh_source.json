@@ -1,4 +1,6 @@
 {
+  "$id": "http://localhost/transfer/ssh_source.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "hostname": {
@@ -11,22 +13,22 @@
       "type": "string"
     },
     "conditionals": {
-      "$ref": "ssh_source/conditionals.json"
+      "$ref": "http://localhost/transfer/ssh_source/conditionals.json"
     },
     "fileWatch": {
-      "$ref": "ssh_source/fileWatch.json"
+      "$ref": "http://localhost/transfer/ssh_source/fileWatch.json"
     },
     "logWatch": {
-      "$ref": "ssh_source/logWatch.json"
+      "$ref": "http://localhost/transfer/ssh_source/logWatch.json"
     },
     "error": {
       "type": "boolean"
     },
     "postCopyAction": {
-      "$ref": "ssh_source/postCopyAction.json"
+      "$ref": "http://localhost/transfer/ssh_source/postCopyAction.json"
     },
     "protocol": {
-      "$ref": "ssh_source/protocol.json"
+      "$ref": "http://localhost/transfer/ssh_source/protocol.json"
     }
   },
   "additionalProperties": false,

@@ -181,3 +181,4 @@ poetry.toml
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 bin/act
+test/cfg/transfers/email-transfer.json
