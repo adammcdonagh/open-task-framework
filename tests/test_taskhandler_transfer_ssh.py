@@ -190,6 +190,27 @@ scp_proxy_task_definition = {
     ],
 }
 
+scp_destination_file_rename = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.11",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": "dest_rename.*taskhandler.*\\.txt",
+        "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.12",
+            "directory": "/tmp/testFiles/dest",
+            "rename": {
+                "pattern": "t(askha)ndler",
+                "sub": "T\\1NDLER",
+            },
+            "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 fail_invalid_protocol_task_definition = {
     "type": "transfer",
     "source": {
@@ -358,6 +379,35 @@ def test_pca_move(root_dir, setup_ssh_keys):
 
     # Check the source file has not been archived
     assert not os.path.exists(f"{root_dir}/testFiles/ssh_1/archive/pca_move_bad.txt")
+
+
+def test_destination_file_rename(root_dir, setup_ssh_keys):
+    # Random number
+    import random
+
+    random_no = random.randint(1, 1000)
+
+    # Create the test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/dest_rename_{random_no}_taskhandler.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "scp-dest-rename", scp_destination_file_rename
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/ssh_2/dest/dest_rename_{random_no}_TaskhaNDLER.txt"
+    )
 
 
 def test_pca_rename(root_dir, setup_ssh_keys):
