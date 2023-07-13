@@ -1,5 +1,11 @@
 # Changelog
 
+# v0.11.0
+
+- Added ability to run local transfers and executions using new `local` protocol. This is based on the same syntax as the SSH based protocols but doesn't need a `hostname` to be defined.
+- Fixed an issue in the transfer taskhandler to ensure that protocols are handled correctly.
+- Added missing `rename` functionality to the `sftp` protocol on destination files.
+
 # v0.10.0
 
 - Migrated deprecated jsonschema validation to use `referencing` package instead of `RefResolver`
