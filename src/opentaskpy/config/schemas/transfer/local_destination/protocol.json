@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/local_destination/protocol.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": ["ssh"]
+    }
+  },
+  "required": ["name"],
+  "additionalProperties": false
+}
