@@ -37,6 +37,9 @@ DEFAULT_PROTOCOL_MAP = {
     "email": DefaultProtocolCharacteristics(
         "opentaskpy.remotehandlers.email", "EmailTransfer"
     ),
+    "local": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.local", "LocalTransfer"
+    ),
 }
 DEFAULT_STAGING_DIR_BASE = "/tmp"  # nosec B108
 
@@ -427,9 +430,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         if self.dest_file_specs:
             # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
             # If there are, then we need to do a pull transfer first, then a push transfer
-            different_protocols = False
+            any_different_protocols = False
             i = 0
             for dest_file_spec in self.dest_file_specs:
+                different_protocols = False
                 if (
                     (
                         "transferType" not in dest_file_spec
@@ -442,8 +446,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
                 ):
                     different_protocols = True
+                    any_different_protocols = True
                     i += 1
-                    break
 
                 # If there are differences, download the file locally first
                 # so it's ready to upload to multiple destinations at once
@@ -478,7 +482,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         or dest_file_spec["transferType"] == "push"
                         # And the destination and source remote handler classes are the same
                     )
-                    and not different_protocols
+                    and not any_different_protocols
                     and self.source_remote_handler.supports_direct_transfer()
                 ):
                     transfer_result = self.source_remote_handler.transfer_files(

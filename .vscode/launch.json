@@ -198,6 +198,15 @@
       "console": "integratedTerminal",
       "args": ["-t", "df", "-v", "1", "-c", "test/cfg"],
       "justMyCode": false
+    },
+    {
+      "name": "Python: Execution - Basic - df - local",
+      "type": "python",
+      "request": "launch",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "df-local", "-v", "1", "-c", "test/cfg"],
+      "justMyCode": false
     }
   ]
 }

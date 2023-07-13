@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/execution/local/protocol.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": ["local"]
+    }
+  },
+  "required": ["name"],
+  "additionalProperties": false
+}

@@ -1,12 +1,31 @@
 """Execution task handler."""
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
+from importlib import import_module
 from os import environ
+from sys import modules
+from typing import NamedTuple
 
 import opentaskpy.otflogging
 from opentaskpy.remotehandlers.remotehandler import RemoteHandler
-from opentaskpy.remotehandlers.ssh import SSHExecution
 from opentaskpy.taskhandlers.taskhandler import TaskHandler
+
+
+class DefaultProtocolCharacteristics(NamedTuple):
+    """Class defining the configuration for default protocols."""
+
+    module: str
+    class_: str
+
+
+DEFAULT_PROTOCOL_MAP = {
+    "ssh": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.ssh", "SSHExecution"
+    ),
+    "local": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.local", "LocalExecution"
+    ),
+}
 
 TASK_TYPE = "E"
 
@@ -71,6 +90,16 @@ class Execution(TaskHandler):
             else "REMOTE"
         )
 
+    def _get_default_class(self, protocol_name: str) -> type:
+        class_name = DEFAULT_PROTOCOL_MAP[protocol_name].class_
+        module_name = DEFAULT_PROTOCOL_MAP[protocol_name].module
+
+        # Load module
+        if module_name not in modules:
+            import_module(module_name)
+
+        return getattr(modules[module_name], class_name)  # type: ignore[no-any-return]
+
     def _set_remote_handlers(self) -> None:
         """Set the remote handlers.
 
@@ -82,11 +111,19 @@ class Execution(TaskHandler):
         # For each host, create a remote handler
         self.remote_handlers = []
         remote_protocol = self.execution_definition["protocol"]["name"]
-        if remote_protocol == "ssh":
-            for host in self.execution_definition["hosts"]:
-                self.remote_handlers.append(
-                    SSHExecution(host, self.execution_definition)
-                )
+
+        if remote_protocol in DEFAULT_PROTOCOL_MAP:
+            if "hosts" in self.execution_definition:
+                for host in self.execution_definition["hosts"]:
+                    handler_class = self._get_default_class(remote_protocol)
+                    remote_handler = handler_class(host, self.execution_definition)
+
+                    self.remote_handlers.append(remote_handler)
+            else:
+                handler_class = self._get_default_class(remote_protocol)
+                remote_handler = handler_class(self.execution_definition)
+
+                self.remote_handlers.append(remote_handler)
         else:
             remote_handler = super()._get_handler_for_protocol(
                 remote_protocol, self.execution_definition

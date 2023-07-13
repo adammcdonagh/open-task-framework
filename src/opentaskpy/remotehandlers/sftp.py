@@ -1,6 +1,6 @@
-"""SSH Remote Handlers.
+"""SFTP Remote Handlers.
 
-This module contains the SSH remote handlers for transfers and executions.
+This module contains the SFTP remote handlers for transfers.
 """
 import glob
 import os
@@ -263,8 +263,23 @@ class SFTPTransfer(RemoteTransferHandler):
         for file in files:
             self.logger.info(f"[LOCALHOST] Transferring file via SFTP: {file}")
             file_name = os.path.basename(file)
+
+            # Handle any rename that might be specified in the spec
+            if "rename" in self.spec:
+                rename_regex = self.spec["rename"]["pattern"]
+                rename_sub = self.spec["rename"]["sub"]
+
+                file_name = re.sub(rename_regex, rename_sub, file_name)
+                self.logger.info(f"[LOCALHOST] Renaming file to {file_name}")
+
+            mode = self.spec["mode"] if "mode" in self.spec else None
+
             try:
                 self.sftp_client.put(file, f"{destination_directory}/{file_name}")
+                if mode:
+                    self.sftp_client.chmod(
+                        f"{destination_directory}/{file_name}", int(mode)
+                    )
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"[LOCALHOST] Unable to transfer file via SFTP: {ex}")
                 result = 1

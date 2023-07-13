@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/local_destination/rename.json",
+  "type": "object",
+  "properties": {
+    "pattern": {
+      "type": "string"
+    },
+    "sub": {
+      "type": "string"
+    }
+  },
+  "required": ["pattern", "sub"],
+  "additionalProperties": false
+}

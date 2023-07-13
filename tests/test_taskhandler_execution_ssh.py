@@ -15,7 +15,6 @@ os.environ["OTF_LOG_LEVEL"] = "DEBUG"
 touch_task_definition = {
     "type": "execution",
     "hosts": ["172.16.0.11", "172.16.0.12"],
-    "username": "application",
     "directory": "/tmp",
     "command": "touch /tmp/testFiles/dest/execution.txt",
     "protocol": {"name": "ssh", "credentials": {"username": "application"}},
@@ -24,7 +23,6 @@ touch_task_definition = {
 fail_task_definition = {
     "type": "execution",
     "hosts": ["172.16.0.11", "172.16.0.12"],
-    "username": "application",
     "directory": "/tmp",
     "command": "test -e /tmp/testFiles/src/execution.test.fail.txt",
     "protocol": {"name": "ssh", "credentials": {"username": "application"}},
@@ -33,7 +31,6 @@ fail_task_definition = {
 fail_host_task_definition = {
     "type": "execution",
     "hosts": ["172.16.0.11", "172.16.255.12"],
-    "username": "application",
     "directory": "/tmp",
     "command": "touch /tmp/testFiles/dest/execution.invalidhost.txt",
     "protocol": {"name": "ssh", "credentials": {"username": "application"}},
@@ -42,7 +39,6 @@ fail_host_task_definition = {
 fail_invalid_protocol_task_definition = {
     "type": "execution",
     "hosts": ["172.16.0.11", "172.16.255.12"],
-    "username": "application",
     "directory": "/tmp",
     "command": "touch /tmp/testFiles/dest/execution.invalidhost.txt",
     "protocol": {"name": "rubbish"},
