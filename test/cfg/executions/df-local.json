@@ -1,0 +1,8 @@
+{
+  "type": "execution",
+  "directory": "/tmp",
+  "command": "df -h",
+  "protocol": {
+    "name": "local"
+  }
+}
