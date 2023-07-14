@@ -427,10 +427,3 @@ class Batch(TaskHandler):
 
         self.logger.info(f"[{task_handler.task_id}] Returned {result}")
         return result
-
-    # Destructor to handle when the batch is finished. Make sure the log file
-    # gets renamed as appropriate
-    def __del__(self) -> None:
-        """Destructor to handle closing log file correctly."""
-        self.logger.debug("Batch object deleted")
-        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

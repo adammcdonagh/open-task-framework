@@ -232,12 +232,3 @@ class Execution(TaskHandler):
         remote_host = self._get_remote_host_name(remote_handler)
         self.logger.info(f"[{remote_host}] Execution returned {result}")
         return result
-
-    # Destructor to handle when the execution is finished. Make sure the log file
-    # gets renamed as appropriate
-    def __del__(self) -> None:
-        """Destructor to handle closing log file correctly."""
-        self.logger.debug("Execution object deleted")
-        # Close the file handler
-        self.logger.info("Closing log file handler")
-        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

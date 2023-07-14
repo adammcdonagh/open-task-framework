@@ -22,8 +22,10 @@ def _define_log_file_name(task_id: str | None, task_type: str | None) -> str:
 
     # Set a custom handler to write to a specific file
     # Get the appropriate timestamp for the log file
-    prefix = datetime.now().strftime("%Y%m%d-%H%M%S.%f")
+    prefix = datetime.now().strftime("%Y%m%d-%H%M%S.%f")[:-3]
     if os.environ.get("OTF_LOG_RUN_PREFIX") is not None:
+        # This might have already been set by task_run, so pull it
+        # in from the environment
         prefix = f"{os.environ.get('OTF_LOG_RUN_PREFIX')}"
     else:
         os.environ["OTF_LOG_RUN_PREFIX"] = prefix
@@ -172,13 +174,36 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
         logger__ (_type_): The logger that needs to be closed.
         result (bool, optional): The return status of the task that was run. Defaults to False.
     """
+    log_file_name = None
     # Close the log file
     for handler in logger__.handlers:
         # If its a task file handler, and the log file still exists
         if isinstance(handler, TaskFileHandler) and os.path.exists(
             handler.baseFilename
         ):
-            handler.close(result)
+            log_file_name = handler.baseFilename
+
+    if log_file_name:
+        # Loop through every logger that exists and has a handler of this filename, and
+        # call the close method on it. Only the last one should rename the file
+        for logger_ in logging.Logger.manager.loggerDict.values():
+            if isinstance(logger_, logging.Logger):
+                for handler in logger_.handlers:
+                    if (
+                        isinstance(handler, TaskFileHandler)
+                        and handler.baseFilename == log_file_name
+                    ):
+                        handler.close()
+
+        # Now everything is closed, we can rename the log file
+        # If result is True, then rename the file and remove _running from the name
+        if result:
+            os.rename(log_file_name, log_file_name.replace("_running", ""))
+        elif result is not None and not result:
+            # Replace _running with _failed
+            os.rename(log_file_name, log_file_name.replace("_running", "_failed"))
+
+    # handler.close(result)
 
 
 logger = init_logging(__name__)
@@ -201,22 +226,3 @@ class TaskFileHandler(logging.FileHandler):
         """
         _mkdir(os.path.dirname(filename))
         logging.FileHandler.__init__(self, filename, mode, encoding, delay)
-
-    # Override the close method
-    def close(self, result: bool = False):
-        """Close the file handle for the log file.
-
-        Args:
-            result (bool, optional): Uodate the filename of the log file to match the
-            result status. If set to False, then the _running suffix in the filename
-            will be replaced with _failed, otherwise "". Defaults to False.
-        """
-        logging.FileHandler.close(self)
-        # If result is True, then rename the file and remove _running from the name
-        if result:
-            os.rename(self.baseFilename, self.baseFilename.replace("_running", ""))
-        elif result is not None and not result:
-            # Replace _running with _failed
-            os.rename(
-                self.baseFilename, self.baseFilename.replace("_running", "_failed")
-            )

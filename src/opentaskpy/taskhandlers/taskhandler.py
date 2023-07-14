@@ -42,10 +42,6 @@ class TaskHandler(ABC):
         if status == 0:
             self.overall_result = True
 
-        # Close the file handler
-        self.logger.info("Closing log file handler")
-        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
-
         # Throw an exception if we have one
         if exception:
             if callable(exception):
@@ -136,3 +132,8 @@ class TaskHandler(ABC):
 
         # Create the remote handler from this class
         return addon_class(spec)
+
+    def __del__(self) -> None:
+        """Destructor."""
+        # Close the log file
+        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
