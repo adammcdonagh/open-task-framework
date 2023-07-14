@@ -161,8 +161,9 @@ class SSHTransfer(RemoteTransferHandler):
                 f"[{self.spec['hostname']}] Closing SSH connection to"
                 f" {self.spec['hostname']}"
             )
-            if self.ssh_client:
-                self.ssh_client.close()
+            self.sftp_connection.close()
+        if self.ssh_client:
+            self.ssh_client.close()
 
     def get_staging_directory(self, remote_spec: dict) -> str:
         """Get the staging directory for the remote host.
