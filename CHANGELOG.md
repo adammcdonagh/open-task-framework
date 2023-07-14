@@ -1,5 +1,11 @@
 # Changelog
 
+# v0.12.0
+
+- Tidy up logging
+- Fix SSH transfers to ensure that SSH connections are fully closed after use
+- Update SFTP transfers to use .partial file extension while files are being uploaded, and then rename them to their final name the transfer is complete.
+
 # v0.11.0
 
 - Added ability to run local transfers and executions using new `local` protocol. This is based on the same syntax as the SSH based protocols but doesn't need a `hostname` to be defined.
