@@ -30,7 +30,20 @@
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": ["-t", "scp-basic", "-v", "3", "-c", "test/cfg"],
+      "args": ["-t", "scp-basic", "-c", "test/cfg"],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - Basic - JSON Logging",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "scp-basic", "-c", "test/cfg"],
+      "env": {
+        "OTF_LOG_JSON": "1"
+      },
       "justMyCode": false
     },
     {
@@ -90,7 +103,7 @@
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": ["-t", "batch-basic", "-v", "1", "-c", "test/cfg"],
+      "args": ["-t", "batch-basic", "-c", "test/cfg"],
       "justMyCode": false
     },
     {

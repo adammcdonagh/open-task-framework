@@ -100,6 +100,7 @@ class SFTPTransfer(RemoteTransferHandler):
                 f"{__name__}.{os.environ.get('OTF_TASK_ID')}.paramiko.transport"
             )
             ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+            self.logger.info(f"Connecting to {hostname}")
             ssh_client.connect(**client_kwargs)
             self.sftp_client = ssh_client.open_sftp()
 
@@ -115,10 +116,7 @@ class SFTPTransfer(RemoteTransferHandler):
         """
         # Close connection
         if self.sftp_client:
-            self.logger.debug(
-                f"[{self.spec['hostname']}] Closing SFTP connection to"
-                f" {self.spec['hostname']}"
-            )
+            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection to")
             self.sftp_client.close()
 
     def list_files(
@@ -139,6 +137,10 @@ class SFTPTransfer(RemoteTransferHandler):
             directory = str(self.spec["directory"])
         if not file_pattern:
             file_pattern = str(self.spec["fileRegex"])
+
+        self.logger.info(
+            f"Searching for files in {directory} with pattern {file_pattern}"
+        )
 
         self.logger.log(
             12,

@@ -2,9 +2,11 @@
 
 # v0.12.0
 
+- Added JSON formatter for logging to stderr. This replaces the default Python logging format with structured JSON output. This is enabled by setting the `OTF_LOG_JSON` environment variable to `1`. Log files are not impact, as these are always in standard format, as this is required for the batch log parsing to allow for rerunability.
 - Tidy up logging
 - Fix SSH transfers to ensure that SSH connections are fully closed after use
 - Update SFTP transfers to use .partial file extension while files are being uploaded, and then rename them to their final name the transfer is complete.
+- Altered log level for some messages
 
 # v0.11.0
 
