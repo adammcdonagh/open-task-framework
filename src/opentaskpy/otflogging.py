@@ -1,4 +1,5 @@
 """Logging module."""
+import json
 import logging
 import os
 import re
@@ -10,6 +11,35 @@ LOG_DIRECTORY = (
     if os.environ.get("OTF_LOG_DIRECTORY") is None
     else os.environ.get("OTF_LOG_DIRECTORY")
 )
+
+
+class JSONFormatter(logging.Formatter):
+    """JSON formatter.
+
+    This will take a log message and output it as JSON rather than plain text
+
+    Args:
+        logging (logging.Formatter): The logging formatter to use
+    """
+
+    def format(self, record):
+        """Format the log message as JSON."""
+        task_id = os.environ.get("OTF_TASK_ID")
+        run_id = os.environ.get("OTF_RUN_ID")
+        message = record.msg
+        json_log_record = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": record.levelname,
+            "function": record.funcName,
+            "file": f"{record.pathname}:{record.lineno}",
+            "thread": record.threadName,
+            "logger": record.name,
+            "message": message,
+            "task_id": task_id,
+            "run_id": run_id,
+        }
+        record.msg = json.dumps(json_log_record)
+        return super().format(record)
 
 
 def _define_log_file_name(task_id: str | None, task_type: str | None) -> str:
@@ -62,19 +92,29 @@ def init_logging(
     Returns:
         logging.Logger: The logger object used for logging output.
     """
+    # Set the log format
+    formatter = logging.Formatter(OTF_LOG_FORMAT)
+
     # Check if there's a root logger already
     if not logging.getLogger().hasHandlers():
+        sfh = logging.StreamHandler()
+
+        formatter = (
+            JSONFormatter()
+            if os.environ.get("OTF_LOG_JSON") and os.environ.get("OTF_LOG_JSON") == "1"
+            else formatter
+        )
+
+        sfh.setFormatter(formatter)
+
         # Set the root logger
         logging.basicConfig(
             format=OTF_LOG_FORMAT,
             level=logging.INFO,
             handlers=[
-                logging.StreamHandler(),
+                sfh,
             ],
         )
-
-    # Set the log format
-    formatter = logging.Formatter(OTF_LOG_FORMAT)
 
     # Create a unique logger object for this task
     if not task_id:
@@ -108,7 +148,7 @@ def init_logging(
         otf_logger.addHandler(tfh)
         tfh.setFormatter(formatter)
 
-    otf_logger.info("Logging initialised")
+    otf_logger.debug("Logging initialised")
 
     return otf_logger
 

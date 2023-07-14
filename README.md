@@ -116,7 +116,8 @@ In order for the process to run, you must have at least one task, and a `variabl
 
 These are some environment variables that can be used to customise the behaviour of the application. There are some internally used variables too, but changing them without a full understanding of the code is not advised.
 
-- `OTF_NO_LOG` - Disable logging to file. Only log to stderr
+- `OTF_NO_LOG` - Disable logging to file. Only log to stderr. Set to `1` to enable
+- `OTF_LOG_JSON` - Stderr logging will be in JSON format. Set to `1` to enable
 - `OTF_LOG_DIRECTORY` - Path under which log files are written
 - `OTF_RUN_ID` - (meant for internal use) An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
 - `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
