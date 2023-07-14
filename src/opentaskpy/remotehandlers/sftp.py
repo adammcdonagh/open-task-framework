@@ -275,7 +275,20 @@ class SFTPTransfer(RemoteTransferHandler):
             mode = self.spec["mode"] if "mode" in self.spec else None
 
             try:
-                self.sftp_client.put(file, f"{destination_directory}/{file_name}")
+                # While writing, the file should not have it's final name. Replace the
+                # file extension with .partial, and then rename it once the file has
+                # been transferred
+                file_name_partial = re.sub(r"\.[^.]+$", ".partial", file_name)
+
+                self.sftp_client.put(
+                    file, f"{destination_directory}/{file_name_partial}"
+                )
+
+                # Rename the file to its final name
+                self.sftp_client.posix_rename(
+                    f"{destination_directory}/{file_name_partial}",
+                    f"{destination_directory}/{file_name}",
+                )
                 if mode:
                     self.sftp_client.chmod(
                         f"{destination_directory}/{file_name}", int(mode)
