@@ -11,7 +11,7 @@ from tests.fixtures.ssh_clients import *  # noqa: F403
 
 def test_define_log_file_name(env_vars, tmpdir, top_level_root_dir):
     # Pass in different task types and validate that the log file name is correct
-    timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{3}\.\d{6}"
+    timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{3}"
     log_path = "logs"
     expected_result_regex = rf"{log_path}/no_task_id/{timestamp}_B_running.log"
 
@@ -76,7 +76,7 @@ def test_define_log_file_name(env_vars, tmpdir, top_level_root_dir):
 def test_init_logging(env_vars, top_level_root_dir):
     # Call init logging function and ensure that the returned logger includes a TaskFileHandler
     # pointing at the correct filename
-    timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{3}\.\d{6}"
+    timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{3}"
     log_path = f"{top_level_root_dir}/logs"
     expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_running.log"
     logger = opentaskpy.otflogging.init_logging(

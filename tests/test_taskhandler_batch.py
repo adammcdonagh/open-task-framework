@@ -240,6 +240,9 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name("timeout", "B")
     log_file_name_task = opentaskpy.otflogging._define_log_file_name("sleep-300", "E")
 
+    # Trash the batch_obj so that the log file is closed
+    del batch_obj
+
     # Check that both exist, but renamed with _failed
     assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))
     assert os.path.exists(log_file_name_task.replace("_running", "_failed"))
@@ -261,6 +264,9 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
     )
     # Run and expect a false status
     assert not batch_obj.run()
+
+    # Trash the batch_obj so that the log file is closed
+    del batch_obj
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
@@ -293,6 +299,9 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
     # Run and expect a false status
     assert not batch_obj.run()
 
+    # Trash the batch_obj so that the log file is closed
+    del batch_obj
+
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
@@ -323,6 +332,9 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
 
     # Run and expect a false status
     assert not batch_obj.run()
+
+    # Trash the batch_obj so that the log file is closed
+    del batch_obj
 
     # Validate that the touch task has been skipped, so there's no log file
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
@@ -355,6 +367,9 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     )
     # Run and expect a false status
     assert not batch_obj.run()
+
+    # Trash the batch_obj so that the log file is closed
+    del batch_obj
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
@@ -416,6 +431,9 @@ def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
     )
     # Run and expect a false status
     assert not batch_obj.run()
+
+    # Trash the batch_obj so that the log file is closed
+    del batch_obj
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
