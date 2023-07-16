@@ -187,7 +187,7 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
 
     # Unless another date is given, only look at today's logs
     batch_resume_date = datetime.now().date()
-    if os.environ.get("OTF_BATCH_RESUME_LOG_DATE") is None:
+    if os.environ.get("OTF_BATCH_RESUME_LOG_DATE"):
         batch_resume_date = datetime.strptime(
             os.environ.get("OTF_BATCH_RESUME_LOG_DATE"), "%Y%m%d"
         ).date()
