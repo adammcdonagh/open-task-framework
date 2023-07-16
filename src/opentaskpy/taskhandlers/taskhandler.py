@@ -134,8 +134,3 @@ class TaskHandler(ABC):
 
         # Create the remote handler from this class
         return addon_class(spec)
-
-    # def __del__(self) -> None:
-    #     """Destructor."""
-    #     # Close the log file
-    #     opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

@@ -7,6 +7,7 @@
 - Fix SSH transfers to ensure that SSH connections are fully closed after use
 - Update SFTP transfers to use .partial file extension while files are being uploaded, and then rename them to their final name the transfer is complete.
 - Altered log level for some messages
+- Added `OTF_BATCH_RESUME_LOG_DATE` to allow resuming of batch runs from a specific date. This is useful if you want to rerun a batch from a specific date, especially if the failure happens just after midnight and the date is no longer the same as the original run.
 
 # v0.11.0
 

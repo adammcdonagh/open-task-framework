@@ -123,6 +123,7 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
 - `OTF_REMOTE_SCRIPT_BASE_DIR` - Alternative location to drop the temporary `transfer.py` script on remote hosts using SSH protocol. Default is `/tmp`
 - `OTF_STAGING_DIR` - Staging base directory to place files before they're dropped into their final location. Default is `/tmp`
+- `OTF_BATCH_RESUME_LOG_DATE` - Allow resuming of batch runs from a specific date. This is useful if you want to rerun a batch from a specific date, especially if the failure happens just after midnight and the date is no longer the same as the original run. Date format is `YYYYMMDD`
 
 ## Logging
 
@@ -359,6 +360,8 @@ Each task in a batch has an `order_id`, this is a unique ID for each task, and i
 `retry_on_rerun` is a boolean that determines whether a successful task is run a second time following a failed run. If a batch exits with a failure, and then the script is reun later on that same day, by default only the steps that failed will be run. All steps can be forced to run by setting this to true
 
 `timeout` specifies the number of seconds a task is allowed to be running before it gets terminated. This counts as a failure. The default timeout, if not specified is 300 seconds.
+
+As a batch task runs, it writes out the status of each sub task to it's log file. If a failure occurs, and the batch is rerun with the same arguments, it will attempt to resume from the point of failure. To determine the previous state, the batch handler will look at only logs that are from the current date. This is tp ensure that if something failed at 1am yesterday, but hasn't been rerun, we won't try to recover from the point of failure. Sometimes you might want to recover regardless, this can be done by passing in the date of the log files that you want to recover from, using the environment variable `OTF_BATCH_RESUME_LOG_DATE` in the format `YYYYMMDD`. This will instruct the batch handler to look at logs with that date instead.
 
 # Development
 

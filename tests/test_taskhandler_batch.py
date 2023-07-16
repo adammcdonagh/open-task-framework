@@ -141,7 +141,7 @@ fail_batch_definition = {
 RANDOM = random.randint(10000, 99999)
 
 
-def test_basic_batch(setup_ssh_keys, env_vars, root_dir):
+def test_basic_batch(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -168,7 +168,7 @@ def test_basic_batch(setup_ssh_keys, env_vars, root_dir):
     assert os.path.exists(f"{root_dir}/testFiles/ssh_1/src/touchedFile.txt")
 
 
-def test_batch_parallel(setup_ssh_keys, env_vars, root_dir):
+def test_batch_parallel(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -190,7 +190,7 @@ def test_batch_parallel(setup_ssh_keys, env_vars, root_dir):
     assert batch_obj.run()
 
 
-def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars):
+def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -212,7 +212,7 @@ def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars):
     assert batch_obj.run()
 
 
-def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars):
+def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -226,7 +226,7 @@ def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars):
         batch.Batch(None, f"fail-{RANDOM}", fail_batch_definition, config_loader)
 
 
-def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
+def test_batch_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Set a log file prefix for easy identification
     # Get a random number
 
@@ -241,15 +241,12 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name("timeout", "B")
     log_file_name_task = opentaskpy.otflogging._define_log_file_name("sleep-300", "E")
 
-    # Trash the batch_obj so that the log file is closed
-    del batch_obj
-
     # Check that both exist, but renamed with _failed
     assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))
     assert os.path.exists(log_file_name_task.replace("_running", "_failed"))
 
 
-def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
+def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Forcing a prefix makes it easy to identify log files, as well as
     # ensuring that any rerun logic doesn't get hit
     os.environ["OTF_LOG_RUN_PREFIX"] = f"testbatch_timeout_{RANDOM}"
@@ -265,9 +262,6 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
     )
     # Run and expect a false status
     assert not batch_obj.run()
-
-    # Trash the batch_obj so that the log file is closed
-    del batch_obj
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
@@ -300,9 +294,6 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir, clear_lo
     # Run and expect a false status
     assert not batch_obj.run()
 
-    # Trash the batch_obj so that the log file is closed
-    del batch_obj
-
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
@@ -334,9 +325,6 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir, clear_lo
     # Run and expect a false status
     assert not batch_obj.run()
 
-    # Trash the batch_obj so that the log file is closed
-    del batch_obj
-
     # Validate that the touch task has been skipped, so there's no log file
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
     log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
@@ -351,7 +339,7 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir, clear_lo
 
 
 def test_batch_resume_after_failure_retry_successful_tasks(
-    setup_ssh_keys, env_vars, root_dir
+    setup_ssh_keys, env_vars, root_dir, clear_logs
 ):
     task_id = f"parallel-single-failure-2-{RANDOM}"
     # Ensure there are no logs for this batch
@@ -368,9 +356,6 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     )
     # Run and expect a false status
     assert not batch_obj.run()
-
-    # Trash the batch_obj so that the log file is closed
-    del batch_obj
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name
@@ -403,8 +388,6 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     # Run and expect a false status
     assert not batch_obj.run()
 
-    del batch_obj
-
     # Validate that the touch task has been skipped, so there's no log file
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
     log_file_name_touch_task = opentaskpy.otflogging._define_log_file_name("touch", "E")
@@ -418,7 +401,7 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     assert os.path.exists(log_file_name_failed_task.replace("_running", "_failed"))
 
 
-def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
+def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir, clear_logs):
     task_id = f"dependency-continue-on-fail-1-{RANDOM}"
     # Ensure there are no logs for this batch
     shutil.rmtree(
@@ -434,9 +417,6 @@ def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
     )
     # Run and expect a false status
     assert not batch_obj.run()
-
-    # Trash the batch_obj so that the log file is closed
-    del batch_obj
 
     # Validate that a log has been created with the correct status
     # Use the logging module to get the right log file name

@@ -185,6 +185,21 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
         and re.match(r"\d{8}-\d{6}\.\d{3}", f.split("_")[0])
     ]
 
+    # Unless another date is given, only look at today's logs
+    batch_resume_date = datetime.now().date()
+    if os.environ.get("OTF_BATCH_RESUME_LOG_DATE") is None:
+        batch_resume_date = datetime.strptime(
+            os.environ.get("OTF_BATCH_RESUME_LOG_DATE"), "%Y%m%d"
+        ).date()
+
+    # Remove any logs that are not from the given date
+    log_files = [
+        f
+        for f in log_files
+        if datetime.strptime(f.split("_")[0], "%Y%m%d-%H%M%S.%f").date()
+        == batch_resume_date
+    ]
+
     # Sort the list by the date/time in the filename
     log_files.sort(key=lambda x: datetime.strptime(x.split("_")[0], "%Y%m%d-%H%M%S.%f"))
     # Get the latest log file
