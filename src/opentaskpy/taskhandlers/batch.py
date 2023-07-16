@@ -57,6 +57,13 @@ class Batch(TaskHandler):
         previous_log_file = opentaskpy.otflogging.get_latest_log_file(
             self.task_id, TASK_TYPE
         )
+
+        self.logger.info(
+            f"Found previous log file: {previous_log_file}"
+            if previous_log_file
+            else "No previous log file found"
+        )
+
         previous_status = {}
         if previous_log_file:
             self.logger.info("Parsing previous log file for log marks")

@@ -182,7 +182,7 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
         f
         for f in log_files
         if re.match(os.path.basename(log_file_name), f)
-        and re.match(r"\d{8}-\d{6}\.\d{6}", f.split("_")[0])
+        and re.match(r"\d{8}-\d{6}\.\d{3}", f.split("_")[0])
     ]
 
     # Sort the list by the date/time in the filename
@@ -223,7 +223,15 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
         ):
             log_file_name = handler.baseFilename
 
+    log_handlers = []
+
     if log_file_name:
+        new_log_filename = None
+        if result:
+            new_log_filename = log_file_name.replace("_running", "")
+        elif result is not None and not result:
+            new_log_filename = log_file_name.replace("_running", "_failed")
+
         # Loop through every logger that exists and has a handler of this filename, and
         # call the close method on it. Only the last one should rename the file
         for logger_ in logging.Logger.manager.loggerDict.values():
@@ -233,17 +241,18 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
                         isinstance(handler, TaskFileHandler)
                         and handler.baseFilename == log_file_name
                     ):
+                        log_handlers.append(handler)
                         handler.close()
 
         # Now everything is closed, we can rename the log file
         # If result is True, then rename the file and remove _running from the name
-        if result:
-            os.rename(log_file_name, log_file_name.replace("_running", ""))
-        elif result is not None and not result:
-            # Replace _running with _failed
-            os.rename(log_file_name, log_file_name.replace("_running", "_failed"))
+        if new_log_filename:
+            os.rename(log_file_name, new_log_filename)
 
-    # handler.close(result)
+            # Change the basename of the handler to match the new filename, in case it
+            # wants to log anything else
+            for handler in log_handlers:
+                handler.baseFilename = new_log_filename
 
 
 logger = init_logging(__name__)

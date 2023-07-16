@@ -11,6 +11,7 @@ from opentaskpy.config.loader import ConfigLoader
 
 # from opentaskpy.taskhandlers.batch import Batch
 from opentaskpy.taskhandlers import batch, execution, transfer
+from tests.file_helper import *  # noqa: F403
 from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_NO_LOG"] = "1"
@@ -282,7 +283,7 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
     assert os.path.exists(log_file_name_failed_task.replace("_running", "_failed"))
 
 
-def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
+def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir, clear_logs):
     task_id = f"parallel-single-failure-1-{RANDOM}"
     # Ensure there are no logs for this batch
     shutil.rmtree(
@@ -401,6 +402,8 @@ def test_batch_resume_after_failure_retry_successful_tasks(
 
     # Run and expect a false status
     assert not batch_obj.run()
+
+    del batch_obj
 
     # Validate that the touch task has been skipped, so there's no log file
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name(task_id, "B")
