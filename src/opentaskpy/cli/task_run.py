@@ -44,7 +44,7 @@ def main() -> None:
     if args.runId:
         os.environ["OTF_RUN_ID"] = args.runId
 
-    os.environ["OTF_LOG_RUN_PREFIX"] = datetime.now().strftime("%Y%m%d-%H%M%S.%f")
+    os.environ["OTF_LOG_RUN_PREFIX"] = datetime.now().strftime("%Y%m%d-%H%M%S.%f")[:-3]
 
     logging_level = logging.INFO
     if args.verbosity == 3:

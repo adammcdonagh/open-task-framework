@@ -11,6 +11,7 @@ from opentaskpy.config.loader import ConfigLoader
 
 # from opentaskpy.taskhandlers.batch import Batch
 from opentaskpy.taskhandlers import batch, execution, transfer
+from tests.file_helper import *  # noqa: F403
 from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_NO_LOG"] = "1"
@@ -140,7 +141,7 @@ fail_batch_definition = {
 RANDOM = random.randint(10000, 99999)
 
 
-def test_basic_batch(setup_ssh_keys, env_vars, root_dir):
+def test_basic_batch(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -167,7 +168,7 @@ def test_basic_batch(setup_ssh_keys, env_vars, root_dir):
     assert os.path.exists(f"{root_dir}/testFiles/ssh_1/src/touchedFile.txt")
 
 
-def test_batch_parallel(setup_ssh_keys, env_vars, root_dir):
+def test_batch_parallel(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -189,7 +190,7 @@ def test_batch_parallel(setup_ssh_keys, env_vars, root_dir):
     assert batch_obj.run()
 
 
-def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars):
+def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -211,7 +212,7 @@ def test_batch_dependencies(root_dir, setup_ssh_keys, env_vars):
     assert batch_obj.run()
 
 
-def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars):
+def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars, clear_logs):
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/test.txt": {"content": "test1234"}}]
@@ -225,7 +226,7 @@ def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars):
         batch.Batch(None, f"fail-{RANDOM}", fail_batch_definition, config_loader)
 
 
-def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
+def test_batch_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Set a log file prefix for easy identification
     # Get a random number
 
@@ -245,7 +246,7 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir):
     assert os.path.exists(log_file_name_task.replace("_running", "_failed"))
 
 
-def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
+def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Forcing a prefix makes it easy to identify log files, as well as
     # ensuring that any rerun logic doesn't get hit
     os.environ["OTF_LOG_RUN_PREFIX"] = f"testbatch_timeout_{RANDOM}"
@@ -276,7 +277,7 @@ def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir):
     assert os.path.exists(log_file_name_failed_task.replace("_running", "_failed"))
 
 
-def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
+def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir, clear_logs):
     task_id = f"parallel-single-failure-1-{RANDOM}"
     # Ensure there are no logs for this batch
     shutil.rmtree(
@@ -338,7 +339,7 @@ def test_batch_resume_after_failure(setup_ssh_keys, env_vars, root_dir):
 
 
 def test_batch_resume_after_failure_retry_successful_tasks(
-    setup_ssh_keys, env_vars, root_dir
+    setup_ssh_keys, env_vars, root_dir, clear_logs
 ):
     task_id = f"parallel-single-failure-2-{RANDOM}"
     # Ensure there are no logs for this batch
@@ -400,7 +401,7 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     assert os.path.exists(log_file_name_failed_task.replace("_running", "_failed"))
 
 
-def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir):
+def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir, clear_logs):
     task_id = f"dependency-continue-on-fail-1-{RANDOM}"
     # Ensure there are no logs for this batch
     shutil.rmtree(

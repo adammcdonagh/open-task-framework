@@ -117,6 +117,7 @@ class SSHTransfer(RemoteTransferHandler):
                 self.logger.info("Using key file from task spec")
                 kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
 
+            self.logger.info(f"Connecting to {hostname}")
             ssh_client.connect(**kwargs)
             _, stdout, _ = ssh_client.exec_command("uname -a")  # nosec B601
             with stdout as stdout_fh:
@@ -157,12 +158,11 @@ class SSHTransfer(RemoteTransferHandler):
                 self.sftp_connection.remove(f"{REMOTE_SCRIPT_BASE_DIR}/transfer.py")
             self.sftp_connection.close()
 
-            self.logger.debug(
-                f"[{self.spec['hostname']}] Closing SSH connection to"
-                f" {self.spec['hostname']}"
-            )
-            if self.ssh_client:
-                self.ssh_client.close()
+            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection")
+            self.sftp_connection.close()
+        if self.ssh_client:
+            self.logger.info(f"[{self.spec['hostname']}] Closing SSH connection")
+            self.ssh_client.close()
 
     def get_staging_directory(self, remote_spec: dict) -> str:
         """Get the staging directory for the remote host.
@@ -205,6 +205,10 @@ class SSHTransfer(RemoteTransferHandler):
             directory = str(self.spec["directory"])
         if not file_pattern:
             file_pattern = str(self.spec["fileRegex"])
+
+        self.logger.info(
+            f"Searching for files in {directory} with pattern {file_pattern}"
+        )
 
         self.logger.log(
             12,
@@ -583,6 +587,7 @@ class SSHTransfer(RemoteTransferHandler):
 
         stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
 
+        self.logger.info("### START OF REMOTE OUTPUT ###")
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
             if str_stdout:
@@ -594,6 +599,8 @@ class SSHTransfer(RemoteTransferHandler):
                 self.logger.info(
                     f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
                 )
+
+        self.logger.info("### END OF REMOTE OUTPUT ###")
 
         remote_rc: int = stdout.channel.recv_exit_status()
         self.logger.info(
@@ -846,8 +853,8 @@ class SSHExecution(RemoteExecutionHandler):
 
     def tidy(self) -> None:
         """Tidy up the SSH connection."""
-        self.logger.debug(f"[{self.remote_host}] Closing SSH connection")
         if self.ssh_client:
+            self.logger.info(f"[{self.remote_host}] Closing SSH connection")
             self.ssh_client.close()
 
     def __init__(self, remote_host: str, spec: dict):

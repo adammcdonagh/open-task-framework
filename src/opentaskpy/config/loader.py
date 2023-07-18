@@ -163,7 +163,7 @@ class ConfigLoader:
 
         # Check to see if this is not a batch type
         if "type" in task_definition and task_definition["type"] == "batch":
-            self.logger.warning("Cannot apply overrides to batch tasks. Ignoring")
+            self.logger.debug("Cannot apply overrides to batch tasks")
             return task_definition
 
         # Finally, attributes of the task definition can also be overridden by environment variables

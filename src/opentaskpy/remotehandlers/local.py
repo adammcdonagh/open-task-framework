@@ -69,6 +69,10 @@ class LocalTransfer(RemoteTransferHandler):
         if not file_pattern:
             file_pattern = str(self.spec["fileRegex"])
 
+        self.logger.info(
+            f"Searching for files in {directory} with pattern {file_pattern}"
+        )
+
         self.logger.log(
             12,
             f"[LOCAL] Searching in {directory} for files with pattern {file_pattern}",

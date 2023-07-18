@@ -1,7 +1,10 @@
 # pylint: skip-file
 import logging
 import os
+import shutil
 from re import match
+
+import pytest
 
 BASE_DIRECTORY = "test/testFiles"
 
@@ -22,3 +25,19 @@ def list_test_files(directory, file_pattern, delimiter):
         if match(rf"{file_pattern}", f)
     ]
     return delimiter.join(files)
+
+
+@pytest.fixture(scope="function")
+def clear_logs() -> None:
+    """Clear the logs directory."""
+    if os.path.exists("logs"):
+        # Delete the files inside the logs directory
+        for file_name in os.listdir("logs"):
+            file_path = os.path.join("logs", file_name)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except OSError:
+                pass

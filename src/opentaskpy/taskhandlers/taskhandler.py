@@ -42,8 +42,6 @@ class TaskHandler(ABC):
         if status == 0:
             self.overall_result = True
 
-        # Close the file handler
-        self.logger.info("Closing log file handler")
         opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one

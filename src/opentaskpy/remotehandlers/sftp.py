@@ -100,6 +100,7 @@ class SFTPTransfer(RemoteTransferHandler):
                 f"{__name__}.{os.environ.get('OTF_TASK_ID')}.paramiko.transport"
             )
             ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+            self.logger.info(f"Connecting to {hostname}")
             ssh_client.connect(**client_kwargs)
             self.sftp_client = ssh_client.open_sftp()
 
@@ -115,10 +116,7 @@ class SFTPTransfer(RemoteTransferHandler):
         """
         # Close connection
         if self.sftp_client:
-            self.logger.debug(
-                f"[{self.spec['hostname']}] Closing SFTP connection to"
-                f" {self.spec['hostname']}"
-            )
+            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection to")
             self.sftp_client.close()
 
     def list_files(
@@ -139,6 +137,10 @@ class SFTPTransfer(RemoteTransferHandler):
             directory = str(self.spec["directory"])
         if not file_pattern:
             file_pattern = str(self.spec["fileRegex"])
+
+        self.logger.info(
+            f"Searching for files in {directory} with pattern {file_pattern}"
+        )
 
         self.logger.log(
             12,
@@ -275,7 +277,20 @@ class SFTPTransfer(RemoteTransferHandler):
             mode = self.spec["mode"] if "mode" in self.spec else None
 
             try:
-                self.sftp_client.put(file, f"{destination_directory}/{file_name}")
+                # While writing, the file should not have it's final name. Replace the
+                # file extension with .partial, and then rename it once the file has
+                # been transferred
+                file_name_partial = re.sub(r"\.[^.]+$", ".partial", file_name)
+
+                self.sftp_client.put(
+                    file, f"{destination_directory}/{file_name_partial}"
+                )
+
+                # Rename the file to its final name
+                self.sftp_client.posix_rename(
+                    f"{destination_directory}/{file_name_partial}",
+                    f"{destination_directory}/{file_name}",
+                )
                 if mode:
                     self.sftp_client.chmod(
                         f"{destination_directory}/{file_name}", int(mode)

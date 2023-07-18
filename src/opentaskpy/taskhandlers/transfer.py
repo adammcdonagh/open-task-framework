@@ -594,11 +594,3 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
         return self.return_result(0)
-
-    # Destructor to handle when the transfer is finished. Make sure the log file
-    # gets renamed as appropriate
-    def __del__(self) -> None:
-        """Destructor to handle closing log file correctly."""
-        self.logger.debug("Transfer object deleted")
-        self.logger.info("Closing log file handler")
-        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)

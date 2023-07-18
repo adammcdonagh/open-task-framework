@@ -57,6 +57,13 @@ class Batch(TaskHandler):
         previous_log_file = opentaskpy.otflogging.get_latest_log_file(
             self.task_id, TASK_TYPE
         )
+
+        self.logger.info(
+            f"Found previous log file: {previous_log_file}"
+            if previous_log_file
+            else "No previous log file found"
+        )
+
         previous_status = {}
         if previous_log_file:
             self.logger.info("Parsing previous log file for log marks")
@@ -427,10 +434,3 @@ class Batch(TaskHandler):
 
         self.logger.info(f"[{task_handler.task_id}] Returned {result}")
         return result
-
-    # Destructor to handle when the batch is finished. Make sure the log file
-    # gets renamed as appropriate
-    def __del__(self) -> None:
-        """Destructor to handle closing log file correctly."""
-        self.logger.debug("Batch object deleted")
-        opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
