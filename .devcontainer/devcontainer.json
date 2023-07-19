@@ -41,8 +41,6 @@
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.testing.unittestEnabled": false,
         "python.testing.pytestArgs": ["."],
-        "python.autoComplete.extraPaths": ["src/python/sensu_plugin/lib"],
-        "python.analysis.extraPaths": ["src/python/sensu_plugin/lib"],
         "python.analysis.typeCheckingMode": "off",
         "python.linting.enabled": true,
         "python.linting.flake8Enabled": false,
