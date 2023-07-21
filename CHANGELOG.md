@@ -1,5 +1,11 @@
 # Changelog
 
+# v0.12.1
+
+- Enforce source `directory` definition in transfer schemas for SSH and SFTP
+- Ensure a recent `pylint` is being used
+- Remove comment from CODEOWNERS file
+
 # v0.12.0
 
 - Added JSON formatter for logging to stderr. This replaces the default Python logging format with structured JSON output. This is enabled by setting the `OTF_LOG_JSON` environment variable to `1`. Log files are not impact, as these are always in standard format, as this is required for the batch log parsing to allow for rerunability.
