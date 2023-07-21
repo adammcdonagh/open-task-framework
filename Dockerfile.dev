@@ -5,3 +5,4 @@ RUN mkdir /logs && ln -s /logs /app/logs
 # Set the working directory to the app directory
 WORKDIR /app
 RUN pip install .
+ENV OTF_LOG_DIRECTORY=/logs

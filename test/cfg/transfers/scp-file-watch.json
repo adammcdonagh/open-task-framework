@@ -6,7 +6,6 @@
     "fileRegex": "fileWatch\\.log",
     "fileWatch": {
       "timeout": 15,
-      "directory": "/tmp/testFiles/src",
       "fileRegex": "fileWatch\\.txt"
     },
     "protocol": {

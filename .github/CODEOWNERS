@@ -7,6 +7,4 @@
 
 - @adammcdonagh
 
-# This should always go at the bottom so that only DevOps can change it
-
 .github/CODEOWNERS @adammcdonagh
