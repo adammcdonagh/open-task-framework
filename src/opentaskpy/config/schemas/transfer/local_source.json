@@ -26,5 +26,5 @@
     }
   },
   "additionalProperties": false,
-  "required": ["hostname", "fileRegex", "protocol"]
+  "required": ["hostname", "directory", "fileRegex", "protocol"]
 }
