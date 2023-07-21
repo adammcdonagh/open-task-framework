@@ -1,4 +1,9 @@
-![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/test.yml/badge.svg?event=push)
+[![PyPi](https://img.shields.io/pypi/v/opentaskpy.svg)](https://pypi.org/project/opentaskpy/)
+![unittest status](https://github.com/adammcdonagh/open-task-framework/actions/workflows/test.yml/badge.svg)
+[![Coverage](https://img.shields.io/codecov/c/github/adammcdonagh/open-task-framework.svg)](https://codecov.io/gh/adammcdonagh/open-task-framework)
+[![License](https://img.shields.io/github/license/adammcdonagh/open-task-framework.svg)](https://github.com/adammcdonagh/open-task-framework/blob/master/LICENSE)
+[![Issues](https://img.shields.io/github/issues/adammcdonagh/open-task-framework.svg)](https://github.com/adammcdonagh/open-task-framework/issues)
+[![Stars](https://img.shields.io/github/stars/adammcdonagh/open-task-framework.svg)](https://github.com/adammcdonagh/open-task-framework/stargazers)
 
 <h1>Open Task Framework (opentaskpy)</h1>
 

@@ -42,6 +42,8 @@ dev = [
   "pydantic",
   "mypy",
   "ruff",
+  "coverage",
+  "pytest-cov"
 ]
 
 [project.urls]

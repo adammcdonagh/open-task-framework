@@ -5,6 +5,8 @@
 - Enforce source `directory` definition in transfer schemas for SSH and SFTP
 - Ensure a recent `pylint` is being used
 - Remove comment from CODEOWNERS file
+- Add codecov to CI steps
+- Add badges to `README.md`
 
 # v0.12.0
 
