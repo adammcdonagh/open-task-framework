@@ -38,7 +38,7 @@ dev = [
   "pytest-shell",
   "lovely-pytest-docker",
   "pre-commit",
-  "pylint",
+  "pylint >= 2.17.0",
   "pydantic",
   "mypy",
   "ruff",
