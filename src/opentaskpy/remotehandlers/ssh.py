@@ -298,32 +298,16 @@ class SSHTransfer(RemoteTransferHandler):
         # Sanitize the destination directory
         destination_directory = quote(destination_directory)
 
-        # Create/validate staging directory exists on destination
-        remote_command = (
-            f"test -e {destination_directory} || mkdir -p {destination_directory}"
-        )
-
-        self.logger.info(
-            f"[{self.spec['hostname']}] Validating staging dir via SSH:"
-            f" {remote_command}"
-        )
-
-        _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601 # We've sanitised as much as possible above
-        with stdout as stdout_fh:
-            if str_stdout := stdout_fh.read().decode("UTF-8"):
-                log_stdout(str_stdout, self.spec["hostname"], self.logger)
-
-        with stderr as stderr_fh:
-            str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr and len(str_stderr) > 0:
-                self.logger.info(
-                    f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
-                )
-
-        remote_rc = stdout.channel.recv_exit_status()
-        self.logger.info(
-            f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH command"
-        )
+        # Use SFTP connection to check if the directory exists
+        try:
+            self.sftp_connection.stat(destination_directory)
+        except FileNotFoundError:
+            # Create the directory
+            self.logger.info(
+                f"[{self.spec['hostname']}] Creating destination directory"
+                f" {destination_directory}"
+            )
+            mkdir_p(self.sftp_connection, destination_directory)
 
         # Transfer the files, just use SFTP
         result = 0
@@ -358,11 +342,12 @@ class SSHTransfer(RemoteTransferHandler):
             int: 0 if successful, if not, the return code from the remotely executed SCP
             command.
         """
-        self.connect(self.spec["hostname"])
+        remote_host = remote_spec["hostname"]
+        self.connect(remote_host)
 
         # If we are given a destination handler, make sure we connect to the host
         if dest_remote_handler:
-            self.connect(remote_spec["hostname"], dest_remote_handler.ssh_client)
+            self.connect(remote_host, dest_remote_handler.ssh_client)
 
         # Construct an SCP command to transfer the files to the destination server
         remote_user = (
@@ -370,38 +355,24 @@ class SSHTransfer(RemoteTransferHandler):
             if "transferUsername" in remote_spec["protocol"]["credentials"]
             else remote_spec["protocol"]["credentials"]["username"]
         )
-        remote_host = remote_spec["hostname"]
+
         # Handle staging directory if there is one
         destination_directory = self.get_staging_directory(remote_spec)
 
+        # Check that the SFTP client is connected and active
+        dest_sftp_client = dest_remote_handler.ssh_client.open_sftp()
+
         # Create/validate staging directory exists on destination
-        destination_directory = quote(destination_directory)
-        remote_command = (
-            f"test -e {destination_directory} || mkdir -p {destination_directory}"
-        )
-        self.logger.info(
-            f"[{remote_host}] Validating staging dir via SSH: {remote_command}"
-        )
-
-        _, stdout, stderr = dest_remote_handler.ssh_client.exec_command(  # nosec B601
-            remote_command
-        )
-        with stdout as stdout_fh:
-            str_stdout = stdout_fh.read().decode("UTF-8")
-            if str_stdout:
-                log_stdout(str_stdout, remote_host, self.logger)
-
-        with stderr as stderr_fh:
-            str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr and len(str_stderr) > 0:
-                self.logger.info(
-                    f"[{remote_host}] Remote stderr returned:\n{str_stderr}"
-                )
-
-        remote_rc: int = stdout.channel.recv_exit_status()
-        self.logger.info(
-            f"[{remote_host}] Got return code {remote_rc} from SSH command"
-        )
+        # Use SFTP connection to check if the directory exists
+        try:
+            dest_sftp_client.stat(destination_directory)
+        except FileNotFoundError:
+            # Create the directory
+            self.logger.info(
+                f"[{dest_remote_handler.spec['hostname']}] Creating destination"
+                f" directory {destination_directory}"
+            )
+            mkdir_p(dest_sftp_client, destination_directory)
 
         # Sanitise arguments
         files = [quote(file) for file in files]
@@ -455,35 +426,20 @@ class SSHTransfer(RemoteTransferHandler):
         # Handle staging directory if there is one
         destination_directory = self.get_staging_directory(self.spec)
 
-        # Sanitise arguments
-        destination_directory = quote(destination_directory)
+        # Get an SFTP client to use to create the staging directory
+        sftp_client = self.ssh_client.open_sftp()  # type: ignore[union-attr]
 
-        # Create/validate staging directory exists
-        remote_command = (
-            f"test -e {destination_directory} || mkdir -p {destination_directory}"
-        )
-        self.logger.info(
-            f"[{self.spec['hostname']}] Validating staging dir via SSH:"
-            f" {remote_command}"
-        )
-
-        _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
-        with stdout as stdout_fh:
-            str_stdout = stdout_fh.read().decode("UTF-8")
-            if str_stdout:
-                log_stdout(str_stdout, self.spec["hostname"], self.logger)
-
-        with stderr as stderr_fh:
-            str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr and len(str_stderr) > 0:
-                self.logger.info(
-                    f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
-                )
-
-        remote_rc: int = stdout.channel.recv_exit_status()
-        self.logger.info(
-            f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH command"
-        )
+        # Create/validate staging directory exists on destination
+        # Use SFTP connection to check if the directory exists
+        try:
+            sftp_client.stat(destination_directory)
+        except FileNotFoundError:
+            # Create the directory
+            self.logger.info(
+                f"[{self.spec['hostname']}] Creating destination directory"
+                f" {destination_directory}"
+            )
+            mkdir_p(sftp_client, destination_directory)
 
         files_str = ""
         for file in files:
@@ -569,14 +525,29 @@ class SSHTransfer(RemoteTransferHandler):
 
         directory = quote(self.spec["directory"])
 
+        # Get an SFTP connection if it doesn't exist
+        if not isinstance(self.sftp_connection, SFTPClient):
+            self.sftp_connection = self.ssh_client.open_sftp()  # type: ignore[union-attr]
+
         # Check if the destination directory exists on the remote host
         dest_dir_args = ""
-        if (
-            self.sftp_connection
-            and not self.sftp_connection.stat(directory)
-            and self.spec["createDirectoryIfNotExists"]
-        ):
-            dest_dir_args = "--createDestDir"
+
+        try:
+            self.sftp_connection.stat(directory)
+        except FileNotFoundError:
+            if self.spec["createDirectoryIfNotExists"]:
+                # Create the directory
+                self.logger.info(
+                    f"[{self.spec['hostname']}] Creating destination directory"
+                    f" {directory}"
+                )
+                mkdir_p(self.sftp_connection, directory)
+            else:
+                self.logger.error(
+                    f"[{self.spec['hostname']}] Destination directory {directory}"
+                    " does not exist"
+                )
+                return 1
 
         remote_command = (
             f"python3 {REMOTE_SCRIPT_BASE_DIR}/transfer.py --moveFiles"
@@ -841,6 +812,37 @@ def log_stdout(str_stdout: str, hostname: str, logger: logging.Logger) -> None:
     """
     for line in str_stdout.splitlines():
         logger.info(f"[{hostname}] REMOTE OUTPUT: {line}")
+
+
+def mkdir_p(sftp: SFTPClient, remote_directory: str) -> bool:
+    """Change to this directory, recursively making new folders if needed.
+
+    Thanks to: https://stackoverflow.com/a/14819803
+
+    Args:
+        sftp (SFTPClient): The SFTP client to use
+        remote_directory (str): The remote directory to create
+
+    Returns:
+        bool: True if successful, False if not.
+    """
+    if remote_directory == "/":
+        # absolute path so change directory to root
+        sftp.chdir("/")
+        return False
+    if remote_directory == "":
+        # top-level relative directory must exist
+        return False
+    try:
+        sftp.chdir(remote_directory)  # sub-directory exists
+    except FileNotFoundError:
+        dirname, basename = os.path.split(remote_directory.rstrip("/"))
+        mkdir_p(sftp, dirname)  # make parent directories
+        sftp.mkdir(basename)  # sub-directory missing, so created it
+        sftp.chdir(basename)
+        return True
+
+    return False
 
 
 class SSHExecution(RemoteExecutionHandler):

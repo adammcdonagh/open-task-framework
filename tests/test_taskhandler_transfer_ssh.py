@@ -1,5 +1,7 @@
 # pylint: skip-file
 import os
+from copy import deepcopy
+from datetime import datetime
 
 import pytest
 from pytest_shell import fs
@@ -273,6 +275,32 @@ def test_scp_basic(root_dir, setup_ssh_keys):
 
     # Create a transfer object
     transfer_obj = transfer.Transfer(None, "scp-basic", scp_task_definition)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt")
+
+
+def test_scp_basic_create_dest_dir(root_dir, setup_ssh_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/test.taskhandler.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+
+    # Create a transfer object
+    scp_task_definition_copy = deepcopy(scp_task_definition)
+    scp_task_definition_copy["destination"][0][
+        "directory"
+    ] = f"/tmp/testFiles/{datetime.now().strftime('%s')}"
+    scp_task_definition_copy["destination"][0]["createDirectoryIfNotExists"] = True
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_task_definition_copy)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()

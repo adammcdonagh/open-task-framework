@@ -1,5 +1,10 @@
 # Changelog
 
+# v0.12.2
+
+- Add additional tests to improve coverage
+- Fix some SSH code to use SFTP client whenever possible
+
 # v0.12.1
 
 - Enforce source `directory` definition in transfer schemas for SSH and SFTP
