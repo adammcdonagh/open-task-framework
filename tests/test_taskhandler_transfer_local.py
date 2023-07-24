@@ -146,7 +146,7 @@ local_pca_invalid_move_dir_task_definition = {
         "protocol": {"name": "local"},
         "postCopyAction": {
             "action": "move",
-            "destination": f"{local_test_dir}/archive_no-exist",
+            "destination": "/etc/passwd",
         },
     },
     "destination": [
