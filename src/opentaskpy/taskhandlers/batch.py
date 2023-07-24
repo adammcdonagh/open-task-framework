@@ -211,6 +211,11 @@ class Batch(TaskHandler):
             # Loop through every task in the tree
             for order_id, batch_task in self.task_order_tree.items():
                 task = batch_task["task"]
+                logged = False
+                if "logged_status" in batch_task:
+                    logged = batch_task["logged_status"]
+                else:
+                    batch_task["logged_status"] = False
 
                 self.logger.log(
                     12, f"Checking task {order_id} ({batch_task['task_id']})"
@@ -269,6 +274,7 @@ class Batch(TaskHandler):
                         self.logger.error(
                             f"Task {order_id} ({batch_task['task_id']}) has timed out"
                         )
+                        logged = True
                         batch_task["status"] = "TIMED_OUT"
                         # Send event to the thread to kill it
                         batch_task["kill_event"].set()
@@ -278,18 +284,41 @@ class Batch(TaskHandler):
 
                     # Check whether the thread is actually still running.
                     # If it has died uncleanly, then we need to set the appropriate statuses for it
-                    if not batch_task["thread"].is_alive():
+                    if (
+                        not batch_task["thread"].is_alive()
+                        and batch_task["status"] != "TIMED_OUT"
+                    ):
                         self.logger.error(
                             f"Task {order_id} ({batch_task['task_id']}) has failed"
                         )
+                        logged = True
                         batch_task["status"] = "FAILED"
                         batch_task["result"] = False
 
                 if batch_task["status"] == "COMPLETED" and "thread" in batch_task:
                     batch_task["thread"].join()
-                    self.logger.info(
-                        f"Task {order_id} ({batch_task['task_id']}) has completed"
-                    )
+                    if not logged:
+                        self.logger.info(
+                            f"Task {order_id} ({batch_task['task_id']}) has completed"
+                        )
+                        logged = True
+                    else:
+                        self.logger.log(
+                            12,
+                            f"Task {order_id} ({batch_task['task_id']}) has completed",
+                        )
+
+                # Add a generic message to show the task failed
+                if batch_task["status"] == "FAILED":
+                    if not logged:
+                        self.logger.error(
+                            f"Task {order_id} ({batch_task['task_id']}) has failed"
+                        )
+                        logged = True
+                    else:
+                        self.logger.log(
+                            12, f"Task {order_id} ({batch_task['task_id']}) has failed"
+                        )
 
                 # Handle instances where we timed out or failed, and we should continue on fail
                 if (
@@ -302,6 +331,9 @@ class Batch(TaskHandler):
                     )
                     batch_task["status"] = "COMPLETED"
                     batch_task["result"] = False
+                    logged = True
+
+                batch_task["logged_status"] = logged
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done
             running_tasks = [
