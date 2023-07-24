@@ -1,6 +1,6 @@
 {
   "type": "execution",
-  "directory": "/tmp/testFiles/src",
+  "directory": "/tmp",
   "command": "sleep 300",
   "protocol": {
     "name": "local"
