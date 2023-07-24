@@ -458,7 +458,7 @@ def test_pca_delete(setup_local_test_dir):
     # Run the transfer and expect a true status
     assert transfer_obj.run()
     # Check the destination file exists
-    assert os.path.exists(f"{local_test_dir}/dest/pca_delte.txt")
+    assert os.path.exists(f"{local_test_dir}/dest/pca_delete.txt")
     # Check the source file no longer exists
     assert not os.path.exists(f"{local_test_dir}/src/pca_delete.txt")
 
