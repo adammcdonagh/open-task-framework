@@ -356,6 +356,7 @@ class LocalExecution(RemoteExecutionHandler):
         Args:
             spec (dict): The specification for the command
         """
+        self.remote_host: str = "LOCAL"
         self.random: int = random.randint(
             100000, 999999
         )  # Random number used to make sure when we kill stuff, we always kill the right thing
@@ -378,7 +379,7 @@ class LocalExecution(RemoteExecutionHandler):
         """
         children = []
         for line in process_listing:
-            match = re.search(self.ps_regex, line)
+            match = re.search(self.ps_regex, line.decode("utf-8"))
             if match:
                 if int(match.group(3)) == parent_pid:
                     child_pid = int(match.group(2))
@@ -419,7 +420,7 @@ class LocalExecution(RemoteExecutionHandler):
             self.logger.error("[LOCALHOST] Refusing to kill PID 1 or 0, aborting")
             return
 
-        subprocess.call(command)
+        subprocess.call(command.split(" "))
 
     def execute(self) -> bool:
         """Execute the command.
