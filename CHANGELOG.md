@@ -1,9 +1,12 @@
 # Changelog
 
-# v0.12.2
+# v0.13
 
 - Add additional tests to improve coverage
 - Fix some SSH code to use SFTP client whenever possible
+- Improve logging for batch tasks
+- Fix a bug in local executions where timeouts were failing to parse the process listing, and run the `kill` command correctly
+- Altered log format to include `filename` and `lineno` for log messages
 
 # v0.12.1
 
