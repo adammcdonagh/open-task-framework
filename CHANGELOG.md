@@ -1,6 +1,6 @@
 # Changelog
 
-# v0.13
+# v0.13.0
 
 - Add additional tests to improve coverage
 - Fix some SSH code to use SFTP client whenever possible
