@@ -38,11 +38,6 @@ class SFTPTransfer(RemoteTransferHandler):
             __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
         )
 
-        # Allow override of REMOTE_SCRIPT_BASE_DIR
-        if os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"):
-            global REMOTE_SCRIPT_BASE_DIR  # pylint: disable=global-statement
-            REMOTE_SCRIPT_BASE_DIR = str(os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"))
-
         # Handle default values
         if "createDirectoryIfNotExists" not in spec:
             spec["createDirectoryIfNotExists"] = False
@@ -272,7 +267,9 @@ class SFTPTransfer(RemoteTransferHandler):
                 rename_sub = self.spec["rename"]["sub"]
 
                 file_name = re.sub(rename_regex, rename_sub, file_name)
-                self.logger.info(f"[LOCALHOST] Renaming file to {file_name}")
+                self.logger.info(
+                    f"[{self.spec['hostname']}] Renaming file to {file_name}"
+                )
 
             mode = self.spec["mode"] if "mode" in self.spec else None
 
@@ -296,7 +293,9 @@ class SFTPTransfer(RemoteTransferHandler):
                         f"{destination_directory}/{file_name}", int(mode)
                     )
             except Exception as ex:  # pylint: disable=broad-exception-caught
-                self.logger.error(f"[LOCALHOST] Unable to transfer file via SFTP: {ex}")
+                self.logger.error(
+                    f"[{self.spec['hostname']}] Unable to transfer file via SFTP: {ex}"
+                )
                 result = 1
 
         return result
@@ -412,96 +411,6 @@ class SFTPTransfer(RemoteTransferHandler):
                     return 1
 
         return 0
-
-    # def init_logwatch(self) -> int:
-    #     """Initialise the logwatch process.
-
-    #     Returns:
-    #         int: 0 if successful, 1 if not.
-    #     """
-    #     self.connect(self.spec["hostname"])
-    #     if not isinstance(self.sftp_client, SFTPClient):
-    #         self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SFTP")
-    #         return 1
-
-    #     # There are 2 options for logwatches. One is to watch for new entries, the other is to scan the entire log.
-    #     # Default if not specified is to watch for new entries
-
-    #     # Determine the log details and check it exists first
-    #     log_file = (
-    #         f"{self.spec['logWatch']['directory']}/{self.spec['logWatch']['log']}"
-    #     )
-
-    #     # Stat the file
-    #     try:
-    #         _ = self.sftp_client.lstat(f"{log_file}")
-    #     except FileNotFoundError:
-    #         self.logger.error(
-    #             f"[{self.spec['hostname']}] Log file {log_file} does not exist"
-    #         )
-    #         return 1
-    #     except PermissionError:
-    #         self.logger.error(
-    #             f"[{self.spec['hostname']}] Log file {log_file} cannot be accessed"
-    #         )
-    #         return 1
-
-    #     # Open the existing file and determine the number of rows
-    #     with self.sftp_client.open(log_file) as log_fh:
-    #         rows = 0
-    #         for _, _ in enumerate(log_fh):
-    #             pass
-    #         self.logger.log(
-    #             12, f"[{self.spec['hostname']}] Found {rows+1} lines in log"
-    #         )
-    #         self.log_watch_start_row = rows + 1
-
-    #     return 0
-
-    # def do_logwatch(self) -> int:
-    #     """Perform the logwatch process.
-
-    #     Returns:
-    #         int: 0 if successful, 1 if not.
-    #     """
-    #     self.connect(self.spec["hostname"])
-    #     if not isinstance(self.sftp_client, SFTPClient):
-    #         self.logger.error(f"[{self.spec['hostname']}] Cannot connect via SFTP")
-    #         return 1
-
-    #     # Determine if the config requires scanning the entire log, or just from the start_row determine in the init function
-    #     start_row = (
-    #         self.log_watch_start_row
-    #         if "tail" in self.spec["logWatch"] and self.spec["logWatch"]["tail"]
-    #         else 0
-    #     )
-    #     self.logger.log(
-    #         12, f"[{self.spec['hostname']}] Starting logwatch from row {start_row}"
-    #     )
-
-    #     # Open the remote log file and parse each line for the pattern
-    #     log_file = (
-    #         f"{self.spec['logWatch']['directory']}/{self.spec['logWatch']['log']}"
-    #     )
-
-    #     with self.sftp_client.open(log_file) as log_fh:
-    #         for i, line in enumerate(log_fh):
-    #             # We need to start after the previous line in the log
-    #             if i >= start_row:
-    #                 self.logger.log(
-    #                     11, f"[{self.spec['hostname']}] Log line: {line.strip()}"
-    #                 )
-    #                 if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
-    #                     self.logger.log(
-    #                         12,
-    #                         (
-    #                             f"[{self.spec['hostname']}] Found matching line in log:"
-    #                             f" {line.strip()} on line: {i+1}"
-    #                         ),
-    #                     )
-    #                     return 0
-
-    #     return 1
 
     def create_flag_files(self) -> int:
         """Create the flag files on the remote host.
