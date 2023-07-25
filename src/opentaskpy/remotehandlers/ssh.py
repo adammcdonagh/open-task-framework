@@ -12,6 +12,7 @@ import time
 from shlex import quote
 
 from paramiko import AutoAddPolicy, RSAKey, SFTPClient, SSHClient, Transport
+from paramiko.channel import ChannelFile, ChannelStderrFile
 
 import opentaskpy.otflogging
 from opentaskpy.exceptions import SSHClientError
@@ -52,11 +53,6 @@ class SSHTransfer(RemoteTransferHandler):
         )
         client.set_missing_host_key_policy(AutoAddPolicy())
         self.ssh_client = client
-
-        # Allow override of REMOTE_SCRIPT_BASE_DIR
-        if os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"):
-            global REMOTE_SCRIPT_BASE_DIR  # pylint: disable=global-statement
-            REMOTE_SCRIPT_BASE_DIR = str(os.environ.get("OTF_REMOTE_SCRIPT_BASE_DIR"))
 
         # Handle default values
         if "createDirectoryIfNotExists" not in spec:
@@ -129,13 +125,7 @@ class SSHTransfer(RemoteTransferHandler):
                     ),
                 )
 
-            # Transfer over the transfer.py script
-            local_script = (
-                f"{os.path.dirname(os.path.realpath(__file__))}/scripts/transfer.py"
-            )
-
             sftp = ssh_client.open_sftp()
-            sftp.put(local_script, f"{REMOTE_SCRIPT_BASE_DIR}/transfer.py")
 
             if not is_remote_host:
                 self.sftp_connection = sftp
@@ -153,11 +143,6 @@ class SSHTransfer(RemoteTransferHandler):
         """
         # Remove remote scripts
         if self.sftp_connection:
-            file_list = self.sftp_connection.listdir(REMOTE_SCRIPT_BASE_DIR)
-            if "transfer.py" in file_list:
-                self.sftp_connection.remove(f"{REMOTE_SCRIPT_BASE_DIR}/transfer.py")
-            self.sftp_connection.close()
-
             self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection")
             self.sftp_connection.close()
         if self.ssh_client:
@@ -389,17 +374,7 @@ class SSHTransfer(RemoteTransferHandler):
 
         _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
 
-        with stdout as stdout_fh:
-            str_stdout = stdout_fh.read().decode("UTF-8")
-            if str_stdout:
-                log_stdout(str_stdout, self.spec["hostname"], self.logger)
-
-        with stderr as stderr_fh:
-            str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr and len(str_stderr) > 0:
-                self.logger.info(
-                    f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
-                )
+        self._log_remote_output(stdout, stderr)
 
         remote_rc = stdout.channel.recv_exit_status()
         self.logger.info(
@@ -461,18 +436,7 @@ class SSHTransfer(RemoteTransferHandler):
 
         _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
 
-        with stdout as stdout_fh:
-            str_stdout = stdout_fh.read().decode("UTF-8")
-            if str_stdout:
-                log_stdout(str_stdout, self.spec["hostname"], self.logger)
-
-        with stderr as stderr_fh:
-            str_stderr = stderr_fh.read().decode("UTF-8")
-            if str_stderr and len(str_stderr) > 0:
-                self.logger.info(
-                    f"[{self.spec['hostname']}] Remote stderr returned:\n{str_stderr}"
-                )
-
+        self._log_remote_output(stdout, stderr)
         remote_rc = stdout.channel.recv_exit_status()
         self.logger.info(
             f"[{self.spec['hostname']}] Got return code {remote_rc} from SCP command"
@@ -487,51 +451,25 @@ class SSHTransfer(RemoteTransferHandler):
             files (dict): A dictionary of files to move.
 
         Returns:
-            int: 0 if successful, if not, the return code from the remotely executed
-            transfer.py
+            int: 0 if successful, 1 if not.
         """
         self.connect(self.spec["hostname"])
 
         # Convert all the source file names into the filename with the destination directory as a prefix
-        file_names_str = ""
         files_with_directory = []
         for file in list(files):
             files_with_directory.append(
-                quote(
-                    f"{self.get_staging_directory(self.spec)}{os.path.basename(file)}"
-                )
+                f"{self.get_staging_directory(self.spec)}{os.path.basename(file)}"
             )
-        file_names_str = self.FILE_NAME_DELIMITER.join(files_with_directory).strip()
+        self.FILE_NAME_DELIMITER.join(files_with_directory).strip()
 
-        # Next step is to move the file to it's final resting place with the correct permissions and ownership
-        # Build a command to pass to the remote transfer.py to do the work
-        owner_args = (
-            f"--owner {quote(self.spec['permissions']['owner'])}"
-            if "permissions" in self.spec and "owner" in self.spec["permissions"]
-            else ""
-        )
-        group_args = (
-            f"--group {quote(self.spec['permissions']['group'])}"
-            if "permissions" in self.spec and "group" in self.spec["permissions"]
-            else ""
-        )
-        mode_args = f"--mode {quote(self.spec['mode'])}" if "mode" in self.spec else ""
-        rename_args = (
-            f"--renameRegex {quote(self.spec['rename']['pattern'])} --renameSub"
-            f" {quote(self.spec['rename']['sub'])}"
-            if "rename" in self.spec
-            else ""
-        )
-
-        directory = quote(self.spec["directory"])
+        directory = self.spec["directory"]
 
         # Get an SFTP connection if it doesn't exist
         if not isinstance(self.sftp_connection, SFTPClient):
             self.sftp_connection = self.ssh_client.open_sftp()  # type: ignore[union-attr]
 
         # Check if the destination directory exists on the remote host
-        dest_dir_args = ""
-
         try:
             self.sftp_connection.stat(directory)
         except FileNotFoundError:
@@ -549,15 +487,100 @@ class SSHTransfer(RemoteTransferHandler):
                 )
                 return 1
 
-        remote_command = (
-            f"python3 {REMOTE_SCRIPT_BASE_DIR}/transfer.py --moveFiles"
-            f" '{file_names_str}' --destination"
-            f" {directory} {owner_args} {group_args} {mode_args} {rename_args} {dest_dir_args}"
-        )
-        self.logger.info(f"[{self.spec['hostname']}] Running: {remote_command}")
+        # Move the files to the right place and apply any renames and permissions that
+        # are needed
+        for file in list(files):
+            current_path = (
+                f"{self.get_staging_directory(self.spec)}{os.path.basename(file)}"
+            )
+            self.logger.info(f"{self.spec['hostname']} Processing {current_path}")
 
-        stdin, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
+            file_name = os.path.basename(file)
 
+            # Handle any rename that might be specified in the spec
+            if "rename" in self.spec:
+                rename_regex = self.spec["rename"]["pattern"]
+                rename_sub = self.spec["rename"]["sub"]
+
+                file_name = re.sub(rename_regex, rename_sub, file_name)
+                self.logger.info(
+                    f"{self.spec['hostname']} Renaming file to {file_name}"
+                )
+
+            try:
+                # Check if the file already exists, if it does, then we need to delete
+                # it first
+                try:
+                    self.sftp_connection.stat(f"{directory}/{file_name}")
+                    self.logger.info(
+                        f"{self.spec['hostname']} File already exists, deleting"
+                    )
+                    try:
+                        self.sftp_connection.remove(f"{directory}/{file_name}")
+                    except OSError:
+                        # We need to error here, because if cannot remove the existing
+                        # file, then we can't replace it either
+                        self.logger.error(
+                            f"[{self.spec['hostname']}] Unable to remove existing file"
+                            f"{directory}/{file_name}"
+                        )
+                        return 1
+                except FileNotFoundError:
+                    pass
+
+                # self.sftp_connection.posix_rename(
+                #     current_path, f"{directory}/{file_name}"
+                # )
+                # This cannot use the standard rename, because it will fail if the file
+                # is moving across filesystems. This is expected behaviour in the SFTP
+                # protocol
+                # Instead, we have to issue it as a command over the SSH connection
+                remote_command = f"mv {current_path} {directory}/{file_name}"
+                _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
+                self._log_remote_output(stdout, stderr)
+                # Check the return code of the command
+                remote_rc = stdout.channel.recv_exit_status()
+                if remote_rc != 0:
+                    self.logger.error(
+                        f"[{self.spec['hostname']}] Got return code {remote_rc} from"
+                        " SSH mv command"
+                    )
+                    return 1
+
+                if "mode" in self.spec:
+                    self.sftp_connection.chmod(
+                        f"{directory}/{file_name}", int(self.spec["mode"])
+                    )
+
+                if "permissions" in self.spec:
+                    # Unfortunately, this is easier to do with a proper SSH command
+                    # than with the SFTP client
+                    if "owner" in self.spec["permissions"]:
+                        remote_command = (
+                            "chown"
+                            f" {self.spec['permissions']['owner']} {directory}/{file_name}"
+                        )
+                        _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
+
+                    if "group" in self.spec["permissions"]:
+                        remote_command = (
+                            "chgrp"
+                            f" {self.spec['permissions']['group']} {directory}/{file_name}"
+                        )
+                        _, stdout, stderr = self.ssh_client.exec_command(remote_command)  # type: ignore[union-attr] # nosec B601
+
+            except Exception as ex:  # pylint: disable=broad-exception-caught
+                self.logger.error(
+                    f"{self.spec['hostname']} Failed moving file to final location:"
+                    f" {ex}"
+                )
+                return 1
+
+        return 0
+
+    def _log_remote_output(
+        self, stdout: ChannelFile, stderr: ChannelStderrFile
+    ) -> None:
         self.logger.info("### START OF REMOTE OUTPUT ###")
         with stdout as stdout_fh:
             str_stdout = stdout_fh.read().decode("UTF-8")
@@ -572,13 +595,6 @@ class SSHTransfer(RemoteTransferHandler):
                 )
 
         self.logger.info("### END OF REMOTE OUTPUT ###")
-
-        remote_rc: int = stdout.channel.recv_exit_status()
-        self.logger.info(
-            f"[{self.spec['hostname']}] Got return code {remote_rc} from SSH move"
-            " command"
-        )
-        return remote_rc
 
     def handle_post_copy_action(self, files: list[str]) -> int:
         """Handle the post copy action specified in the config.
