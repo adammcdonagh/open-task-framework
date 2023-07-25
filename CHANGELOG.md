@@ -7,6 +7,7 @@
 - Improve logging for batch tasks
 - Fix a bug in local executions where timeouts were failing to parse the process listing, and run the `kill` command correctly
 - Altered log format to include `filename` and `lineno` for log messages
+- Remove `transfer.py` script. All transfer related commands for SSH protocol are now done natively using the SSH connection or SFTP commands
 
 # v0.12.1
 
