@@ -31,6 +31,28 @@ scp_task_definition = {
     ],
 }
 
+
+scp_task_definition_no_permissions = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.11",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": ".*taskhandler.*\\.txt",
+        "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.12",
+            "directory": "/etc",
+            "rename": {
+                "pattern": ".*taskhandler.*\\.txt",
+                "sub": "passwd",
+            },
+            "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 scp_file_watch_task_no_error_definition = {
     "type": "transfer",
     "source": {
@@ -306,6 +328,28 @@ def test_scp_basic_create_dest_dir(root_dir, setup_ssh_keys):
     assert transfer_obj.run()
     # Check the destination file exists
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt")
+
+
+def test_scp_basic_no_permissions(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/test.taskhandler.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "scp-basic-no-permissions", scp_task_definition_no_permissions
+    )
+
+    # Run the transfer and expect a true status
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
 
 
 def test_scp_filewatch_no_error(setup_ssh_keys):
