@@ -30,6 +30,28 @@ sftp_task_definition = {
     ],
 }
 
+
+sftp_task_definition_no_permissions = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.21",
+        "directory": "/home/application/testFiles/src",
+        "fileRegex": ".*taskhandler.*\\.txt",
+        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.22",
+            "directory": "/etc",
+            "rename": {
+                "pattern": ".*taskhandler.*\\.txt",
+                "sub": "passwd",
+            },
+            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 sftp_file_watch_task_no_error_definition = {
     "type": "transfer",
     "source": {
@@ -104,6 +126,25 @@ sftp_pca_move_task_definition_2 = {
         },
     ],
 }
+
+sftp_pca_delete_task_definition = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.21",
+        "directory": "/home/application/testFiles/src",
+        "fileRegex": "pca_delete\\.txt",
+        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        "postCopyAction": {"action": "delete"},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.22",
+            "directory": "/home/application/testFiles/dest",
+            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 
 sftp_pca_invalid_move_task_definition = {
     "type": "transfer",
@@ -294,7 +335,29 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     )
 
 
-def test_sftp_filewatch_no_error(setup_ssh_keys):
+def test_sftp_basic_no_permissions(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/test.taskhandler.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "sftp-basic-no-permissions", sftp_task_definition_no_permissions
+    )
+
+    # Run the transfer and expect a true status
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
+
+
+def test_sftp_filewatch_no_error(setup_sftp_keys):
     # Create a transfer object
     transfer_obj = transfer.Transfer(
         None, "scp-no-file-no-error", sftp_file_watch_task_no_error_definition
@@ -304,7 +367,7 @@ def test_sftp_filewatch_no_error(setup_ssh_keys):
     assert transfer_obj.run()
 
 
-def test_sftp_basic_write_fin(root_dir, setup_ssh_keys):
+def test_sftp_basic_write_fin(root_dir, setup_sftp_keys):
     # Delete any fin files that exist
     for file in os.listdir(f"{root_dir}/testFiles/sftp_2/dest"):
         if file.endswith(".fin"):
@@ -333,7 +396,7 @@ def test_sftp_basic_write_fin(root_dir, setup_ssh_keys):
     assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/sftp_with_fin.fin")
 
 
-def test_pca_move(root_dir, setup_ssh_keys):
+def test_pca_move(root_dir, setup_sftp_keys):
     # Empty the PCA archive directory
     for file in os.listdir(f"{root_dir}/testFiles/sftp_1/archive"):
         os.remove(f"{root_dir}/testFiles/sftp_1/archive/{file}")
@@ -395,7 +458,28 @@ def test_pca_move(root_dir, setup_ssh_keys):
     assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/archive/pca_move_bad.txt")
 
 
-def test_destination_file_rename(root_dir, setup_ssh_keys):
+def test_pca_delete(root_dir, setup_sftp_keys):
+    # Create the next test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/sftp_1/src/pca_delete.txt": {"content": "test1234"}}]
+    )
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-delete", sftp_pca_delete_task_definition
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+    # Check the destination file exists
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/pca_delete.txt")
+    # Check the source file no longer exists
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/src/pca_delete.txt")
+
+    # Check the source file has been deleted
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/pca_delete.txt")
+
+
+def test_destination_file_rename(root_dir, setup_sftp_keys):
     # Random number
     import random
 
@@ -424,7 +508,7 @@ def test_destination_file_rename(root_dir, setup_ssh_keys):
     )
 
 
-def test_pca_rename(root_dir, setup_ssh_keys):
+def test_pca_rename(root_dir, setup_sftp_keys):
     # Empty the PCA archive directory
     for file in os.listdir(f"{root_dir}/testFiles/sftp_1/archive"):
         os.remove(f"{root_dir}/testFiles/sftp_1/archive/{file}")
@@ -449,7 +533,7 @@ def test_pca_rename(root_dir, setup_ssh_keys):
     assert os.path.exists(f"{root_dir}/testFiles/sftp_1/archive/pca_renamed_1.txt")
 
 
-def test_pca_rename_many(root_dir, setup_ssh_keys):
+def test_pca_rename_many(root_dir, setup_sftp_keys):
     # Create the test file
     # Empty the PCA archive directory
     for file in os.listdir(f"{root_dir}/testFiles/sftp_1/archive"):
@@ -489,7 +573,7 @@ def test_pca_rename_many(root_dir, setup_ssh_keys):
         )
 
 
-def test_sftp_proxy(root_dir, setup_ssh_keys):
+def test_sftp_proxy(root_dir, setup_sftp_keys):
     # Create a test file
     fs.create_files(
         [

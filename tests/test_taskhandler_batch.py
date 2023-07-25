@@ -35,8 +35,13 @@ timeout_batch_definition = {
         {
             "order_id": 1,
             "task_id": "sleep-300",
-            "timeout": 3,
-        }
+            "timeout": 10,
+        },
+        {
+            "order_id": 2,
+            "task_id": "sleep-300-local",
+            "timeout": 10,
+        },
     ],
 }
 
@@ -240,10 +245,23 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Use the logging module to get the right log file name
     log_file_name_batch = opentaskpy.otflogging._define_log_file_name("timeout", "B")
     log_file_name_task = opentaskpy.otflogging._define_log_file_name("sleep-300", "E")
+    log_file_name_task_local = opentaskpy.otflogging._define_log_file_name(
+        "sleep-300-local", "E"
+    )
 
     # Check that both exist, but renamed with _failed
     assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))
     assert os.path.exists(log_file_name_task.replace("_running", "_failed"))
+    assert os.path.exists(log_file_name_task_local.replace("_running", "_failed"))
+
+    # Check the contents of the batch log, and verify that it states each task has timed
+    # out (and not that it has errored for another reason)
+    with open(
+        log_file_name_batch.replace("_running", "_failed"), encoding="utf-8"
+    ) as f:
+        batch_log = f.read()
+        assert "Task 1 (sleep-300) has timed out" in batch_log
+        assert "Task 2 (sleep-300-local) has timed out" in batch_log
 
 
 def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir, clear_logs):

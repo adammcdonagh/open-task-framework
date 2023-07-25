@@ -84,9 +84,24 @@ def test_remote_handler_vars(env_vars):
 
 
 def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
-    # Dont run this test if the env var GITHUB_ACTIONS is set
+    # In GitHub Actions, the variables we need are in the environment
+    # Pull those and write them to the config files first
     if os.getenv("GITHUB_ACTIONS"):
-        return
+        # Get SMTP_USERNAME and SMTP_PASSWORD from environment and write them to files under /tmp
+        fs.create_files(
+            [
+                {
+                    "/tmp/smtp_username": {
+                        "content": os.getenv("SMTP_USERNAME"),
+                    }
+                },
+                {
+                    "/tmp/smtp_password": {
+                        "content": os.getenv("SMTP_PASSWORD"),
+                    }
+                },
+            ]
+        )
 
     # Create a file to transfer
     fs.create_files(

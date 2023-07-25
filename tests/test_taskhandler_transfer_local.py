@@ -1,6 +1,7 @@
 # pylint: skip-file
 import os
 import random
+from copy import deepcopy
 
 import pytest
 from pytest_shell import fs
@@ -60,6 +61,25 @@ local_with_fin_task_definition = {
     ],
 }
 
+# PCA delete
+local_pca_delete_task_definition_1 = {
+    "type": "transfer",
+    "source": {
+        "directory": f"{local_test_dir}/src",
+        "fileRegex": "pca_delete\\.txt",
+        "protocol": {"name": "local"},
+        "postCopyAction": {
+            "action": "delete",
+        },
+    },
+    "destination": [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ],
+}
+
 # PCA move
 local_pca_move_task_definition_1 = {
     "type": "transfer",
@@ -108,6 +128,25 @@ local_pca_invalid_move_task_definition = {
         "postCopyAction": {
             "action": "move",
             "destination": f"{local_test_dir}/archive/pca_move_bad.txt",
+        },
+    },
+    "destination": [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ],
+}
+
+local_pca_invalid_move_dir_task_definition = {
+    "type": "transfer",
+    "source": {
+        "directory": f"{local_test_dir}/src",
+        "fileRegex": "pca_move_4\\.txt",
+        "protocol": {"name": "local"},
+        "postCopyAction": {
+            "action": "move",
+            "destination": "/etc/passwd",
         },
     },
     "destination": [
@@ -239,6 +278,19 @@ def test_remote_handler():
     assert len(transfer_obj.dest_remote_handlers) == 1
     #  of LocalTransfer objects
     assert transfer_obj.dest_remote_handlers[0].__class__.__name__ == "LocalTransfer"
+
+
+def test_local_non_existent_file(setup_local_test_dir):
+    local_task_definition_copy = deepcopy(local_task_definition)
+    local_task_definition_copy["source"]["fileRegex"] = ".*nonexistent.*\\.txt"
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "local-non-existent", local_task_definition_copy
+    )
+
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
 
 
 def test_local_basic(setup_local_test_dir):
@@ -375,6 +427,40 @@ def test_pca_move(setup_local_test_dir):
 
     # Check the source file has not been archived
     assert not os.path.exists(f"{local_test_dir}/archive/pca_move_bad.txt")
+
+    # Finally, try moving to a directory that doesn't exist
+    fs.create_files([{f"{local_test_dir}/src/pca_move_4.txt": {"content": "test1234"}}])
+    transfer_obj = transfer.Transfer(
+        None, "local-pca-move-invalid", local_pca_invalid_move_dir_task_definition
+    )
+    # Run the transfer and expect a failure status
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{local_test_dir}/dest/pca_move_4.txt")
+    # Check the source file should still exist
+    assert os.path.exists(f"{local_test_dir}/src/pca_move_4.txt")
+
+    # Check the source file has not been archived
+    assert not os.path.exists(
+        f"{local_test_dir}/archive/archive_no-exist/pca_move_bad.txt"
+    )
+
+
+def test_pca_delete(setup_local_test_dir):
+    # Create the test file
+    fs.create_files([{f"{local_test_dir}/src/pca_delete.txt": {"content": "test1234"}}])
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "local-pca-delete", local_pca_delete_task_definition_1
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{local_test_dir}/dest/pca_delete.txt")
+    # Check the source file no longer exists
+    assert not os.path.exists(f"{local_test_dir}/src/pca_delete.txt")
 
 
 def test_destination_file_rename(setup_local_test_dir):
