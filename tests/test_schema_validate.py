@@ -61,6 +61,7 @@ def test_source_protocols(valid_source_definition):
 
 def test_local_source_protocol(valid_source_definition):
     valid_source_definition["protocol"] = {"name": "local"}
+    del valid_source_definition["hostname"]
     json_data = {
         "type": "transfer",
         "source": valid_source_definition,
