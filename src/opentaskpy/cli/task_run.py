@@ -29,6 +29,18 @@ def main() -> None:
                                     OTF_LOG_DIRECTORY - Specify a particular log directory to write log files to
                                     OTF_LOG_LEVEL - Equivalent to using -v
                                     OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
+
+                                Task Definition Overrides:
+
+                                To override task specific values, you can use the following format in the environment variable name:
+                                OTF_OVERRIDE_<TASK_TYPE>_<ATTRIBUTE>_<ATTRIBUTE>_<ATTRIBUTE>
+
+                                e.g. OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME
+
+                                Case doesn't matter here. For attributes that are nested within an array, you can specify the array index
+
+                                e.g. OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME
+
                                 """),
     )
     parser.add_argument(
@@ -105,16 +117,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
-    main()
     main()

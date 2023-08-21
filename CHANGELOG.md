@@ -1,5 +1,10 @@
 # Changelog
 
+# v0.14.0
+
+- Add mode override docs to `--help`
+- Allow task definitions to use a whole templated object within them. e.g a protocol definition could be defined as a global variable to define SFTP connectivity to a commonly used source/destination. This is done using `.j2` task definition file instead of `.json`
+
 # v0.13.1
 
 - Fix protocol schemas to allow protocols other that SSH to actually be used for transfers

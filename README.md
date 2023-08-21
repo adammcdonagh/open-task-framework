@@ -99,7 +99,7 @@ options:
 
 **-t, --taskId**
 
-This relates to the specific task that you want to run. It is the name of the configuration file to load (without the .json suffix), contained under the `CONFIGDIR`
+This relates to the specific task that you want to run. It is the name of the configuration file to load (without the `.json` or `.json.j2` suffix), contained under the `CONFIGDIR`
 
 **-r, --runId**
 
@@ -231,6 +231,8 @@ Usage:
 Task definitions are validated using the JSON Schemas defined within `src/opentaskpy/config/schemas/`. These are split up to make them more readable. The top level schema for each task type is defined within the `schemas.py` file, one level above.
 
 At a later date, I plan to automate the creation of the JSON schema documentation.
+
+The task definitions themselves live under the `cfg` directory, and any number of sub directories under there to allow for grouping of tasks by whatever you like. Definitions can be either a plain JSON file, or a Jinja2 template. If a template is used, it must have the `.j2` suffix. JSON files may also use internal variables, this is not supported when using `.j2` task definitions.
 
 ## Transfers
 

@@ -23,5 +23,6 @@
   "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
   "testLookup": "{{ lookup('file', path='/tmp/variable_lookup.txt') }}",
   "testLookup2": "{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}",
-  "global_protocol_vars": {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"}
+  "global_protocol_vars": {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"},
+  "SSH_VARS": {"name": "ssh", "credentials": {"username": "someuser"}}
 }

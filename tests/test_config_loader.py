@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta
 
 import pytest
+from jinja2.exceptions import UndefinedError
 from pytest_shell import fs
 
 from opentaskpy.config.loader import ConfigLoader
@@ -72,21 +73,36 @@ def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):
             {
                 f"{tmpdir}/task.json": {
                     "content": (
-                        '{"test_var": "{{ test }}", "variables": {"NEW_VARIABLE":'
-                        ' "NEW_VALUE"}}'
+                        '{"test_var": "{{ test }}", "my_new_var": "{{ NEW_VARIABLE }}",'
+                        ' "variables": {"NEW_VARIABLE": "NEW_VALUE"}}'
                     )
                 }
-            }
+            },
+            {
+                f"{tmpdir}/task1.json.j2": {
+                    "content": (
+                        '{"test_var": "{{ test }}","my_new_var": "{{ NEW_VARIABLE }}",'
+                        ' "variables": {"NEW_VARIABLE": "NEW_VALUE"}}'
+                    )
+                },
+            },
         ]
     )
 
     expected_task_definition = {
         "test_var": "test123456",
+        "my_new_var": "NEW_VALUE",
         "variables": {"NEW_VARIABLE": "NEW_VALUE"},
     }
 
     # Test that the task definition is loaded correctly
     assert config_loader.load_task_definition("task") == expected_task_definition
+    # task1 should fail because it's a jinja template and we don't support setting
+    # variables in jinja templates
+    config_loader = ConfigLoader(tmpdir)
+    # Expect a jinja2 UndefinedError
+    with pytest.raises(UndefinedError):
+        config_loader.load_task_definition("task1")
 
 
 def test_custom_plugin(tmpdir):
