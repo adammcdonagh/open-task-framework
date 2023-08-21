@@ -59,10 +59,7 @@ def main() -> None:
     parser.add_argument(
         "-v",
         "--verbosity",
-        help=(
-            "Increase verbosity:\n10 - DEBUG\n11 - VERBOSE1\n12 - VERBOSE2\n20 -"
-            " INFO\n30 - WARN\n40 - ERROR"
-        ),
+        help="Increase verbosity:\n3 - DEBUG\n2 - VERBOSE2\n1 - VERBOSE1",
         type=int,
     )
     parser.add_argument(
