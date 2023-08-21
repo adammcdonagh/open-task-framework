@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.13.1
+
+- Fix protocol schemas to allow protocols other that SSH to actually be used for transfers
+
 # v0.13.0
 
 - Add additional tests to improve coverage
