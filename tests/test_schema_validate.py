@@ -59,6 +59,16 @@ def test_source_protocols(valid_source_definition):
     assert not validate_transfer_json(json_data)
 
 
+def test_local_source_protocol(valid_source_definition):
+    valid_source_definition["protocol"] = {"name": "local"}
+    json_data = {
+        "type": "transfer",
+        "source": valid_source_definition,
+        "destination": [],
+    }
+    assert validate_transfer_json(json_data)
+
+
 def test_dest_with_different_protocols(
     valid_source_definition,
     valid_destination_definition,
