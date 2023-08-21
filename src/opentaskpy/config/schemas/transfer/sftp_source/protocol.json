@@ -5,7 +5,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "enum": ["ssh"]
+      "enum": ["sftp"]
     },
     "credentials": {
       "type": "object",
