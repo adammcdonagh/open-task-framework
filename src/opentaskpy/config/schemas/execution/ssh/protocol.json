@@ -7,14 +7,14 @@
       "type": "string",
       "enum": ["ssh"]
     },
+    "port": {
+      "type": "integer"
+    },
     "credentials": {
       "type": "object",
       "properties": {
         "username": {
           "type": "string"
-        },
-        "port": {
-          "type": "integer"
         },
         "keyFile": {
           "type": "string"

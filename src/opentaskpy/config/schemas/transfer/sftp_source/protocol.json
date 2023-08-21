@@ -7,14 +7,14 @@
       "type": "string",
       "enum": ["sftp"]
     },
+    "port": {
+      "type": "integer"
+    },
     "credentials": {
       "type": "object",
       "properties": {
         "username": {
           "type": "string"
-        },
-        "port": {
-          "type": "integer"
         },
         "password": {
           "type": "string"

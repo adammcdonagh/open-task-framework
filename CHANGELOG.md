@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.14.1
+
+- Fix issue where port number is being ignored because the schema definition doesn't match the code that uses it.
+
 # v0.14.0
 
 - Add mode override docs to `--help`
