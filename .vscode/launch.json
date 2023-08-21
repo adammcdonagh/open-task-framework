@@ -34,6 +34,16 @@
       "justMyCode": false
     },
     {
+      "name": "Python: Transfer - SSH Vars",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "scp-basic-ssh-vars", "-c", "test/cfg", "-v", "10"],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Transfer - Basic - JSON Logging",
       "type": "python",
       "request": "launch",

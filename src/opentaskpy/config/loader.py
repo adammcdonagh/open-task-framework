@@ -142,6 +142,10 @@ class ConfigLoader:
             dict: A dictionary representing the task definition
         """
         json_config = glob(f"{self.config_dir}/**/{task_id}.json", recursive=True)
+        json_config.extend(
+            glob(f"{self.config_dir}/**/{task_id}.json.j2", recursive=True)
+        )
+
         if not json_config or len(json_config) != 1:
             if len(json_config) > 1:
                 raise DuplicateConfigFileError(
@@ -223,15 +227,19 @@ class ConfigLoader:
             json_content = json_file.read()
             template = self.template_env.from_string(json_content)
 
-            # From this, convert it to JSON and pull out the variables key if there is one
-            task_definition = json.loads(json_content)
-            # Extend or replace any local variables for this task
-            if "variables" in task_definition:
-                self.global_variables = (
-                    self.global_variables | task_definition["variables"]
-                )
+            # If the file is a Jinja2 template, then we do not allow additional
+            # variables to be defined in the task definition.
+            # Check the file extension
+            if not task_definition_file.endswith(".j2"):
+                # From this, convert it to JSON and pull out the variables key if there is one
+                task_definition = json.loads(json_content)
+                # Extend or replace any local variables for this task
+                if "variables" in task_definition:
+                    self.global_variables = (
+                        self.global_variables | task_definition["variables"]
+                    )
 
-            template = self.template_env.from_string(json_content)
+                template = self.template_env.from_string(json_content)
 
             template.globals["now"] = datetime.datetime.utcnow
 
