@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from textwrap import dedent
 
 from opentaskpy import taskrun  # type: ignore[attr-defined]
 from opentaskpy.otflogging import OTF_LOG_FORMAT
@@ -15,7 +16,21 @@ CONFIG_PATH = f"{os.getcwd()}/cfg"
 
 def main() -> None:
     """Parse args and call TaskRun class."""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=dedent("""\
+                                Environment Variables:
+
+                                There are several environment variables that can be used to impact the behaviour:
+
+                                    OTF_RUN_ID - Equivalent to using --runId argument
+                                    OTF_LOG_JSON - Change the log output format to structured JSON format
+                                    OTF_NO_LOG - Prevent logging to any files, will log to stdout/err only
+                                    OTF_LOG_DIRECTORY - Specify a particular log directory to write log files to
+                                    OTF_LOG_LEVEL - Equivalent to using -v
+                                    OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
+                                """),
+    )
     parser.add_argument(
         "-t", "--taskId", help="Name of the JSON config to run", type=str, required=True
     )
@@ -29,7 +44,15 @@ def main() -> None:
         type=str,
         required=False,
     )
-    parser.add_argument("-v", "--verbosity", help="Increase verbosity", type=int)
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        help=(
+            "Increase verbosity:\n10 - DEBUG\n11 - VERBOSE1\n12 - VERBOSE2\n20 -"
+            " INFO\n30 - WARN\n40 - ERROR"
+        ),
+        type=int,
+    )
     parser.add_argument(
         "-c", "--configDir", help="Directory containing task configurations", type=str
     )
@@ -82,4 +105,16 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
+    main()
     main()
