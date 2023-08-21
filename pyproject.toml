@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "0.13.0"
+version = "0.13.1"
 authors = [
   { name="Adam McDonagh", email="adam@elitemonkey.net" },
 ]
@@ -58,7 +58,7 @@ task-run = "opentaskpy.cli.task_run:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "0.13.0"
+current_version = "0.13.1"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
