@@ -613,6 +613,7 @@ class SSHTransfer(RemoteTransferHandler):
 
             for file in files:
                 try:
+                    self.logger.info(f"Deleting file {file}")
                     sftp_client.remove(file)
                 except OSError:
                     self.logger.error(

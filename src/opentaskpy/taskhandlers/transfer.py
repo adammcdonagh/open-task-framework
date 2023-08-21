@@ -576,6 +576,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         if "postCopyAction" in self.source_file_spec:
             try:
+                self.logger.info("Performing post copy action")
                 pca_result = self.source_remote_handler.handle_post_copy_action(
                     remote_files
                 )
