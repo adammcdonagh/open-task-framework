@@ -3,6 +3,7 @@
 # v0.13.1
 
 - Fix protocol schemas to allow protocols other that SSH to actually be used for transfers
+- Add some more documentation to the `--help` output
 
 # v0.13.0
 
