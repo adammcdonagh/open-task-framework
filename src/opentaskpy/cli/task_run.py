@@ -29,6 +29,7 @@ def main() -> None:
                                     OTF_LOG_DIRECTORY - Specify a particular log directory to write log files to
                                     OTF_LOG_LEVEL - Equivalent to using -v
                                     OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
+                                    OTF_VARIABLES_FILE - Override the default variables file location
 
                                 Task Definition Overrides:
 

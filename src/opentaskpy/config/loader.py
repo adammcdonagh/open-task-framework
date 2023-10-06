@@ -257,17 +257,31 @@ class ConfigLoader:
     # READ AND PARSE ACTUAL VARIABLE FILES
     def _load_global_variables(self) -> None:
         global_variables: dict = {}
-        variable_configs = []
-        file_types = (".json.j2", ".json")
-        for file_type in file_types:
-            variable_configs.extend(
-                glob(f"{self.config_dir}/**/variables{file_type}", recursive=True)
-            )
-        if not variable_configs:
-            raise FileNotFoundError(
-                "Couldn't find any variables.(json|json.j2) files under"
-                f" {self.config_dir}"
-            )
+        variable_configs: list[str] = []
+
+        # See if the variables file has been overridden via environment variable
+        if "OTF_VARIABLES_FILE" in os.environ:
+            new_variables_file = os.environ["OTF_VARIABLES_FILE"]
+            self.logger.info(f"Overriding variables file with {new_variables_file}")
+            # Validate that the file exists
+            if not os.path.isfile(variable_configs[0]):
+                raise FileNotFoundError(
+                    f"Couldn't find variables file: {new_variables_file}"
+                )
+            variable_configs.append(new_variables_file)
+
+        else:
+            file_types = (".json.j2", ".json")
+            for file_type in file_types:
+                variable_configs.extend(
+                    glob(f"{self.config_dir}/**/variables{file_type}", recursive=True)
+                )
+
+            if not variable_configs:
+                raise FileNotFoundError(
+                    "Couldn't find any variables.(json|json.j2) files under"
+                    f" {self.config_dir}"
+                )
 
         for variable_file in variable_configs:
             with open(variable_file, encoding="utf-8") as json_file:
