@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.14.3
+
+- Fix issue with local file move when cross filesystem.
+
 # v0.14.2
 
 - Minor log verbosity update

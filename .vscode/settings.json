@@ -5,7 +5,7 @@
   "python.linting.enabled": true,
   "python.linting.flake8Enabled": false,
   "http.systemCertificates": true,
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "files.associations": {
     "*.json": "jsonc"
   },
@@ -27,5 +27,8 @@
   "python.linting.pylintEnabled": true,
   "editor.formatOnType": true,
   "python.testing.pytestArgs": [".", "--keepalive"],
-  "python.linting.pylintCategorySeverity.refactor": "Warning"
+  "python.linting.pylintCategorySeverity.refactor": "Warning",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }
