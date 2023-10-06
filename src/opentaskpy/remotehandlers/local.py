@@ -181,8 +181,11 @@ class LocalTransfer(RemoteTransferHandler):
         # Get list of files in local_staging_directory
         files = glob.glob(f"{local_staging_directory}/*")
         for file in files:
-            self.logger.info(f"[LOCALHOST] Moving file to new location: {file}")
             file_name = os.path.basename(file)
+            final_destination = f"{destination_directory}/{file_name}"
+            self.logger.info(
+                f"[LOCALHOST] Moving file to new location: {final_destination}"
+            )
 
             # Handle any rename that might be specified in the spec
             if "rename" in self.spec:
@@ -190,13 +193,15 @@ class LocalTransfer(RemoteTransferHandler):
                 rename_sub = self.spec["rename"]["sub"]
 
                 file_name = re.sub(rename_regex, rename_sub, file_name)
+                final_destination = f"{destination_directory}/{file_name}"
 
             mode = self.spec["mode"] if "mode" in self.spec else None
 
             try:
-                os.rename(file, f"{destination_directory}/{file_name}")
+                shutil.copy(file, final_destination)
+                os.remove(file)
                 if mode:
-                    os.chmod(f"{destination_directory}/{file_name}", int(mode))
+                    os.chmod(final_destination, int(mode))
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"[LOCALHOST] Failed to move file: {ex}")
                 result = 1
