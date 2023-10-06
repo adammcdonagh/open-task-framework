@@ -201,7 +201,7 @@ class LocalTransfer(RemoteTransferHandler):
                 shutil.copy(file, final_destination)
                 os.remove(file)
                 if mode:
-                    os.chmod(final_destination, int(mode))
+                    os.chmod(final_destination, int(mode, base=8))
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"[LOCALHOST] Failed to move file: {ex}")
                 result = 1
@@ -326,7 +326,7 @@ class LocalTransfer(RemoteTransferHandler):
             # otherwise we leave them as is
             # We cannot change ownership without using sudo, so we don't bother
             if "permissions" in self.spec:
-                os.chmod(filename, self.spec["permissions"])
+                os.chmod(filename, int(self.spec["permissions"], base=8))
 
         except OSError as e:
             self.logger.error(f"[LOCALHOST] Error: {e}")
