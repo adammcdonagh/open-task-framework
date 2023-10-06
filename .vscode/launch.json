@@ -20,14 +20,7 @@
       "program": "${file}",
       "preLaunchTask": "Build Test containers",
       "console": "integratedTerminal",
-      "args": [
-        "-t",
-        "ex5410DA-planogram-definitions-to-es",
-        "-v",
-        "2",
-        "-c",
-        "test/cfg"
-      ],
+      "args": ["-t", "scp-basic", "-v", "2", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
