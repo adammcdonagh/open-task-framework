@@ -71,6 +71,11 @@ def test_load_variables_file_override(tmpdir):
     # Verify the variable is loaded correctly
     assert ConfigLoader("test/cfg").get_global_variables()["CUSTOM_VARS_FILE"] == "ABC1"
 
+    # Delete the file and verify that we get an exception thrown
+    os.remove(f"{tmpdir}/custom_vars_file.json.j2")
+    with pytest.raises(FileNotFoundError):
+        ConfigLoader("test/cfg")
+
 
 def test_load_task_definition(write_dummy_variables_file, tmpdir):
     # Initialise the task runner
