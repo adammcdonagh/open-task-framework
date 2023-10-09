@@ -46,6 +46,28 @@ def test_load_variables(tmpdir):
     assert ConfigLoader("test/cfg") is not None
 
 
+def test_load_variables_file_override(tmpdir):
+    # Write a different variables file. Load it, and verify the variable matches
+    json_obj = {
+        "CUSTOM_VARS_FILE": "{{ XYZ }}1",
+        "XYZ": "ABC",
+    }
+
+    fs.create_files(
+        [
+            {f"{tmpdir}/custom_vars_file.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    # Set environment variable to point to the new variables file
+    os.environ["OTF_VARIABLES_FILE"] = f"{tmpdir}/custom_vars_file.json.j2"
+
+    assert ConfigLoader("test/cfg") is not None
+
+    # Verify the variable is loaded correctly
+    assert ConfigLoader("test/cfg").get_global_variables()["CUSTOM_VARS_FILE"] == "ABC1"
+
+
 def test_load_task_definition(write_dummy_variables_file, tmpdir):
     # Initialise the task runner
     config_loader = ConfigLoader(tmpdir)

@@ -264,7 +264,7 @@ class ConfigLoader:
             new_variables_file = os.environ["OTF_VARIABLES_FILE"]
             self.logger.info(f"Overriding variables file with {new_variables_file}")
             # Validate that the file exists
-            if not os.path.isfile(variable_configs[0]):
+            if not os.path.isfile(new_variables_file):
                 raise FileNotFoundError(
                     f"Couldn't find variables file: {new_variables_file}"
                 )
