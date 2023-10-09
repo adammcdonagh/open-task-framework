@@ -87,6 +87,7 @@ usage: task-run [-h] -t TASKID [-r RUNID] [-v VERBOSITY] [-c CONFIGDIR]
 
 options:
   -h, --help            show this help message and exit
+  --noop                Do not attempt to run anything. Only load the config files to validate that they're OK
   -t TASKID, --taskId TASKID
                         Name of the JSON config to run
   -r RUNID, --runId RUNID
@@ -96,6 +97,10 @@ options:
   -c CONFIGDIR, --configDir CONFIGDIR
                         Directory containing task configurations
 ```
+
+**--noop**
+
+This is useful for validating the configuration is valid. It will not actually do anything, other than load the configuration files and validate that they are valid.
 
 **-t, --taskId**
 

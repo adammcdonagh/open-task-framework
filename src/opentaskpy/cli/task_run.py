@@ -44,6 +44,18 @@ def main() -> None:
 
                                 """),
     )
+
+    parser.add_argument(
+        "--noop",
+        help=(
+            "Do not attempt to run anything. Only load the config files to validate"
+            " that they're OK"
+        ),
+        action="store_true",
+        default=False,
+        required=False,
+    )
+
     parser.add_argument(
         "-t", "--taskId", help="Name of the JSON config to run", type=str, required=True
     )
@@ -103,7 +115,7 @@ def main() -> None:
     logger.log(11, f"Log verbosity: {args.verbosity}")
 
     # Create the TaskRun object
-    task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH)
+    task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH, noop=args.noop)
 
     try:
         task_run_obj.run()

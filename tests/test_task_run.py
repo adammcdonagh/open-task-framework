@@ -25,6 +25,28 @@ Tests for the "binary" task runner
 #################
 """
 
+# Setup logger so we can see the stdout and err from the binary
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
+)
+
+
+def test_noop_binary(env_vars, setup_ssh_keys, root_dir):
+    # Pass noop argument to the binary
+
+    # Create a test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/ssh_1/src/noop_test.txt": {"content": "test1234"}}]
+    )
+
+    assert run_task_run("scp-basic", noop=True)["returncode"] == 0
+
+    # Verify that the file has not been transferred
+    assert not os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/noop_test.txt")
+
+    # Override the variables config location and verify we get an error
+    assert run_task_run("scp-basic", config="/tmp/non-existent")["returncode"] == 1
+
 
 def test_scp_basic_binary(env_vars, setup_ssh_keys, root_dir):
     # Use the "binary" to trigger the job with command line arguments
@@ -399,7 +421,7 @@ def test_scp_log_watch_tail(env_vars, setup_ssh_keys, root_dir):
     assert task_runner.run()
 
 
-def run_task_run(task, verbose="2", config="test/cfg"):
+def run_task_run(task, verbose="2", config="test/cfg", noop=False):
     # We need to run the bin/task-run script to test this
     script = "python"
     args = [
@@ -411,6 +433,9 @@ def run_task_run(task, verbose="2", config="test/cfg"):
         "-c",
         config,
     ]
+
+    if noop:
+        args.append("--noop")
 
     # Run the script
     result = subprocess.run([script] + args, capture_output=True)
