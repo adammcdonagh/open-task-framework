@@ -47,6 +47,18 @@ def test_noop_binary(env_vars, setup_ssh_keys, root_dir):
     # Override the variables config location and verify we get an error
     assert run_task_run("scp-basic", config="/tmp/non-existent")["returncode"] == 1
 
+    # Verify a --noop runs for an execution too
+
+    # Use the touch example
+    touched_file = f"{root_dir}/testFiles/ssh_1/src/touchedFile.txt"
+    # Delete if it already exists
+    if os.path.exists(touched_file):
+        os.remove(touched_file)
+
+    assert run_task_run("touch", noop=True)["returncode"] == 0
+    # Verify the file still doesn't exist
+    assert not os.path.exists(touched_file)
+
 
 def test_scp_basic_binary(env_vars, setup_ssh_keys, root_dir):
     # Use the "binary" to trigger the job with command line arguments

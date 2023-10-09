@@ -100,7 +100,7 @@ options:
 
 **--noop**
 
-This is useful for validating the configuration is valid. It will not actually do anything, other than load the configuration files and validate that they are valid.
+This is useful for validating the configuration is valid. It will not actually do anything, other than load the configuration files and validate that they are valid. N.B. This only works for executions and transfers.
 
 **-t, --taskId**
 
