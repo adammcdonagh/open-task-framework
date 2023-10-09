@@ -30,6 +30,10 @@ def write_dummy_variables_file(tmpdir):
         ]
     )
 
+    # Unset any environment variables overrides
+    if "OTF_VARIABLES_FILE" in os.environ:
+        del os.environ["OTF_VARIABLES_FILE"]
+
 
 def test_load_variables(tmpdir):
     # Ensure something satisfies the file lookup plugin
