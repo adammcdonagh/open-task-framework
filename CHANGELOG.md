@@ -1,5 +1,12 @@
 # Changelog
 
+# v0.15.0
+
+- Fix issue with chmods not actually working as intended
+- Ensure valid test for chmod exists
+- NEW: Allow independent environment variable based override of variables file while using same config file.
+- NEW: Add `--noop` argument. This allows you to validate the config without executing anything.
+
 # v0.14.3
 
 - Fix issue with local file move when cross filesystem.

@@ -16,7 +16,7 @@ class TaskRun:  # pylint: disable=too-few-public-methods
     parses config, loads variables and triggers the work
     """
 
-    def __init__(self, task_id: str, config_dir: str) -> None:
+    def __init__(self, task_id: str, config_dir: str, noop: bool = False) -> None:
         """Create the TaskRun object.
 
         Initialises the logging.
@@ -24,11 +24,15 @@ class TaskRun:  # pylint: disable=too-few-public-methods
         Args:
             task_id (str): ID of the task being triggered
             config_dir (str): Path to the config directory
+            noop (bool, optional): Whether to actually run the task or not. If set to
+                True, will only check the config loads OK and then exit. Defaults to
+                False.
         """
         self.logger = opentaskpy.otflogging.init_logging(__name__)
         self.task_id = task_id
         self.config_dir = config_dir
         self.active_task_definition = None
+        self.noop = noop
         # Create a config loader object
         self.config_loader = ConfigLoader(self.config_dir)
 
@@ -63,6 +67,10 @@ class TaskRun:  # pylint: disable=too-few-public-methods
                 self.logger.error("JSON format does not match schema")
                 return False
 
+            if self.noop:
+                self.logger.info("Noop set, exiting")
+                return True
+
             transfer = Transfer(global_variables, self.task_id, active_task_definition)
 
             result = transfer.run()
@@ -75,6 +83,10 @@ class TaskRun:  # pylint: disable=too-few-public-methods
             if not validate_execution_json(active_task_definition):
                 self.logger.error("JSON format does not match schema")
                 return False
+
+            if self.noop:
+                self.logger.info("Noop set, exiting")
+                return True
 
             execution = Execution(
                 global_variables, self.task_id, active_task_definition

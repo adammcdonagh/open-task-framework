@@ -290,7 +290,7 @@ class SFTPTransfer(RemoteTransferHandler):
                 )
                 if mode:
                     self.sftp_client.chmod(
-                        f"{destination_directory}/{file_name}", int(mode)
+                        f"{destination_directory}/{file_name}", int(mode, base=8)
                     )
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(
@@ -436,7 +436,7 @@ class SFTPTransfer(RemoteTransferHandler):
             # otherwise we leave them as is
             # We cannot change ownership without using sudo, so we don't bother
             if "permissions" in self.spec:
-                self.sftp_client.chmod(filename, self.spec["permissions"])
+                self.sftp_client.chmod(filename, int(self.spec["permissions"], base=8))
 
         except OSError as e:
             self.logger.error(f"[{self.spec['hostname']}] Error: {e}")

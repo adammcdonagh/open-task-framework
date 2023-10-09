@@ -30,6 +30,10 @@ def write_dummy_variables_file(tmpdir):
         ]
     )
 
+    # Unset any environment variables overrides
+    if "OTF_VARIABLES_FILE" in os.environ:
+        del os.environ["OTF_VARIABLES_FILE"]
+
 
 def test_load_variables(tmpdir):
     # Ensure something satisfies the file lookup plugin
@@ -44,6 +48,33 @@ def test_load_variables(tmpdir):
     )
 
     assert ConfigLoader("test/cfg") is not None
+
+
+def test_load_variables_file_override(tmpdir):
+    # Write a different variables file. Load it, and verify the variable matches
+    json_obj = {
+        "CUSTOM_VARS_FILE": "{{ XYZ }}1",
+        "XYZ": "ABC",
+    }
+
+    fs.create_files(
+        [
+            {f"{tmpdir}/custom_vars_file.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    # Set environment variable to point to the new variables file
+    os.environ["OTF_VARIABLES_FILE"] = f"{tmpdir}/custom_vars_file.json.j2"
+
+    assert ConfigLoader("test/cfg") is not None
+
+    # Verify the variable is loaded correctly
+    assert ConfigLoader("test/cfg").get_global_variables()["CUSTOM_VARS_FILE"] == "ABC1"
+
+    # Delete the file and verify that we get an exception thrown
+    os.remove(f"{tmpdir}/custom_vars_file.json.j2")
+    with pytest.raises(FileNotFoundError):
+        ConfigLoader("test/cfg")
 
 
 def test_load_task_definition(write_dummy_variables_file, tmpdir):

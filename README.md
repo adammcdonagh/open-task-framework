@@ -87,6 +87,7 @@ usage: task-run [-h] -t TASKID [-r RUNID] [-v VERBOSITY] [-c CONFIGDIR]
 
 options:
   -h, --help            show this help message and exit
+  --noop                Do not attempt to run anything. Only load the config files to validate that they're OK
   -t TASKID, --taskId TASKID
                         Name of the JSON config to run
   -r RUNID, --runId RUNID
@@ -96,6 +97,10 @@ options:
   -c CONFIGDIR, --configDir CONFIGDIR
                         Directory containing task configurations
 ```
+
+**--noop**
+
+This is useful for validating the configuration is valid. It will not actually do anything, other than load the configuration files and validate that they are valid. N.B. This only works for executions and transfers.
 
 **-t, --taskId**
 
@@ -128,6 +133,7 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
 - `OTF_STAGING_DIR` - Staging base directory to place files before they're dropped into their final location. Default is `/tmp`
 - `OTF_BATCH_RESUME_LOG_DATE` - Allow resuming of batch runs from a specific date. This is useful if you want to rerun a batch from a specific date, especially if the failure happens just after midnight and the date is no longer the same as the original run. Date format is `YYYYMMDD`
+- `OTF_VARIABLES_FILE` - Override the default variables file. This is useful when you want to use the same job definitions, but point at a different environment with different for example.
 
 ## Logging
 

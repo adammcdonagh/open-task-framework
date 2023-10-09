@@ -549,7 +549,7 @@ class SSHTransfer(RemoteTransferHandler):
 
                 if "mode" in self.spec:
                     self.sftp_connection.chmod(
-                        f"{directory}/{file_name}", int(self.spec["mode"])
+                        f"{directory}/{file_name}", int(self.spec["mode"], base=8)
                     )
 
                 if "permissions" in self.spec:
@@ -807,7 +807,7 @@ class SSHTransfer(RemoteTransferHandler):
             # otherwise we leave them as is
             # We cannot change ownership without using sudo, so we don't bother
             if "permissions" in self.spec:
-                sftp_client.chmod(filename, self.spec["permissions"])
+                sftp_client.chmod(filename, int(self.spec["permissions"], base=8))
 
         except OSError as e:
             self.logger.error(f"[{self.spec['hostname']}] Error: {e}")

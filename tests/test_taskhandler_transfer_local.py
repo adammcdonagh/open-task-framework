@@ -28,6 +28,7 @@ local_task_definition = {
         {
             "directory": f"{local_test_dir}/dest",
             "protocol": {"name": "local"},
+            "mode": "0644",
         },
     ],
 }
@@ -323,6 +324,12 @@ def test_local_basic(setup_local_test_dir):
 
     assert not os.path.exists(
         f"{local_test_dir}/dest/{random_number}/test.taskhandler.txt"
+    )
+
+    # Check file mode is 644
+    assert (
+        oct(os.stat(f"{local_test_dir}/dest/test.taskhandler.txt").st_mode)[-3:]
+        == "644"
     )
 
     # Now run again, but ask for the dir to be created

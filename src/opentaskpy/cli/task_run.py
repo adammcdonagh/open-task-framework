@@ -29,6 +29,7 @@ def main() -> None:
                                     OTF_LOG_DIRECTORY - Specify a particular log directory to write log files to
                                     OTF_LOG_LEVEL - Equivalent to using -v
                                     OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
+                                    OTF_VARIABLES_FILE - Override the default variables file location
 
                                 Task Definition Overrides:
 
@@ -43,6 +44,18 @@ def main() -> None:
 
                                 """),
     )
+
+    parser.add_argument(
+        "--noop",
+        help=(
+            "Do not attempt to run anything. Only load the config files to validate"
+            " that they're OK"
+        ),
+        action="store_true",
+        default=False,
+        required=False,
+    )
+
     parser.add_argument(
         "-t", "--taskId", help="Name of the JSON config to run", type=str, required=True
     )
@@ -102,7 +115,7 @@ def main() -> None:
     logger.log(11, f"Log verbosity: {args.verbosity}")
 
     # Create the TaskRun object
-    task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH)
+    task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH, noop=args.noop)
 
     try:
         task_run_obj.run()
