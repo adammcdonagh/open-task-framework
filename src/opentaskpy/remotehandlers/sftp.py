@@ -147,7 +147,7 @@ class SFTPTransfer(RemoteTransferHandler):
         remote_files: dict = {}
         # Check the remote directory exists
         try:
-            self.sftp_connection.stat(directory)  # type: ignore[union-attr]
+            self.sftp_client.stat(directory)  # type: ignore[union-attr]
         except FileNotFoundError:
             self.logger.error(
                 f"[{self.spec['hostname']}] Directory {directory} does not exist"
