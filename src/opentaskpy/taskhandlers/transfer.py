@@ -324,7 +324,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
         # Determine what needs to be transferred
-
         remote_files = self.source_remote_handler.list_files()
 
         # Loop through the returned files to see if they match the file age and size spec (if defined)
@@ -413,7 +412,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         "No remote files could be found to transfer. But not erroring"
                         " due to config"
                     ),
-                    exception=exceptions.FilesDoNotMeetConditionsError,
                 )
 
             return self.return_result(

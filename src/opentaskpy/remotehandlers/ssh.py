@@ -202,7 +202,16 @@ class SSHTransfer(RemoteTransferHandler):
                 f" pattern {file_pattern}"
             ),
         )
-        remote_files = {}
+        remote_files: dict = {}
+        # Check the remote directory exists
+        try:
+            self.sftp_connection.stat(directory)  # type: ignore[union-attr]
+        except FileNotFoundError:
+            self.logger.error(
+                f"[{self.spec['hostname']}] Directory {directory} does not exist"
+            )
+            return remote_files
+
         remote_file_list = self.sftp_connection.listdir(directory)  # type: ignore[union-attr]
         for file in list(remote_file_list):
             if re.match(file_pattern, file):

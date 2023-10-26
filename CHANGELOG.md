@@ -1,5 +1,10 @@
 # Changelog
 
+# v0.15.1
+
+- Fix issue with logs not renaming correctly when an exception is thrown that's not caught
+- Fix issue where `"error": false` for a transfer still caused the transfer to exit with a non-zero exit code
+
 # v0.15.0
 
 - Fix issue with chmods not actually working as intended

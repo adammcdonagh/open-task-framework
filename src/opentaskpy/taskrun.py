@@ -73,7 +73,10 @@ class TaskRun:  # pylint: disable=too-few-public-methods
 
             transfer = Transfer(global_variables, self.task_id, active_task_definition)
 
-            result = transfer.run()
+            try:
+                result = transfer.run()
+            except Exception as exception:  # pylint: disable=broad-except
+                transfer.return_result(1, str(exception), exception)
 
         elif active_task_definition["type"] == "execution":
             # Hand off to the execuiton module
@@ -91,8 +94,10 @@ class TaskRun:  # pylint: disable=too-few-public-methods
             execution = Execution(
                 global_variables, self.task_id, active_task_definition
             )
-
-            result = execution.run()
+            try:
+                result = execution.run()
+            except Exception as exception:  # pylint: disable=broad-except
+                execution.return_result(1, str(exception), exception)
 
         elif active_task_definition["type"] == "batch":
             # Hand off to the batch module
@@ -103,7 +108,10 @@ class TaskRun:  # pylint: disable=too-few-public-methods
                 active_task_definition,
                 self.config_loader,
             )
-            result = batch.run()
+            try:
+                result = batch.run()
+            except Exception as exception:  # pylint: disable=broad-except
+                batch.return_result(1, str(exception), exception)
 
         else:
             self.logger.error("Unknown task type!")

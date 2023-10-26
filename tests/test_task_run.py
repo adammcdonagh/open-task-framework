@@ -74,6 +74,18 @@ def test_scp_basic_binary(env_vars, setup_ssh_keys, root_dir):
     assert run_task_run("scp-basic")["returncode"] == 0
 
 
+def test_scp_basic_no_error_on_exit_binary(env_vars, setup_ssh_keys, root_dir):
+    # Use the "binary" to trigger the job with command line arguments
+
+    assert run_task_run("scp-basic-no-error")["returncode"] == 0
+
+
+def test_scp_basic_no_error_on_exit_binary_1(env_vars, setup_ssh_keys, root_dir):
+    # Use the "binary" to trigger the job with command line arguments
+
+    assert run_task_run("scp-basic-no-error-1")["returncode"] == 0
+
+
 def test_execution_basic_binary(env_vars, setup_ssh_keys, root_dir):
     # Use the "binary" to trigger the job with command line arguments
 
