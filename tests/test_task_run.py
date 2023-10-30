@@ -10,7 +10,7 @@ import time
 import pytest
 from pytest_shell import fs
 
-from opentaskpy import exceptions, taskrun
+from opentaskpy import taskrun
 from tests.fixtures.ssh_clients import *  # noqa: F403
 
 # Create a variable with a random number
@@ -277,9 +277,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
 
     # This should fail, because the file is too new
     task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
-    with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
-        task_runner.run()
-    assert "No remote files could be found to transfer" in (cm.value.args[0])
+    assert not task_runner.run()
 
     # Modify the file to be older than 1 minute and try again
     os.utime(
@@ -296,9 +294,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
         (time.time() - 601, time.time() - 601),
     )
     task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
-    with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
-        task_runner.run()
-    assert "No remote files could be found to transfer" in (cm.value.args[0])
+    assert not task_runner.run()
 
     # Write a 9 byte long file - we need to change the age again
     write_test_file(
@@ -311,9 +307,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
     )
 
     task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
-    with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
-        task_runner.run()
-    assert "No remote files could be found to transfer" in (cm.value.args[0])
+    assert not task_runner.run()
 
     # Write a 21 byte long file - we need to change the age again
     write_test_file(
@@ -326,9 +320,7 @@ def test_scp_source_file_conditions(env_vars, setup_ssh_keys, root_dir):
     )
 
     task_runner = taskrun.TaskRun("scp-source-file-conditions", "test/cfg")
-    with pytest.raises(exceptions.FilesDoNotMeetConditionsError) as cm:
-        task_runner.run()
-    assert "No remote files could be found to transfer" in (cm.value.args[0])
+    assert not task_runner.run()
 
 
 def test_scp_file_watch(env_vars, setup_ssh_keys, root_dir):
@@ -343,9 +335,7 @@ def test_scp_file_watch(env_vars, setup_ssh_keys, root_dir):
 
     # Filewatch configured to wait 15 seconds before giving up. Expect it to fail
     task_runner = taskrun.TaskRun("scp-file-watch", "test/cfg")
-    with pytest.raises(exceptions.RemoteFileNotFoundError) as cm:
-        task_runner.run()
-    assert "No files found after " in (cm.value.args[0])
+    assert not task_runner.run()
 
     # This time, we run it again, but after 5 seconds, create the file
     # Create a thread that will run fs.create_fi:e{"s [{aft":r 5 second}}])
@@ -379,18 +369,14 @@ def test_scp_log_watch(env_vars, setup_ssh_keys, root_dir):
 
     # Logwatch will fail if the log file doesn't exist
     task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
-    with pytest.raises(exceptions.LogWatchInitError) as cm:
-        task_runner.run()
-    assert "Logwatch init failed" in (cm.value.args[0])
+    assert not task_runner.run()
 
     # This time, we run it again with the file created and populated. It should fail because the file doesn't contain the expected text
     # Write the file
     fs.create_files([{log_file: {"content": "NOT_THE_RIGHT_PATTERN"}}])
 
     task_runner = taskrun.TaskRun("scp-log-watch", "test/cfg")
-    with pytest.raises(exceptions.LogWatchTimeoutError) as cm:
-        task_runner.run()
-    assert "No log entry found after " in (cm.value.args[0])
+    assert not task_runner.run()
 
     # This time we run again, but populate the file after 5 seconds
     t = threading.Timer(
@@ -428,9 +414,7 @@ def test_scp_log_watch_tail(env_vars, setup_ssh_keys, root_dir):
         ]
     )
     task_runner = taskrun.TaskRun("scp-log-watch-tail", "test/cfg")
-    with pytest.raises(exceptions.LogWatchTimeoutError) as cm:
-        task_runner.run()
-    assert "No log entry found after " in (cm.value.args[0])
+    assert not task_runner.run()
 
     # This time write the contents after 5 seconds
     t = threading.Timer(
