@@ -1,0 +1,27 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "{{ HOST_A }}",
+    "directory": "/tmp/non-existent-dir",
+    "fileRegex": "non-existent-file-12345\\.txt",
+    "error": false,
+    "protocol": {
+      "name": "ssh",
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  },
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
+      }
+    }
+  ]
+}

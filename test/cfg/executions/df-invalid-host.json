@@ -1,0 +1,12 @@
+{
+  "type": "execution",
+  "hosts": ["123"],
+  "directory": "/tmp",
+  "command": "df -h",
+  "protocol": {
+    "name": "ssh",
+    "credentials": {
+      "username": "{{ SSH_USERNAME }}"
+    }
+  }
+}

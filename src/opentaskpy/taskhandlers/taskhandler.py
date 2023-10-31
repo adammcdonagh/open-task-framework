@@ -15,6 +15,7 @@ class TaskHandler(ABC):
 
     logger: Logger
     overall_result: bool
+    handled_exception: bool = False
 
     def __init__(self, global_config: dict):
         """Initialize the class."""
@@ -45,7 +46,8 @@ class TaskHandler(ABC):
         opentaskpy.otflogging.close_log_file(self.logger, self.overall_result)
 
         # Throw an exception if we have one
-        if exception:
+        if exception and not self.handled_exception:
+            self.handled_exception = True
             if callable(exception):
                 raise exception(message)
 
