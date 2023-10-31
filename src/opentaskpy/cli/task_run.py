@@ -118,11 +118,14 @@ def main() -> None:
     task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH, noop=args.noop)
 
     try:
-        task_run_obj.run()
+        result = task_run_obj.run()
     except Exception as ex:  # pylint: disable=broad-exception-caught
         logger.error(f"Error running task: {ex}")
         if logger.getEffectiveLevel() <= 12:
             raise ex
+        sys.exit(1)
+
+    if not result:
         sys.exit(1)
 
 

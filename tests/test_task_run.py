@@ -92,6 +92,12 @@ def test_execution_basic_binary(env_vars, setup_ssh_keys, root_dir):
     assert run_task_run("df")["returncode"] == 0
 
 
+def test_execution_invalid_host(env_vars, setup_ssh_keys, root_dir):
+    # Use the "binary" to trigger the job with command line arguments
+
+    assert run_task_run("df-invalid-host")["returncode"] == 1
+
+
 def test_batch_basic_binary(env_vars, setup_ssh_keys, root_dir):
     # Use the "binary" to trigger the job with command line arguments
 
@@ -101,6 +107,12 @@ def test_batch_basic_binary(env_vars, setup_ssh_keys, root_dir):
     )
 
     assert run_task_run("batch-basic")["returncode"] == 0
+
+
+def test_batch_execution_invalid_host(env_vars, setup_ssh_keys, root_dir):
+    # Use the "binary" to trigger the job with command line arguments
+
+    assert run_task_run("batch-basic-invalid-execution-host")["returncode"] == 1
 
 
 def test_binary_invalid_config_file(env_vars, setup_ssh_keys, root_dir):

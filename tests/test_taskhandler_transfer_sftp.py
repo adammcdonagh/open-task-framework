@@ -30,6 +30,24 @@ sftp_task_definition = {
     ],
 }
 
+# Non existent source directory
+sftp_task_non_existent_source_dir_definition = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.21",
+        "directory": "/home/application/testFiles/src/nonexistentdir",
+        "fileRegex": ".*taskhandler.*\\.txt",
+        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.22",
+            "directory": "/home/application/testFiles/dest",
+            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 
 sftp_task_definition_no_permissions = {
     "type": "transfer",
@@ -333,6 +351,19 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     assert os.path.exists(
         f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
     )
+
+
+def test_sftp_basic_non_existent_source_directory(root_dir, setup_sftp_keys):
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "sftp-basic-non-existent-directory",
+        sftp_task_non_existent_source_dir_definition,
+    )
+
+    # Run the transfer and expect a true status
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
 
 
 def test_sftp_basic_no_permissions(root_dir, setup_sftp_keys):
