@@ -371,9 +371,8 @@ class SSHTransfer(RemoteTransferHandler):
         remote_user = quote(remote_user)
         remote_host = quote(remote_host)
 
-        remote_command = (
-            f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
-        )
+        remote_command = f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
+
         self.logger.info(
             f"[{self.spec['hostname']}] Transferring files via SCP: {remote_command}"
         )

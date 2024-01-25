@@ -1,5 +1,4 @@
 """Batch task handler class."""
-
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -229,9 +228,11 @@ class Batch(TaskHandler):
                         if self.task_order_tree[dependency]["status"] != "COMPLETED":
                             self.logger.log(
                                 12,
-                                "Skipping task"
-                                f" {order_id} ({batch_task['task_id']}) as"
-                                f" dependency {dependency} has not completed",
+                                (
+                                    "Skipping task"
+                                    f" {order_id} ({batch_task['task_id']}) as"
+                                    f" dependency {dependency} has not completed"
+                                )
                             )
                             all_dependencies_complete = False
                             continue
