@@ -264,6 +264,9 @@ class Batch(TaskHandler):
                     batch_task["thread"] = thread
                     batch_task["kill_event"] = e
 
+                    # Sleep 1 second to allow the thread to start
+                    time.sleep(1)
+
                 # Check if the task has completed
                 if batch_task["status"] == "RUNNING":
                     # Check if the task has timed out

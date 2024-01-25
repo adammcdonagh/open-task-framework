@@ -1,5 +1,9 @@
 # Changelog
 
+# v0.15.2
+
+- Fix issue loading modules too fast with multiple steps in a batch
+
 # v0.15.1
 
 - Fix issue with logs not renaming correctly when an exception is thrown that's not caught
