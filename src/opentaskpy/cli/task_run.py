@@ -18,7 +18,8 @@ def main() -> None:
     """Parse args and call TaskRun class."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        epilog=dedent("""\
+        epilog=dedent(
+            """\
                                 Environment Variables:
 
                                 There are several environment variables that can be used to impact the behaviour:
@@ -42,7 +43,8 @@ def main() -> None:
 
                                 e.g. OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME
 
-                                """),
+                                """
+        ),
     )
 
     parser.add_argument(

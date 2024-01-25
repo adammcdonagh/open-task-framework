@@ -232,7 +232,7 @@ class Batch(TaskHandler):
                                     "Skipping task"
                                     f" {order_id} ({batch_task['task_id']}) as"
                                     f" dependency {dependency} has not completed"
-                                )
+                                ),
                             )
                             all_dependencies_complete = False
                             continue

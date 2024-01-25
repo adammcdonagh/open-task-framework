@@ -120,8 +120,10 @@ class SSHTransfer(RemoteTransferHandler):
             with stdout as stdout_fh:
                 self.logger.log(
                     11,
-                    f"[{self.spec['hostname']}] Remote uname:"
-                    f" {stdout_fh.read().decode('UTF-8')}",
+                    (
+                        f"[{self.spec['hostname']}] Remote uname:"
+                        f" {stdout_fh.read().decode('UTF-8')}"
+                    ),
                 )
 
             sftp = ssh_client.open_sftp()
@@ -196,8 +198,10 @@ class SSHTransfer(RemoteTransferHandler):
 
         self.logger.log(
             12,
-            f"[{self.spec['hostname']}] Searching in {directory} for files with"
-            f" pattern {file_pattern}",
+            (
+                f"[{self.spec['hostname']}] Searching in {directory} for files with"
+                f" pattern {file_pattern}"
+            ),
         )
         remote_files: dict = {}
         # Check the remote directory exists
@@ -779,8 +783,10 @@ class SSHTransfer(RemoteTransferHandler):
                     if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
                         self.logger.log(
                             12,
-                            f"[{self.spec['hostname']}] Found matching line in log:"
-                            f" {line.strip()} on line: {i+1}",
+                            (
+                                f"[{self.spec['hostname']}] Found matching line in log:"
+                                f" {line.strip()} on line: {i+1}"
+                            ),
                         )
                         return 0
 
