@@ -2,6 +2,7 @@
 
 This module contains the SSH remote handlers for transfers and executions.
 """
+
 import glob
 import logging
 import os
@@ -119,10 +120,8 @@ class SSHTransfer(RemoteTransferHandler):
             with stdout as stdout_fh:
                 self.logger.log(
                     11,
-                    (
-                        f"[{self.spec['hostname']}] Remote uname:"
-                        f" {stdout_fh.read().decode('UTF-8')}"
-                    ),
+                    f"[{self.spec['hostname']}] Remote uname:"
+                    f" {stdout_fh.read().decode('UTF-8')}",
                 )
 
             sftp = ssh_client.open_sftp()
@@ -197,10 +196,8 @@ class SSHTransfer(RemoteTransferHandler):
 
         self.logger.log(
             12,
-            (
-                f"[{self.spec['hostname']}] Searching in {directory} for files with"
-                f" pattern {file_pattern}"
-            ),
+            f"[{self.spec['hostname']}] Searching in {directory} for files with"
+            f" pattern {file_pattern}",
         )
         remote_files: dict = {}
         # Check the remote directory exists
@@ -374,7 +371,9 @@ class SSHTransfer(RemoteTransferHandler):
         remote_user = quote(remote_user)
         remote_host = quote(remote_host)
 
-        remote_command = f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
+        remote_command = (
+            f'scp {SSH_OPTIONS} {" ".join(files)} {remote_user}@{remote_host}:"{destination_directory}"'
+        )
         self.logger.info(
             f"[{self.spec['hostname']}] Transferring files via SCP: {remote_command}"
         )
@@ -781,10 +780,8 @@ class SSHTransfer(RemoteTransferHandler):
                     if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
                         self.logger.log(
                             12,
-                            (
-                                f"[{self.spec['hostname']}] Found matching line in log:"
-                                f" {line.strip()} on line: {i+1}"
-                            ),
+                            f"[{self.spec['hostname']}] Found matching line in log:"
+                            f" {line.strip()} on line: {i+1}",
                         )
                         return 0
 
