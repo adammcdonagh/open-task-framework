@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.4.0
+
+- Change versioning format
+- Fixed file transfers to ensure that only files matching the regex are actually transferred
+
 # v0.15.2
 
 - Fix issue loading modules too fast with multiple steps in a batch
