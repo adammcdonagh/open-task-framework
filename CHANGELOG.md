@@ -1,6 +1,6 @@
 # Changelog
 
-# v24.4.0
+# v24.4.1
 
 - Change versioning format
 - Fixed file transfers to ensure that only files matching the regex are actually transferred
