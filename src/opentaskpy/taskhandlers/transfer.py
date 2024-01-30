@@ -1,4 +1,5 @@
 """Task handler for running transfers."""
+
 import random
 import shutil
 import threading
@@ -324,7 +325,19 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
         # Determine what needs to be transferred
-        remote_files = self.source_remote_handler.list_files()
+        source_directory = (
+            self.source_file_spec["directory"]
+            if "directory" in self.source_file_spec
+            else None
+        )
+        source_file_pattern = (
+            self.source_file_spec["fileRegex"]
+            if "fileRegex" in self.source_file_spec
+            else None
+        )
+        remote_files = self.source_remote_handler.list_files(
+            directory=source_directory, file_pattern=source_file_pattern
+        )
 
         # Loop through the returned files to see if they match the file age and size spec (if defined)
         if "conditionals" in self.source_file_spec and remote_files:
@@ -380,11 +393,9 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                     self.logger.log(
                         12,
-                        (
-                            "Checking file age - Last modified time:"
-                            f" {time.ctime(file_modified_time)} - Age in secs:"
-                            f" {file_age} secs"
-                        ),
+                        "Checking file age - Last modified time:"
+                        f" {time.ctime(file_modified_time)} - Age in secs:"
+                        f" {file_age} secs",
                     )
 
                     if min_age and file_age <= min_age:
@@ -408,10 +419,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,
-                    (
-                        "No remote files could be found to transfer. But not erroring"
-                        " due to config"
-                    ),
+                    "No remote files could be found to transfer. But not erroring"
+                    " due to config",
                 )
 
             return self.return_result(
