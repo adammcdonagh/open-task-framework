@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.5.1
+
+- Add ability to specify a key string for SSH type connections
+
 # v24.5.0
 
 - Change versioning format
