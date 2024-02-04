@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "v24.5.0"
+version = "v24.5.1"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
 license = { text = "GPLv3" }
 classifiers = [
@@ -66,7 +66,7 @@ task-run = "opentaskpy.cli.task_run:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v24.5.0"
+current_version = "v24.5.1"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
