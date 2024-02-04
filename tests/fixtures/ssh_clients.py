@@ -155,6 +155,17 @@ def setup_ssh_keys(docker_services, root_dir, test_directories, ssh_1, ssh_2) ->
 
 
 @pytest.fixture(scope="session")
+def ssh_key_file(setup_ssh_keys):
+    home_dir = os.path.expanduser("~")
+
+    key = None
+    with open(f"{home_dir}/.ssh/id_rsa") as file:
+        key = file.read()
+
+    return key
+
+
+@pytest.fixture(scope="session")
 def setup_sftp_keys(
     docker_services, root_dir, test_directories, sftp_1, sftp_2
 ) -> None:
@@ -214,3 +225,14 @@ def setup_sftp_keys(
     for host in ["sftp_1", "sftp_2"]:
         for command in commands:
             docker_services.execute(host, *command)
+
+
+@pytest.fixture(scope="session")
+def sftp_key_file(setup_sftp_keys):
+    home_dir = os.path.expanduser("~")
+
+    key = None
+    with open(f"{home_dir}/.ssh/id_rsa") as file:
+        key = file.read()
+
+    return key

@@ -18,6 +18,9 @@
         },
         "keyFile": {
           "type": "string"
+        },
+        "key": {
+          "type": "string"
         }
       },
       "required": ["username"],

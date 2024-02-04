@@ -6,6 +6,7 @@ import glob
 import os
 import re
 import stat
+from io import StringIO
 from shlex import quote
 
 from paramiko import AutoAddPolicy, Channel, RSAKey, SFTPClient, SSHClient
@@ -84,6 +85,14 @@ class SFTPTransfer(RemoteTransferHandler):
             client_kwargs["key_filename"] = self.spec["protocol"]["credentials"][
                 "keyFile"
             ]
+
+        # If a private key has been defined as a string, then use that instead
+        elif "key" in self.spec["protocol"]["credentials"]:
+            self.logger.info("Using private key from task spec")
+            key = RSAKey.from_private_key(
+                StringIO(self.spec["protocol"]["credentials"]["key"])
+            )
+            client_kwargs["pkey"] = key
 
         # If a password has been defined, then use that
         elif "password" in self.spec["protocol"]["credentials"]:
