@@ -51,7 +51,6 @@
         "python.linting.pylintPath": "/usr/local/py-utils/bin/pylint",
         "http.systemCertificates": true,
         "python.formatting.provider": "black",
-        "black-formatter.args": ["--preview"],
         "files.associations": {
           "*.json": "jsonc"
         },

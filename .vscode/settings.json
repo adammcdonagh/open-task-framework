@@ -20,7 +20,6 @@
     "refactor": "Warning",
     "info": "Warning"
   },
-  "black-formatter.args": ["--preview"],
   "mypy.enabled": true,
   "ruff.run": "onType",
   "python.testing.pytestEnabled": true,
