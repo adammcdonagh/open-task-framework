@@ -5,6 +5,7 @@ This does not support any type of authentication, and just expects a simple
 JSON response from which to extract a value using a provided JSONPath.
 
 """
+
 import requests
 from jsonpath_ng import parse
 

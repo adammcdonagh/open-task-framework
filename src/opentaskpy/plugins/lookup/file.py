@@ -3,6 +3,7 @@
 Reads the first line of a file and returns it as a string.
 
 """
+
 import os
 
 import opentaskpy.otflogging

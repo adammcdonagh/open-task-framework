@@ -56,8 +56,7 @@ class TaskHandler(ABC):
         return status == 0
 
     @abstractmethod
-    def _set_remote_handlers(self) -> None:
-        ...
+    def _set_remote_handlers(self) -> None: ...
 
     @abstractmethod
     def run(self) -> bool:
