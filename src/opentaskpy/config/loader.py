@@ -1,4 +1,5 @@
 """Config loader."""
+
 import datetime
 import importlib
 import json

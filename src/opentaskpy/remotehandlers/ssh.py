@@ -10,6 +10,7 @@ import random
 import re
 import stat
 import time
+from io import StringIO
 from shlex import quote
 
 from paramiko import AutoAddPolicy, RSAKey, SFTPClient, SSHClient, Transport
@@ -114,16 +115,22 @@ class SSHTransfer(RemoteTransferHandler):
                 self.logger.info("Using key file from task spec")
                 kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
 
+            # If a private key has been defined as a string, then use that instead
+            elif "key" in self.spec["protocol"]["credentials"]:
+                self.logger.info("Using private key from task spec")
+                key = RSAKey.from_private_key(
+                    StringIO(self.spec["protocol"]["credentials"]["key"])
+                )
+                kwargs["pkey"] = key
+
             self.logger.info(f"Connecting to {hostname}")
             ssh_client.connect(**kwargs)
             _, stdout, _ = ssh_client.exec_command("uname -a")  # nosec B601
             with stdout as stdout_fh:
                 self.logger.log(
                     11,
-                    (
-                        f"[{self.spec['hostname']}] Remote uname:"
-                        f" {stdout_fh.read().decode('UTF-8')}"
-                    ),
+                    f"[{self.spec['hostname']}] Remote uname:"
+                    f" {stdout_fh.read().decode('UTF-8')}",
                 )
 
             sftp = ssh_client.open_sftp()
@@ -198,10 +205,8 @@ class SSHTransfer(RemoteTransferHandler):
 
         self.logger.log(
             12,
-            (
-                f"[{self.spec['hostname']}] Searching in {directory} for files with"
-                f" pattern {file_pattern}"
-            ),
+            f"[{self.spec['hostname']}] Searching in {directory} for files with"
+            f" pattern {file_pattern}",
         )
         remote_files: dict = {}
         # Check the remote directory exists
@@ -783,10 +788,8 @@ class SSHTransfer(RemoteTransferHandler):
                     if re.search(self.spec["logWatch"]["contentRegex"], line.strip()):
                         self.logger.log(
                             12,
-                            (
-                                f"[{self.spec['hostname']}] Found matching line in log:"
-                                f" {line.strip()} on line: {i+1}"
-                            ),
+                            f"[{self.spec['hostname']}] Found matching line in log:"
+                            f" {line.strip()} on line: {i+1}",
                         )
                         return 0
 

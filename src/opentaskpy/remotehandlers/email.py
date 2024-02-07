@@ -1,4 +1,5 @@
 """Email handler to send files via email."""
+
 import glob
 import os
 import smtplib

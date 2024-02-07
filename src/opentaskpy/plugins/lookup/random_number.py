@@ -1,4 +1,5 @@
 """An example plugin that simply returns a random number between the 2 provided values."""
+
 import random
 
 import opentaskpy.otflogging

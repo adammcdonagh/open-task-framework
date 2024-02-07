@@ -17,10 +17,16 @@
           "type": "string"
         },
         "transferUsername": {
-          "type": "string"
+          "type": "string",
+          "description": "The username to use for the transfer. If not provided, the username will be used. Only applicable for direct SSH->SSH transfer"
         },
         "keyFile": {
-          "type": "string"
+          "type": "string",
+          "description": "The path to the private key file to use for authentication. Only used for connection from worker to destination host."
+        },
+        "key": {
+          "type": "string",
+          "description": "The private key to use for authentication. Only used for connection from worker to destination host."
         }
       },
       "required": ["username"],

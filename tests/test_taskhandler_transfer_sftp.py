@@ -353,6 +353,29 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     )
 
 
+def test_sftp_basic_key_from_protocol_definition(root_dir, sftp_key_file):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/test.taskhandler.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+
+    # Create a transfer object
+    sftp_task_definition["source"]["protocol"]["credentials"]["key"] = sftp_key_file
+
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/test.taskhandler.txt")
+
+
 def test_sftp_basic_non_existent_source_directory(root_dir, setup_sftp_keys):
     # Create a transfer object
     transfer_obj = transfer.Transfer(

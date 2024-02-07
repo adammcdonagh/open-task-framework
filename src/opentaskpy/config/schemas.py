@@ -1,4 +1,5 @@
 """Schemas for the configuration files."""
+
 import copy
 import importlib
 import json

@@ -1,4 +1,5 @@
 """Main class."""
+
 import opentaskpy.otflogging
 from opentaskpy.config.loader import ConfigLoader
 from opentaskpy.config.schemas import validate_execution_json, validate_transfer_json

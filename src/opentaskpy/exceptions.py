@@ -1,4 +1,5 @@
 """A bunch of exceptions that can be raised by the opentaskpy package."""
+
 # mypy: ignore-errors
 
 
