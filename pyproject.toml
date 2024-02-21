@@ -61,6 +61,7 @@ dev = [
 
 [project.scripts]
 task-run = "opentaskpy.cli.task_run:main"
+otf-batch-validator = "opentaskpy.cli.batch_validator:main"
 
 [tool.isort]
 profile = 'black'

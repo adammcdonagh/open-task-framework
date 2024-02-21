@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.8.0
+
+- Update `--noop` to work correctly for batch
+- Add a simple batch config validator. This checks that there are consecutive tasks, tasks definitions exist, and dependencies are valid
+
 # v24.5.1
 
 - Add ability to specify a key string for SSH type connections

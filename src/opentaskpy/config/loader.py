@@ -120,6 +120,10 @@ class ConfigLoader:
                 spec.loader.exec_module(module)
                 sys.modules[f"opentaskpy.plugins.lookup.{plugin}"] = module
 
+        # If we are in noop mode, then don't actually run the plugin
+        if "OTF_NOOP" in os.environ and os.environ["OTF_NOOP"] == "true":
+            return "noop"
+
         # Run the run function of the imported module
         return str(
             getattr(  # noqa: B009
