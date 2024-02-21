@@ -1,5 +1,6 @@
 # pylint: skip-file
 import json
+import os
 
 import pytest
 
@@ -42,6 +43,20 @@ batch_def_non_existent_task_id = {
         {"task_id": "task4", "order_id": 2, "dependencies": [1]},
     ],
 }
+
+
+# Since the batch validator uses OTF_NOOP, we need to clear it down after
+# the tests in this module have completed
+@pytest.fixture(scope="module", autouse=True)
+def tests_setup_and_teardown():
+    # Will be executed before the first test
+    old_environ = dict(os.environ)
+
+    yield
+
+    # Will be executed after the last test
+    os.environ.clear()
+    os.environ.update(old_environ)
 
 
 @pytest.fixture(scope="function")
