@@ -11,6 +11,7 @@
   - [Example Deployment](#example-deployment)
 - [Configuration](#configuration)
   - [Command Line Arguments](#command-line-arguments)
+  - [otf-batch-validator](#otf-batch-validator)
   - [Environment Variables](#environment-variables)
   - [Logging](#logging)
   - [Variables](#variables)
@@ -121,6 +122,31 @@ VERBOSITY is an integer; 1, 2 or 3
 The directory containing all of the config files. These are the task definition JSON files, as well as the variables Jinja2 template file.
 
 In order for the process to run, you must have at least one task, and a `variables.json.j2` file, even if it's just an empty object definition
+
+## otf-batch-validator
+
+This is a script that can be used to validate the configuration of a batch. It will check that all tasks are defined consecutively, and that there are valid dependencies. It will also check that all tasks are defined in the `configDir` directory.
+
+It is run as follows:
+
+```shell
+otf-batch-validator -c /path/to/configDir -t batch-task-name
+```
+
+Full list of arguments are as follows:
+
+```
+usage: otf-batch-validator [-h] -t TASKID [-v VERBOSITY] [-c CONFIGDIR]
+
+options:
+  -h, --help            show this help message and exit
+  -t TASKID, --taskId TASKID
+                        Name of the JSON config to run
+  -v VERBOSITY, --verbosity VERBOSITY
+                        Increase verbosity: 3 - DEBUG 2 - VERBOSE2 1 - VERBOSE1
+  -c CONFIGDIR, --configDir CONFIGDIR
+                        Directory containing task configurations
+```
 
 ## Environment Variables
 
