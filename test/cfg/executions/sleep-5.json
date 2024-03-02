@@ -1,0 +1,12 @@
+{
+  "type": "execution",
+  "hosts": ["{{ HOST_A }}"],
+  "directory": "/tmp/testFiles/src",
+  "command": "sleep 5",
+  "protocol": {
+    "name": "ssh",
+    "credentials": {
+      "username": "{{ SSH_USERNAME }}"
+    }
+  }
+}

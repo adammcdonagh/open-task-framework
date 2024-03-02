@@ -88,6 +88,52 @@ parallel_batch_with_single_failure_with_retry_definition = {
     ],
 }
 
+parallel_batch_many_definition = {
+    "type": "batch",
+    "tasks": [
+        {
+            "order_id": 1,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 2,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 3,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 4,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 5,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 6,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 7,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 8,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 9,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 10,
+            "task_id": "sleep-5",
+        },
+    ],
+}
+
 dependent_batch_definition = {
     "type": "batch",
     "tasks": [
@@ -417,6 +463,19 @@ def test_batch_resume_after_failure_retry_successful_tasks(
     assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))
     assert os.path.exists(log_file_name_touch_task.replace("_running", ""))
     assert os.path.exists(log_file_name_failed_task.replace("_running", "_failed"))
+
+
+def test_batch_parallel_many(setup_ssh_keys, env_vars, root_dir, clear_logs):
+    # Forcing a prefix makes it easy to identify log files, as well as
+    # ensuring that any rerun logic doesn't get hit
+    os.environ["OTF_LOG_RUN_PREFIX"] = f"testbatch_many_parallel_{RANDOM}"
+
+    config_loader = ConfigLoader("test/cfg")
+    batch_obj = batch.Batch(
+        None, f"parallel-many-{RANDOM}", parallel_batch_many_definition, config_loader
+    )
+    # Run and expect a true status
+    assert batch_obj.run()
 
 
 def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir, clear_logs):
