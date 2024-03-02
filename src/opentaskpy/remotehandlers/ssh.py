@@ -15,6 +15,7 @@ from shlex import quote
 
 from paramiko import AutoAddPolicy, RSAKey, SFTPClient, SSHClient, Transport
 from paramiko.channel import ChannelFile, ChannelStderrFile
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 import opentaskpy.otflogging
 from opentaskpy.exceptions import SSHClientError
@@ -88,58 +89,72 @@ class SSHTransfer(RemoteTransferHandler):
                 f"[{self.spec['hostname']}] SSH connection to {hostname} already active"
             )
             return
+
+        kwargs = {
+            "hostname": hostname,
+            "port": (
+                self.spec["protocol"]["port"] if "port" in self.spec["protocol"] else 22
+            ),
+            "username": self.spec["protocol"]["credentials"]["username"],
+            "timeout": 3,
+            "allow_agent": False,
+        }
+        # If a custom key is set via env vars, then set that
+        if (
+            os.environ.get("OTF_SSH_KEY")
+            and os.path.exists(str(os.environ.get("OTF_SSH_KEY")))
+        ) and "keyFile" not in self.spec["protocol"]["credentials"]:
+            self.logger.info("Loading custom private SSH key from OTF_SSH_KEY env var")
+            key = RSAKey.from_private_key_file(str(os.environ.get("OTF_SSH_KEY")))
+            kwargs["pkey"] = key
+
+        # If a specific key file has been defined, then use that
+        elif "keyFile" in self.spec["protocol"]["credentials"]:
+            self.logger.info("Using key file from task spec")
+            kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
+
+        # If a private key has been defined as a string, then use that instead
+        elif "key" in self.spec["protocol"]["credentials"]:
+            self.logger.info("Using private key from task spec")
+            key = RSAKey.from_private_key(
+                StringIO(self.spec["protocol"]["credentials"]["key"])
+            )
+            kwargs["pkey"] = key
+
+        self.connect_with_retry(ssh_client, kwargs)
+
+        _, stdout, _ = ssh_client.exec_command("uname -a")  # nosec B601
+        with stdout as stdout_fh:
+            self.logger.log(
+                11,
+                f"[{self.spec['hostname']}] Remote uname:"
+                f" {stdout_fh.read().decode('UTF-8')}",
+            )
+
+        sftp = ssh_client.open_sftp()
+
+        if not is_remote_host:
+            self.sftp_connection = sftp
+
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+    )
+    def connect_with_retry(self, ssh_client: SSHClient, kwargs: dict) -> None:
+        """Connect to the remote host with retry.
+
+        Args:
+            ssh_client (SSHClient): The SSH client to use.
+            kwargs (dict): The keyword arguments to use to connect to the remote host.
+        """
         try:
-            kwargs = {
-                "hostname": hostname,
-                "port": (
-                    self.spec["protocol"]["port"]
-                    if "port" in self.spec["protocol"]
-                    else 22
-                ),
-                "username": self.spec["protocol"]["credentials"]["username"],
-                "timeout": 5,
-            }
-            # If a custom key is set via env vars, then set that
-            if (
-                os.environ.get("OTF_SSH_KEY")
-                and os.path.exists(str(os.environ.get("OTF_SSH_KEY")))
-            ) and "keyFile" not in self.spec["protocol"]["credentials"]:
-                self.logger.info(
-                    "Loading custom private SSH key from OTF_SSH_KEY env var"
-                )
-                key = RSAKey.from_private_key_file(str(os.environ.get("OTF_SSH_KEY")))
-                kwargs["pkey"] = key
-
-            # If a specific key file has been defined, then use that
-            elif "keyFile" in self.spec["protocol"]["credentials"]:
-                self.logger.info("Using key file from task spec")
-                kwargs["key_filename"] = self.spec["protocol"]["credentials"]["keyFile"]
-
-            # If a private key has been defined as a string, then use that instead
-            elif "key" in self.spec["protocol"]["credentials"]:
-                self.logger.info("Using private key from task spec")
-                key = RSAKey.from_private_key(
-                    StringIO(self.spec["protocol"]["credentials"]["key"])
-                )
-                kwargs["pkey"] = key
-
-            self.logger.info(f"Connecting to {hostname}")
+            self.logger.info(f"Connecting to {kwargs['hostname']}")
             ssh_client.connect(**kwargs)
-            _, stdout, _ = ssh_client.exec_command("uname -a")  # nosec B601
-            with stdout as stdout_fh:
-                self.logger.log(
-                    11,
-                    f"[{self.spec['hostname']}] Remote uname:"
-                    f" {stdout_fh.read().decode('UTF-8')}",
-                )
 
-            sftp = ssh_client.open_sftp()
-
-            if not is_remote_host:
-                self.sftp_connection = sftp
         except Exception as ex:
             self.logger.error(
-                f"[{self.spec['hostname']}] Unable to connect to {hostname}: {ex}"
+                f"[{self.spec['hostname']}] Unable to connect to {kwargs['hostname']}: {ex}"
             )
             raise ex
 

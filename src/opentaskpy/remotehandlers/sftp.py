@@ -11,6 +11,7 @@ from io import StringIO
 from shlex import quote
 
 from paramiko import AutoAddPolicy, Channel, RSAKey, SFTPClient, SSHClient
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 import opentaskpy.otflogging
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
@@ -68,7 +69,8 @@ class SFTPTransfer(RemoteTransferHandler):
                 self.spec["protocol"]["port"] if "port" in self.spec["protocol"] else 22
             ),
             "username": self.spec["protocol"]["credentials"]["username"],
-            "timeout": 5,
+            "timeout": 3,
+            "allow_agent": False,
         }
 
         # If a custom key is set via env vars, then set that
@@ -99,19 +101,37 @@ class SFTPTransfer(RemoteTransferHandler):
         elif "password" in self.spec["protocol"]["credentials"]:
             client_kwargs["password"] = self.spec["protocol"]["credentials"]["password"]
 
+        self.connect_with_retry(client_kwargs)
+
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+    )
+    def connect_with_retry(self, client_kwargs: dict) -> SSHClient:
+        """Connect to the remote host with retry.
+
+        Args:
+            client_kwargs (dict): The kwargs to use for the SSH client.
+
+        Returns:
+            SSHClient: The SSH client.
+        """
         try:
             ssh_client = SSHClient()
             ssh_client.set_log_channel(
                 f"{__name__}.{os.environ.get('OTF_TASK_ID')}.paramiko.transport"
             )
             ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-            self.logger.info(f"Connecting to {hostname}")
+            self.logger.info(f"Connecting to {client_kwargs['hostname']}")
             ssh_client.connect(**client_kwargs)
             self.sftp_client = ssh_client.open_sftp()
 
         except Exception as ex:
-            self.logger.error(f"Unable to connect to {hostname}: {ex}")
+            self.logger.error(f"Unable to connect to {client_kwargs['hostname']}: {ex}")
             raise ex
+
+        return ssh_client
 
     def tidy(self) -> None:
         """Tidy up the SFTP connection.
