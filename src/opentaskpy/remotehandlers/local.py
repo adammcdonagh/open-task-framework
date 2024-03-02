@@ -105,8 +105,11 @@ class LocalTransfer(RemoteTransferHandler):
     ) -> int:
         """Pull files to the worker.
 
-        Moves files from a local location, to the staging directory. This will be used
-        for uploading files to the destination server.
+        This is not applicable for a local transfer, since the files are local already.
+        The files will not be transferred as they'll just fill up the worker's disk for
+        no reason.
+
+        All args are not used because this function literally does nothing.
 
         Args:
             files (list): A list of files to download.
@@ -114,28 +117,9 @@ class LocalTransfer(RemoteTransferHandler):
             into.
 
         Returns:
-            int: 0 if successful, 1 if not.
+            int: Always returns 0
         """
-        result = 0
-
-        # Create the staging directory locally
-        if not os.path.exists(local_staging_directory):
-            os.makedirs(local_staging_directory)
-
-        # Download the files via SFTP
-        for file in files:
-            self.logger.info(
-                f"[LOCALHOST] Copying file {file} to {local_staging_directory}"
-            )
-            file_name = os.path.basename(file)
-            try:
-                # Move file on disk
-                shutil.copy2(file, f"{local_staging_directory}/{file_name}")
-            except Exception as ex:  # pylint: disable=broad-exception-caught
-                self.logger.error(f"[LOCALHOST] Failed to copy file locally: {ex}")
-                result = 1
-
-        return result
+        return 0
 
     def push_files_from_worker(self, local_staging_directory: str) -> int:
         """Push files from the worker to another local directory.
@@ -200,7 +184,6 @@ class LocalTransfer(RemoteTransferHandler):
 
             try:
                 shutil.copy(file, final_destination)
-                os.remove(file)
                 if mode:
                     os.chmod(final_destination, int(mode, base=8))
             except Exception as ex:  # pylint: disable=broad-exception-caught
