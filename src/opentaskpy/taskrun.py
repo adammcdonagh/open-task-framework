@@ -2,7 +2,11 @@
 
 import opentaskpy.otflogging
 from opentaskpy.config.loader import ConfigLoader
-from opentaskpy.config.schemas import validate_execution_json, validate_transfer_json
+from opentaskpy.config.schemas import (
+    validate_batch_json,
+    validate_execution_json,
+    validate_transfer_json,
+)
 from opentaskpy.taskhandlers.batch import Batch
 from opentaskpy.taskhandlers.execution import Execution
 from opentaskpy.taskhandlers.transfer import Transfer
@@ -103,12 +107,23 @@ class TaskRun:  # pylint: disable=too-few-public-methods
         elif active_task_definition["type"] == "batch":
             # Hand off to the batch module
             self.logger.log(12, "Batch")
+
+            # Validate the schema
+            if not validate_batch_json(active_task_definition):
+                self.logger.error("JSON format does not match schema")
+                return False
+
+            if self.noop:
+                self.logger.info("Noop set, exiting")
+                return True
+
             batch = Batch(
                 global_variables,
                 self.task_id,
                 active_task_definition,
                 self.config_loader,
             )
+
             try:
                 result = batch.run()
             except Exception as exception:  # pylint: disable=broad-except

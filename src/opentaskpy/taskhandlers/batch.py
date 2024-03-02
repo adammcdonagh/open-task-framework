@@ -83,6 +83,11 @@ class Batch(TaskHandler):
 
                         previous_status[order_id] = task_status
 
+        # Order the batch_definitions by order_id
+        self.batch_definition["tasks"] = sorted(
+            self.batch_definition["tasks"], key=lambda k: k["order_id"]  # type: ignore[no-any-return]
+        )
+
         # Parse the batch definition and create the appropriate tasks to run
         # in the correct order, based on the dependencies specified
         for task in self.batch_definition["tasks"]:

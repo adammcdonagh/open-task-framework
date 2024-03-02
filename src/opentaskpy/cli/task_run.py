@@ -31,6 +31,7 @@ def main() -> None:
                                     OTF_LOG_LEVEL - Equivalent to using -v
                                     OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
                                     OTF_VARIABLES_FILE - Override the default variables file location
+                                    OTF_NOOP - Equivalent to using --noop argument
 
                                 Task Definition Overrides:
 
@@ -91,6 +92,9 @@ def main() -> None:
     if args.runId:
         os.environ["OTF_RUN_ID"] = args.runId
 
+    if args.noop:
+        os.environ["OTF_NOOP"] = "true"
+
     os.environ["OTF_LOG_RUN_PREFIX"] = datetime.now().strftime("%Y%m%d-%H%M%S.%f")[:-3]
 
     logging_level = logging.INFO
@@ -117,7 +121,9 @@ def main() -> None:
     logger.log(11, f"Log verbosity: {args.verbosity}")
 
     # Create the TaskRun object
-    task_run_obj = taskrun.TaskRun(args.taskId, CONFIG_PATH, noop=args.noop)
+    task_run_obj = taskrun.TaskRun(
+        args.taskId, CONFIG_PATH, noop="OTF_NOOP" in os.environ
+    )
 
     try:
         result = task_run_obj.run()
