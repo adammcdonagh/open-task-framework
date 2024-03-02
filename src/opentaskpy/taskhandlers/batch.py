@@ -469,8 +469,10 @@ class Batch(TaskHandler):
         try:
             result = task_handler.run(kill_event=event)
         except Exception as ex:  # pylint: disable=broad-exception-caught
+            task_handler.return_result(1, str(ex), ex)
             self.logger.error(f"[{task_handler.task_id}] Failed to run task")
-            self.logger.error(ex)
+            # Log the call stack
+            self.logger.exception(ex)
             result = False
 
         self.logger.info(f"[{task_handler.task_id}] Returned {result}")

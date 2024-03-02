@@ -112,6 +112,9 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             shutil.rmtree(self.local_staging_dir)
 
         # Call super to do the rest
+        # Log the exception
+        if exception:
+            self.logger.exception(exception)
         return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
     def _get_default_class(self, protocol_name: str) -> type:
@@ -294,6 +297,9 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     actual_sleep_seconds = remaining_seconds
                 else:
                     actual_sleep_seconds = sleep_seconds
+
+                # Prevent negative sleep times
+                actual_sleep_seconds = max(actual_sleep_seconds, 0)
 
                 self.logger.info(
                     f"No files found. Sleeping for {sleep_seconds} secs."
