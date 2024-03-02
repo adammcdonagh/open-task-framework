@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 
 OTF_LOG_FORMAT = (
-    "%(asctime)s — %(name)s - %(filename)s:%(lineno)s [%(threadName)s] — %(levelname)s"
+    "%(asctime)s — %(levelname)s - %(name)s - %(filename)s:%(lineno)s [%(threadName)s]"
     " — %(message)s"
 )
 LOG_DIRECTORY = (
