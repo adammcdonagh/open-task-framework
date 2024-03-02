@@ -184,7 +184,6 @@ class LocalTransfer(RemoteTransferHandler):
 
             try:
                 shutil.copy(file, final_destination)
-                os.remove(file)
                 if mode:
                     os.chmod(final_destination, int(mode, base=8))
             except Exception as ex:  # pylint: disable=broad-exception-caught
