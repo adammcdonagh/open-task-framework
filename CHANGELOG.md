@@ -3,6 +3,7 @@
 # v24.9.0
 
 - Fix timed out batch and transfer logging to ensure that the log file is closed correctly
+- Reorder log format to bring log level to the front
 
 # v24.8.0
 
