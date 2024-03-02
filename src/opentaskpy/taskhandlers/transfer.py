@@ -71,7 +71,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         if "OTF_STAGING_DIR" in environ:
             self.local_staging_dir = f"{environ['OTF_STAGING_DIR']}/{staging_dir_name}"
         else:
-            self.local_staging_dir = f"/{DEFAULT_STAGING_DIR_BASE}/{staging_dir_name}"
+            self.local_staging_dir = f"{DEFAULT_STAGING_DIR_BASE}/{staging_dir_name}"
 
         self.logger = opentaskpy.otflogging.init_logging(
             "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
@@ -104,12 +104,20 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 self.logger.log(12, f"Closing dest connection for {remote_handler}")
                 remote_handler.tidy()
 
-        # Remove local staging directory if it exists
-        if path.exists(self.local_staging_dir):
+        # Remove local staging directory if it exists (and this isn't a local transfer)
+        if (
+            path.exists(self.local_staging_dir)
+            and self.local_staging_dir != self.source_file_spec["directory"]
+        ):
             self.logger.log(
                 12, f"Removing local staging directory {self.local_staging_dir}"
             )
             shutil.rmtree(self.local_staging_dir)
+        else:
+            self.logger.log(
+                12,
+                "Local staging directory is the same as source directory. Not removing",
+            )
 
         # Call super to do the rest
         # Log the exception
@@ -472,8 +480,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
                     or not self.source_remote_handler.supports_direct_transfer()
                 ):
-                    # Create local staging dir
-                    makedirs(self.local_staging_dir, exist_ok=True)
+                    # Create local staging dir (if this isn't using the local protocol)
+                    if self.source_file_spec["protocol"]["name"] != "local":
+                        makedirs(self.local_staging_dir, exist_ok=True)
+                    else:
+                        self.local_staging_dir = self.source_file_spec["directory"]
                     transfer_result = self.source_remote_handler.pull_files_to_worker(
                         remote_files, self.local_staging_dir
                     )
