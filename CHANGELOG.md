@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.9.0
+
+- Fix timed out batch and transfer logging to ensure that the log file is closed correctly
+
 # v24.8.0
 
 - Update `--noop` to work correctly for batch
