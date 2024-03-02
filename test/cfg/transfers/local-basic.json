@@ -1,0 +1,15 @@
+{
+  "type": "transfer",
+  "source": {
+    "directory": "/tmp/src",
+    "fileRegex": ".*basic.*\\.txt",
+    "protocol": { "name": "local" }
+  },
+  "destination": [
+    {
+      "directory": "/tmp/dest",
+      "protocol": { "name": "local" },
+      "mode": "0644"
+    }
+  ]
+}

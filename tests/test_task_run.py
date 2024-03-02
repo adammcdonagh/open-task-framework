@@ -109,6 +109,17 @@ def test_batch_basic_binary(env_vars, setup_ssh_keys, root_dir):
     assert run_task_run("batch-basic")["returncode"] == 0
 
 
+def test_transfer_local_binary(env_vars, root_dir):
+    # Create a test_basic_local.txt file in /tmp/src
+    fs.create_files([{"/tmp/src/test_basic_local.txt": {"content": "test1234"}}])
+    # Ensure /tmp/dest exists
+    if not os.path.exists("/tmp/dest"):
+        os.makedirs("/tmp/dest")
+
+    # Use the "binary" to trigger the job with command line arguments
+    assert run_task_run("local-basic")["returncode"] == 0
+
+
 def test_batch_execution_invalid_host(env_vars, setup_ssh_keys, root_dir):
     # Use the "binary" to trigger the job with command line arguments
 
