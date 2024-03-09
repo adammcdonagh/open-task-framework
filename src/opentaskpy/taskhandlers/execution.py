@@ -3,7 +3,6 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from importlib import import_module
-from os import environ
 from sys import modules
 from typing import NamedTuple
 
@@ -143,7 +142,9 @@ class Execution(TaskHandler):
             bool: The result of the execution.
         """
         self.logger.info("Running execution")
-        environ["OTF_TASK_ID"] = self.task_id
+
+        # Set the task_id in the spec
+        self.execution_definition["task_id"] = self.task_id
 
         self._set_remote_handlers()
 

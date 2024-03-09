@@ -7,6 +7,7 @@ import glob
 import os
 import re
 import stat
+import time
 from io import StringIO
 from shlex import quote
 
@@ -38,7 +39,7 @@ class SFTPTransfer(RemoteTransferHandler):
             destination spec.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         # Handle default values
@@ -120,7 +121,7 @@ class SFTPTransfer(RemoteTransferHandler):
         try:
             ssh_client = SSHClient()
             ssh_client.set_log_channel(
-                f"{__name__}.{os.environ.get('OTF_TASK_ID')}.paramiko.transport"
+                f"{__name__}.{ self.spec['task_id']}.paramiko.transport"
             )
             ssh_client.set_missing_host_key_policy(AutoAddPolicy())
             self.logger.info(f"Connecting to {client_kwargs['hostname']}")
@@ -141,7 +142,17 @@ class SFTPTransfer(RemoteTransferHandler):
         """
         # Close connection
         if self.sftp_client:
-            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection to")
+            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection")
+            self.sftp_client.get_channel().close()  # type: ignore[union-attr]
+
+            # Wait until the channel is closed
+            time.sleep(0.25)
+            for _ in range(2):
+                if not self.sftp_client.get_channel().closed:  # type: ignore[union-attr]
+                    time.sleep(0.5)
+                else:
+                    break
+
             self.sftp_client.close()
 
     def list_files(

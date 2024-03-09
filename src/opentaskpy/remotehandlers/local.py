@@ -39,7 +39,7 @@ class LocalTransfer(RemoteTransferHandler):
             destination spec.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, self.spec["task_id"], self.TASK_TYPE
         )
 
         # Handle default values
@@ -351,7 +351,7 @@ class LocalExecution(RemoteExecutionHandler):
         )  # Random number used to make sure when we kill stuff, we always kill the right thing
 
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         super().__init__(spec)

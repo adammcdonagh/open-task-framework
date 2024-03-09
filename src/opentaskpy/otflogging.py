@@ -26,9 +26,19 @@ class JSONFormatter(logging.Formatter):
         logging (logging.Formatter): The logging formatter to use
     """
 
+    # Add an init that takes task_id
+    def __init__(self, task_id: str | None):
+        """Initialise the formatter.
+
+        Args:
+            task_id (str | None): The Task ID. Defaults to None.
+        """
+        super().__init__()
+        self.task_id = task_id
+
     def format(self, record):
         """Format the log message as JSON."""
-        task_id = os.environ.get("OTF_TASK_ID")
+        task_id = self.task_id
         run_id = os.environ.get("OTF_RUN_ID")
         message = record.msg
         json_log_record = {
@@ -104,7 +114,7 @@ def init_logging(
         sfh = logging.StreamHandler()
 
         formatter = (
-            JSONFormatter()
+            JSONFormatter(task_id)
             if os.environ.get("OTF_LOG_JSON") and os.environ.get("OTF_LOG_JSON") == "1"
             else formatter
         )

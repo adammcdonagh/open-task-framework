@@ -138,6 +138,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
     def _set_remote_handlers(self) -> None:
         # Based on the transfer definition, determine what to do first
         self.source_file_spec = self.transfer_definition["source"]
+        self.source_file_spec["task_id"] = self.task_id
         source_protocol = self.source_file_spec["protocol"]["name"]
 
         # Create a list of destination file specs
@@ -147,6 +148,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             and isinstance(self.transfer_definition["destination"], list)
         ):
             self.dest_file_specs = self.transfer_definition["destination"]
+
+        # Set the task_id for each file spec
+        if self.dest_file_specs:
+            for dest_file_spec in self.dest_file_specs:
+                dest_file_spec["task_id"] = self.task_id
 
         # Based on the source protocol pick the appropriate remote handler
         if source_protocol in DEFAULT_PROTOCOL_MAP:
@@ -192,7 +198,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             bool: The result of the task run.
         """
         self.logger.info("Running transfer")
-        environ["OTF_TASK_ID"] = self.task_id
 
         self._set_remote_handlers()
 

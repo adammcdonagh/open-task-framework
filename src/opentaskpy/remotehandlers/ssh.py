@@ -47,13 +47,11 @@ class SSHTransfer(RemoteTransferHandler):
             destination spec.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         client = SSHClient()
-        client.set_log_channel(
-            f"{__name__}.{os.environ.get('OTF_TASK_ID')}.paramiko.transport"
-        )
+        client.set_log_channel(f"{__name__}.{ spec['task_id']}.paramiko.transport")
         client.set_missing_host_key_policy(AutoAddPolicy())
         self.ssh_client = client
 
@@ -166,8 +164,20 @@ class SSHTransfer(RemoteTransferHandler):
         """
         # Remove remote scripts
         if self.sftp_connection:
+
             self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection")
+            self.sftp_connection.get_channel().close()  # type: ignore[union-attr]
+
+            # Wait until the channel is closed
+            time.sleep(0.25)
+            for _ in range(2):
+                if not self.sftp_connection.get_channel().closed:  # type: ignore[union-attr]
+                    time.sleep(0.5)
+                else:
+                    break
+
             self.sftp_connection.close()
+
         if self.ssh_client:
             self.logger.info(f"[{self.spec['hostname']}] Closing SSH connection")
             self.ssh_client.close()
@@ -193,7 +203,7 @@ class SSHTransfer(RemoteTransferHandler):
         with stdout as stdout_fh:
             home_dir = stdout_fh.read().decode("UTF-8").strip()
 
-        return f"{home_dir}/otf/{os.environ.get('OTF_TASK_ID')}/"
+        return f"{home_dir}/otf/{ self.spec['task_id']}/"
 
     def list_files(
         self, directory: str | None = None, file_pattern: str | None = None
@@ -537,29 +547,7 @@ class SSHTransfer(RemoteTransferHandler):
                 )
 
             try:
-                # Check if the file already exists, if it does, then we need to delete
-                # it first
-                try:
-                    self.sftp_connection.stat(f"{directory}/{file_name}")
-                    self.logger.info(
-                        f"{self.spec['hostname']} File already exists, deleting"
-                    )
-                    try:
-                        self.sftp_connection.remove(f"{directory}/{file_name}")
-                    except OSError:
-                        # We need to error here, because if cannot remove the existing
-                        # file, then we can't replace it either
-                        self.logger.error(
-                            f"[{self.spec['hostname']}] Unable to remove existing file"
-                            f"{directory}/{file_name}"
-                        )
-                        return 1
-                except FileNotFoundError:
-                    pass
 
-                # self.sftp_connection.posix_rename(
-                #     current_path, f"{directory}/{file_name}"
-                # )
                 # This cannot use the standard rename, because it will fail if the file
                 # is moving across filesystems. This is expected behaviour in the SFTP
                 # protocol
@@ -900,7 +888,7 @@ class SSHExecution(RemoteExecutionHandler):
     def tidy(self) -> None:
         """Tidy up the SSH connection."""
         if self.ssh_client:
-            self.logger.info(f"[{self.remote_host}] Closing SSH connection")
+            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection")
             self.ssh_client.close()
 
     def __init__(self, remote_host: str, spec: dict):
@@ -916,15 +904,13 @@ class SSHExecution(RemoteExecutionHandler):
         )  # Random number used to make sure when we kill stuff, we always kill the right thing
 
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         super().__init__(spec)
 
         client = SSHClient()
-        client.set_log_channel(
-            f"{__name__}.{os.environ.get('OTF_TASK_ID')}.paramiko.transport"
-        )
+        client.set_log_channel(f"{__name__}.{ spec['task_id']}.paramiko.transport")
         client.set_missing_host_key_policy(AutoAddPolicy())
 
         self.ssh_client = client
