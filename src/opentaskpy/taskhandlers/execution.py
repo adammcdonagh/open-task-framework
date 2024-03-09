@@ -111,6 +111,7 @@ class Execution(TaskHandler):
         # For each host, create a remote handler
         self.remote_handlers = []
         remote_protocol = self.execution_definition["protocol"]["name"]
+        self.execution_definition["task_id"] = self.task_id
 
         if remote_protocol in DEFAULT_PROTOCOL_MAP:
             if "hosts" in self.execution_definition:
@@ -142,9 +143,6 @@ class Execution(TaskHandler):
             bool: The result of the execution.
         """
         self.logger.info("Running execution")
-
-        # Set the task_id in the spec
-        self.execution_definition["task_id"] = self.task_id
 
         self._set_remote_handlers()
 

@@ -39,7 +39,7 @@ class LocalTransfer(RemoteTransferHandler):
             destination spec.
         """
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, self.spec["task_id"], self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         # Handle default values
@@ -180,7 +180,7 @@ class LocalTransfer(RemoteTransferHandler):
                 file_name = re.sub(rename_regex, rename_sub, file_name)
                 final_destination = f"{destination_directory}/{file_name}"
 
-            mode = self.spec["mode"] if "mode" in self.spec else None
+            mode = self.spec.get("mode", None)
 
             try:
                 shutil.copy(file, final_destination)
