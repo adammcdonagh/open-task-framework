@@ -66,9 +66,7 @@ class SFTPTransfer(RemoteTransferHandler):
 
         client_kwargs = {
             "hostname": hostname,
-            "port": (
-                self.spec["protocol"]["port"] if "port" in self.spec["protocol"] else 22
-            ),
+            "port": (self.spec["protocol"].get("port", 22)),
             "username": self.spec["protocol"]["credentials"]["username"],
             "timeout": 3,
             "allow_agent": False,
@@ -321,7 +319,7 @@ class SFTPTransfer(RemoteTransferHandler):
                     f"[{self.spec['hostname']}] Renaming file to {file_name}"
                 )
 
-            mode = self.spec["mode"] if "mode" in self.spec else None
+            mode = self.spec.get("mode", None)
 
             try:
                 # While writing, the file should not have it's final name. Replace the

@@ -94,11 +94,7 @@ class EmailTransfer(RemoteTransferHandler):
 
             # Add a plaintext body to the email
             msg.attach(
-                MIMEText(
-                    self.spec["message"]
-                    if "message" in self.spec
-                    else f"Please find attached: {file_list }"
-                )
+                MIMEText(self.spec.get("message", f"Please find attached: {file_list}"))
             )
             # Set the email subject
             if "subject" in self.spec:

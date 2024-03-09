@@ -90,9 +90,7 @@ class SSHTransfer(RemoteTransferHandler):
 
         kwargs = {
             "hostname": hostname,
-            "port": (
-                self.spec["protocol"]["port"] if "port" in self.spec["protocol"] else 22
-            ),
+            "port": (self.spec["protocol"].get("port", 22)),
             "username": self.spec["protocol"]["credentials"]["username"],
             "timeout": 3,
             "allow_agent": False,
@@ -888,7 +886,7 @@ class SSHExecution(RemoteExecutionHandler):
     def tidy(self) -> None:
         """Tidy up the SSH connection."""
         if self.ssh_client:
-            self.logger.info(f"[{self.spec['hostname']}] Closing SFTP connection")
+            self.logger.info(f"[{self.remote_host}] Closing SFTP connection")
             self.ssh_client.close()
 
     def __init__(self, remote_host: str, spec: dict):
@@ -928,9 +926,7 @@ class SSHExecution(RemoteExecutionHandler):
 
         kwargs = {
             "hostname": self.remote_host,
-            "port": (
-                self.spec["protocol"]["port"] if "port" in self.spec["protocol"] else 22
-            ),
+            "port": (self.spec["protocol"].get("port", 22)),
             "username": self.spec["protocol"]["credentials"]["username"],
             "timeout": 5,
         }
