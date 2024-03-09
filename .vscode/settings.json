@@ -23,10 +23,8 @@
   "mypy.enabled": true,
   "ruff.lint.run": "onType",
   "python.testing.pytestEnabled": true,
-  "python.linting.pylintEnabled": true,
   "editor.formatOnType": true,
   "python.testing.pytestArgs": [".", "--keepalive"],
-  "python.linting.pylintCategorySeverity.refactor": "Warning",
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   }
