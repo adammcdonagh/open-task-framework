@@ -3,7 +3,6 @@
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
-from os import environ
 
 import opentaskpy.otflogging
 from opentaskpy.config.loader import ConfigLoader
@@ -206,7 +205,6 @@ class Batch(TaskHandler):
             bool: True if the batch completed successfully, False otherwise.
         """
         self.logger.info("Running batch")
-        environ["OTF_TASK_ID"] = self.task_id
 
         # This is where we could potentially be waiting for a while. So,
         # for each task handler, we should spawn a new thread to run

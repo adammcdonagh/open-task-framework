@@ -138,6 +138,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
     def _set_remote_handlers(self) -> None:
         # Based on the transfer definition, determine what to do first
         self.source_file_spec = self.transfer_definition["source"]
+        self.source_file_spec["task_id"] = self.task_id
         source_protocol = self.source_file_spec["protocol"]["name"]
 
         # Create a list of destination file specs
@@ -147,6 +148,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             and isinstance(self.transfer_definition["destination"], list)
         ):
             self.dest_file_specs = self.transfer_definition["destination"]
+
+        # Set the task_id for each file spec
+        if self.dest_file_specs:
+            for dest_file_spec in self.dest_file_specs:
+                dest_file_spec["task_id"] = self.task_id
 
         # Based on the source protocol pick the appropriate remote handler
         if source_protocol in DEFAULT_PROTOCOL_MAP:
@@ -192,7 +198,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             bool: The result of the task run.
         """
         self.logger.info("Running transfer")
-        environ["OTF_TASK_ID"] = self.task_id
 
         self._set_remote_handlers()
 
@@ -208,16 +213,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     1, "Logwatch init failed", exception=exceptions.LogWatchInitError
                 )
 
-            timeout_seconds = (
-                60
-                if "timeout" not in self.source_file_spec["logWatch"]
-                else self.source_file_spec["logWatch"]["timeout"]
-            )
-            sleep_seconds = (
-                10
-                if "sleepTime" not in self.source_file_spec["logWatch"]
-                else self.source_file_spec["logWatch"]["sleepTime"]
-            )
+            timeout_seconds = self.source_file_spec["logWatch"].get("timeout", 60)
+            sleep_seconds = self.source_file_spec["logWatch"].get("sleepTime", 10)
 
             # Now we start the loop to monitor the log file
             start_time = time.time()
@@ -255,16 +252,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # If filewatching, do that next
         if "fileWatch" in self.source_file_spec:
             # Setup a loop for the filewatch
-            timeout_seconds = (
-                60
-                if "timeout" not in self.source_file_spec["fileWatch"]
-                else self.source_file_spec["fileWatch"]["timeout"]
-            )
-            sleep_seconds = (
-                10
-                if "sleepTime" not in self.source_file_spec["fileWatch"]
-                else self.source_file_spec["fileWatch"]["sleepTime"]
-            )
+            timeout_seconds = self.source_file_spec["fileWatch"].get("timeout", 60)
+            sleep_seconds = self.source_file_spec["fileWatch"].get("sleepTime", 10)
 
             start_time = time.time()
             remote_files: dict = {}
@@ -339,16 +328,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
         # Determine what needs to be transferred
-        source_directory = (
-            self.source_file_spec["directory"]
-            if "directory" in self.source_file_spec
-            else None
-        )
-        source_file_pattern = (
-            self.source_file_spec["fileRegex"]
-            if "fileRegex" in self.source_file_spec
-            else None
-        )
+        source_directory = self.source_file_spec.get("directory", None)
+        source_file_pattern = self.source_file_spec.get("fileRegex", None)
         remote_files = self.source_remote_handler.list_files(
             directory=source_directory, file_pattern=source_file_pattern
         )
@@ -363,15 +344,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 if "size" in self.source_file_spec["conditionals"]:
                     self.logger.log(12, "Checking file size")
-                    min_size = (
-                        self.source_file_spec["conditionals"]["size"]["gt"]
-                        if "gt" in self.source_file_spec["conditionals"]["size"]
-                        else None
+                    min_size = self.source_file_spec["conditionals"]["size"].get(
+                        "gt", None
                     )
-                    max_size = (
-                        self.source_file_spec["conditionals"]["size"]["lt"]
-                        if "lt" in self.source_file_spec["conditionals"]["size"]
-                        else None
+                    max_size = self.source_file_spec["conditionals"]["size"].get(
+                        "lt", None
                     )
 
                     file_size = remote_files[remote_file]["size"]
@@ -391,15 +368,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         meets_condition = False
 
                 if "age" in self.source_file_spec["conditionals"]:
-                    min_age = (
-                        None
-                        if "gt" not in self.source_file_spec["conditionals"]["age"]
-                        else self.source_file_spec["conditionals"]["age"]["gt"]
+                    min_age = self.source_file_spec["conditionals"]["age"].get(
+                        "gt", None
                     )
-                    max_age = (
-                        None
-                        if "lt" not in self.source_file_spec["conditionals"]["age"]
-                        else self.source_file_spec["conditionals"]["age"]["lt"]
+                    max_age = self.source_file_spec["conditionals"]["age"].get(
+                        "lt", None
                     )
 
                     file_modified_time = remote_files[remote_file]["modified_time"]

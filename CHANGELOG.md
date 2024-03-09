@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.10.0
+
+- Update otflogging to be more thread safe when closing log file
+- Fix [#60](https://github.com/adammcdonagh/open-task-framework/issues/60) by ensuring log file creation doesn't rely on OTF_TASK_ID env var, which is different between threads when running a batch task
+
 # v24.9.0
 
 - Fix timed out batch and transfer logging to ensure that the log file is closed correctly

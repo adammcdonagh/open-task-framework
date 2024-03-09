@@ -3,7 +3,6 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from importlib import import_module
-from os import environ
 from sys import modules
 from typing import NamedTuple
 
@@ -112,6 +111,7 @@ class Execution(TaskHandler):
         # For each host, create a remote handler
         self.remote_handlers = []
         remote_protocol = self.execution_definition["protocol"]["name"]
+        self.execution_definition["task_id"] = self.task_id
 
         if remote_protocol in DEFAULT_PROTOCOL_MAP:
             if "hosts" in self.execution_definition:
@@ -143,7 +143,6 @@ class Execution(TaskHandler):
             bool: The result of the execution.
         """
         self.logger.info("Running execution")
-        environ["OTF_TASK_ID"] = self.task_id
 
         self._set_remote_handlers()
 

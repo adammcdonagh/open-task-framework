@@ -1,7 +1,6 @@
 """Email handler to send files via email."""
 
 import glob
-import os
 import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -23,7 +22,7 @@ class EmailTransfer(RemoteTransferHandler):
         self.protocol_vars: dict
 
         self.logger = opentaskpy.otflogging.init_logging(
-            __name__, os.environ.get("OTF_TASK_ID"), self.TASK_TYPE
+            __name__, spec["task_id"], self.TASK_TYPE
         )
 
         super().__init__(spec)
@@ -95,11 +94,7 @@ class EmailTransfer(RemoteTransferHandler):
 
             # Add a plaintext body to the email
             msg.attach(
-                MIMEText(
-                    self.spec["message"]
-                    if "message" in self.spec
-                    else f"Please find attached: {file_list }"
-                )
+                MIMEText(self.spec.get("message", f"Please find attached: {file_list}"))
             )
             # Set the email subject
             if "subject" in self.spec:
