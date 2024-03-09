@@ -253,7 +253,7 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
 
         # Loop through every logger that exists and has a handler of this filename, and
         # call the close method on it. Only the last one should rename the file
-        for logger_ in logging.Logger.manager.loggerDict.values():
+        for logger_ in list(logging.Logger.manager.loggerDict.values()):
             if isinstance(logger_, logging.Logger):
                 for handler in logger_.handlers:
                     if (
