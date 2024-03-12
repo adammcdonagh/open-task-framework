@@ -45,6 +45,22 @@ timeout_batch_definition = {
     ],
 }
 
+timeout_batch_transfer_definition = {
+    "type": "batch",
+    "tasks": [
+        {
+            "order_id": 1,
+            "task_id": "filewatch-300",
+            "timeout": 10,
+        },
+        {
+            "order_id": 2,
+            "task_id": "filewatch-local-300",
+            "timeout": 10,
+        },
+    ],
+}
+
 parallel_batch_definition = {
     "type": "batch",
     "tasks": [
@@ -277,7 +293,7 @@ def test_batch_invalid_task_id(root_dir, setup_ssh_keys, env_vars, clear_logs):
         batch.Batch(None, f"fail-{RANDOM}", fail_batch_definition, config_loader)
 
 
-def test_batch_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
+def test_batch_execution_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
     # Set a log file prefix for easy identification
     # Get a random number
 
@@ -308,6 +324,45 @@ def test_batch_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
         batch_log = f.read()
         assert "Task 1 (sleep-300) has timed out" in batch_log
         assert "Task 2 (sleep-300-local) has timed out" in batch_log
+
+
+def test_batch_transfer_timeout(setup_ssh_keys, env_vars, root_dir, clear_logs):
+    # Set a log file prefix for easy identification
+    # Get a random number
+
+    os.environ["OTF_LOG_RUN_PREFIX"] = f"testbatch_transfer_timeout_{RANDOM}"
+
+    config_loader = ConfigLoader("test/cfg")
+    batch_obj = batch.Batch(
+        None, "transfer_timeout", timeout_batch_transfer_definition, config_loader
+    )
+    assert not batch_obj.run()
+
+    # Validate that a log has been created with the correct status
+    # Use the logging module to get the right log file name
+    log_file_name_batch = opentaskpy.otflogging._define_log_file_name(
+        "transfer_timeout", "B"
+    )
+    log_file_name_task = opentaskpy.otflogging._define_log_file_name(
+        "filewatch-300", "T"
+    )
+    log_file_name_task_local = opentaskpy.otflogging._define_log_file_name(
+        "filewatch-local-300", "T"
+    )
+
+    # Check that both exist, but renamed with _failed
+    assert os.path.exists(log_file_name_batch.replace("_running", "_failed"))
+    assert os.path.exists(log_file_name_task.replace("_running", "_failed"))
+    assert os.path.exists(log_file_name_task_local.replace("_running", "_failed"))
+
+    # Check the contents of the batch log, and verify that it states each task has timed
+    # out (and not that it has errored for another reason)
+    with open(
+        log_file_name_batch.replace("_running", "_failed"), encoding="utf-8"
+    ) as f:
+        batch_log = f.read()
+        assert "Task 1 (filewatch-300) has timed out" in batch_log
+        assert "Task 2 (filewatch-local-300) has timed out" in batch_log
 
 
 def test_batch_parallel_single_success(setup_ssh_keys, env_vars, root_dir, clear_logs):

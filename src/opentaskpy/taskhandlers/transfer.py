@@ -220,6 +220,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             start_time = time.time()
             found_log_entry = False
             while floor(time.time() - start_time) <= timeout_seconds:
+                if kill_event and kill_event.is_set():
+                    return self.return_result(
+                        1, "KILLED DUE TO TIMEOUT FROM PARENT BATCH"
+                    )
+
                 if self.source_remote_handler.do_logwatch() == 0:
                     found_log_entry = True
                     break
@@ -277,6 +282,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             while (
                 not remote_files and floor(time.time() - start_time) <= timeout_seconds
             ):
+                if kill_event and kill_event.is_set():
+                    return self.return_result(
+                        1, "KILLED DUE TO TIMEOUT FROM PARENT BATCH"
+                    )
+
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
