@@ -98,7 +98,6 @@ class Batch(TaskHandler):
             self.tasks[order_id] = task_definition
 
             # Set the timeout for the task
-            timeout = None
             timeout = task.get("timeout", DEFAULT_TASK_TIMEOUT)
 
             # Same for continue on fail
@@ -284,9 +283,15 @@ class Batch(TaskHandler):
                         logged = True
                         batch_task["status"] = "TIMED_OUT"
                         # Send event to the thread to kill it
+                        self.logger.debug(
+                            f"Sending kill event to task {order_id} ({batch_task['task_id']})"
+                        )
                         batch_task["kill_event"].set()
                         # Wait for the thread to return
                         batch_task["thread"].join()
+                        self.logger.debug(
+                            f"Task {order_id} ({batch_task['task_id']}) has been killed"
+                        )
                         batch_task["result"] = False
 
                     # Check whether the thread is actually still running.
@@ -397,7 +402,8 @@ class Batch(TaskHandler):
             while True:
                 if batch_task["executing_thread"] is None:
                     self.logger.log(
-                        12, f"Spawning task handler for {batch_task['task_id']}"
+                        12,
+                        f"Spawning task handler for {batch_task['task_id']} with timeout of {batch_task['timeout']}",
                     )
                     # Spawn the task as it's own thread
                     batch_task["executing_thread"] = [
