@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.11.0
+
+- Fix an issue with batches not killing transfers when the task times out
+
 # v24.10.0
 
 - Update otflogging to be more thread safe when closing log file

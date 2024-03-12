@@ -1,0 +1,14 @@
+{
+  "type": "transfer",
+  "source": {
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": "non-existent-file1234\\.log",
+    "fileWatch": {
+      "timeout": 600,
+      "fileRegex": "non-existent-file1234\\.txt"
+    },
+    "protocol": {
+      "name": "local"
+    }
+  }
+}
