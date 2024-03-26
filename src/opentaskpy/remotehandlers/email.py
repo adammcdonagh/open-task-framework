@@ -57,17 +57,23 @@ class EmailTransfer(RemoteTransferHandler):
         # Remove name
         del self.protocol_vars["name"]
 
-    def push_files_from_worker(self, local_staging_directory: str) -> int:
+    def push_files_from_worker(
+        self, local_staging_directory: str, file_list: dict | None = None
+    ) -> int:
         """Push files from the worker to the email recipients.
 
         Args:
             local_staging_directory (str): The local staging directory.
+            file_list (dict, optional): A dictionary of files to transfer. Defaults to None.
 
         Returns:
             int: The result of the transfer.
         """
         result = 0
-        files = glob.glob(f"{local_staging_directory}/*")
+        if file_list:
+            files = list(file_list.keys())
+        else:
+            files = glob.glob(f"{local_staging_directory}/*")
 
         for email_address in self.spec["recipients"]:
             # Create an email message
@@ -90,11 +96,15 @@ class EmailTransfer(RemoteTransferHandler):
                     result = 1
 
             # Get comma separated list of files
-            file_list = ", ".join([file.split("/")[-1] for file in files])
+            attachment_file_list = ", ".join([file.split("/")[-1] for file in files])
 
             # Add a plaintext body to the email
             msg.attach(
-                MIMEText(self.spec.get("message", f"Please find attached: {file_list}"))
+                MIMEText(
+                    self.spec.get(
+                        "message", f"Please find attached: {attachment_file_list}"
+                    )
+                )
             )
             # Set the email subject
             if "subject" in self.spec:

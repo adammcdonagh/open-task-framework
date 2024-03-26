@@ -246,7 +246,9 @@ class SFTPTransfer(RemoteTransferHandler):
 
         return result
 
-    def push_files_from_worker(self, local_staging_directory: str) -> int:
+    def push_files_from_worker(
+        self, local_staging_directory: str, file_list: dict | None = None
+    ) -> int:
         """Push files from the worker to the destination server.
 
         This function is used when the source files have been downloaded locally and
@@ -256,6 +258,7 @@ class SFTPTransfer(RemoteTransferHandler):
         Args:
             local_staging_directory (str): The local staging directory to upload the
             files from.
+            file_list (dict, optional): A list of files to upload. Defaults to None.
 
         Returns:
             int: 0 if successful, 1 if not.
@@ -303,8 +306,12 @@ class SFTPTransfer(RemoteTransferHandler):
 
         # Transfer the files
         result = 0
-        # Get list of files in local_staging_directory
-        files = glob.glob(f"{local_staging_directory}/*")
+
+        if file_list:
+            files = list(file_list.keys())
+        else:
+            # Get list of files in local_staging_directory
+            files = glob.glob(f"{local_staging_directory}/*")
         for file in files:
             self.logger.info(f"[LOCALHOST] Transferring file via SFTP: {file}")
             file_name = os.path.basename(file)

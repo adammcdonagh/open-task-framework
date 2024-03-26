@@ -3,6 +3,7 @@
 This module contains the local handlers for transfers.
 """
 
+import glob
 import logging
 import os
 import random
@@ -120,7 +121,9 @@ class LocalTransfer(RemoteTransferHandler):
         """
         return 0
 
-    def push_files_from_worker(self, local_staging_directory: str, files: list) -> int:
+    def push_files_from_worker(
+        self, local_staging_directory: str, file_list: dict | None = None
+    ) -> int:
         """Push files from the worker to another local directory.
 
         Moves files from a local staging directory, to another local destination folder.
@@ -128,7 +131,7 @@ class LocalTransfer(RemoteTransferHandler):
         Args:
             local_staging_directory (str): The local staging directory to upload the
             files from.
-            files (list): A list of files to upload.
+            file_list (dict, optional): A dictionary of files to transfer. Defaults to
 
         Returns:
             int: 0 if successful, 1 if not.
@@ -163,6 +166,11 @@ class LocalTransfer(RemoteTransferHandler):
 
         # Transfer the files
         result = 0
+
+        if file_list:
+            files = list(file_list.keys())
+        else:
+            files = glob.glob(f"{local_staging_directory}/*")
 
         for file in files:
             file_name = os.path.basename(file)
