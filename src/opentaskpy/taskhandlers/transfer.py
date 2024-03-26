@@ -584,6 +584,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
 
                     # For local transfers, the handler needs to know the source spec
+                    # or the dest remote handler is local
                     if self.source_file_spec["protocol"]["name"] != "local":
                         transfer_result = (
                             associated_dest_remote_handler.push_files_from_worker(
@@ -593,7 +594,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     else:
                         transfer_result = (
                             associated_dest_remote_handler.push_files_from_worker(
-                                self.local_staging_dir, remote_files
+                                self.local_staging_dir, file_list=remote_files
                             )
                         )
 
@@ -693,7 +694,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
 
         # Load the public key
-        gpg.import_keys(public_key)
+        import_result = gpg.import_keys(public_key)
+        # Check the key imported OK
+        if not import_result.count or import_result.count == 0:
+            self.logger.error("Error importing public key")
+            raise exceptions.EncryptionError("Error importing public key")
 
         # Get the fingerprint of the key we just imported
         key_fingerprint = gpg.list_keys()[0]["fingerprint"]
@@ -752,7 +757,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
 
         # Load the private key
-        gpg.import_keys(private_key)
+        import_result = gpg.import_keys(private_key)
+        # Check the key imported OK
+        if not import_result.count or import_result.count == 0:
+            self.logger.error("Error importing private key")
+            raise exceptions.EncryptionError("Error importing private key")
 
         decrypted_files = {}
         for file in files:
