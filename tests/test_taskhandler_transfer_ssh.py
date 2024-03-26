@@ -8,7 +8,7 @@ from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.taskhandlers import transfer
-from tests.fixtures.ssh_clients import *  # noqa: F403
+from tests.fixtures.ssh_clients import *  # noqa: F403, F401
 
 os.environ["OTF_NO_LOG"] = "1"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -593,3 +593,25 @@ def test_scp_proxy(root_dir, setup_ssh_keys):
 
     # Ensure that local files are tidied up
     assert not os.path.exists(local_staging_dir)
+
+
+def test_invalid_ssh_decryption_direct():
+    # Create a transfer object
+    scp_task_definition_copy = deepcopy(scp_task_definition)
+    scp_task_definition_copy["source"]["encryption"] = {"decrypt": True}
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_task_definition_copy)
+
+    # Expect a DecryptionNotSupportedError exception
+    with pytest.raises(exceptions.DecryptionNotSupportedError):
+        transfer_obj.run()
+
+
+def test_invalid_ssh_encryption_direct():
+    # Create a transfer object
+    scp_task_definition_copy = deepcopy(scp_task_definition)
+    scp_task_definition_copy["destination"][0]["encryption"] = {"encrypt": True}
+    transfer_obj = transfer.Transfer(None, "scp-basic", scp_task_definition_copy)
+
+    # Expect a EncryptionNotSupportedError exception
+    with pytest.raises(exceptions.EncryptionNotSupportedError):
+        transfer_obj.run()
