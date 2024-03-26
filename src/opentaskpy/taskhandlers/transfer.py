@@ -10,6 +10,8 @@ from os import environ, getpid, makedirs, path
 from sys import modules
 from typing import NamedTuple
 
+import gnupg
+
 import opentaskpy.otflogging
 from opentaskpy import exceptions
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
@@ -430,6 +432,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         for file in remote_files:
             self.logger.info(f" * {file}")
 
+        can_do_encryption = False
         # If there's a destination file spec, then we need to transfer the files
         if self.dest_file_specs:
             # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
@@ -471,6 +474,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     transfer_result = self.source_remote_handler.pull_files_to_worker(
                         remote_files, self.local_staging_dir
                     )
+                    # Since files are being pulled locally, encryption/decryption of the files is possible
+                    can_do_encryption = True
                     if transfer_result != 0:
                         return self.return_result(
                             1,
@@ -478,8 +483,64 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                             exception=exceptions.RemoteTransferError,
                         )
 
+            # Before doing any file movements, check to see if file decryption or encryption is
+            # required on the source or destination. For any unsupported transferTypes we need to fail here first
+
+            # Supported options are:
+            # decrypting when:
+            # transferType is proxy, or the protocols are different (in which case it's local anyway)
+            # encrypting when:
+            # transferType is proxy, or the protocols are different (in which case it's local anyway)
+
+            # Check if decryption is requested
+            decryption_requested = (
+                "encryption" in self.source_file_spec
+                and "decrypt" in self.source_file_spec["encryption"]
+                and self.source_file_spec["encryption"]["decrypt"]
+            )
+
+            if decryption_requested and not can_do_encryption:
+                return self.return_result(
+                    1,
+                    "Decryption requested but not supported for this transfer",
+                    exception=exceptions.DecryptionNotSupportedError,
+                )
+
+            # If it's requested and decryption is possible, then we need to decrypt the files
+            if decryption_requested and can_do_encryption:
+                self.logger.info("Decrypting files")
+
+                # Get the private key from the spec
+                private_key = self.source_file_spec["encryption"]["private_key"]
+
+                # Loop through each file and decrypt it using gnupg
+                remote_files = self.decrypt_files(remote_files, private_key)
+
             i = 0
             for dest_file_spec in self.dest_file_specs:
+                encryption_requested = (
+                    "encryption" in dest_file_spec
+                    and "encrypt" in dest_file_spec["encryption"]
+                    and dest_file_spec["encryption"]["encrypt"]
+                )
+                # Check if encryption is requested
+                if encryption_requested and not can_do_encryption:
+                    return self.return_result(
+                        1,
+                        "Encryption requested but not supported for this transfer",
+                        exception=exceptions.EncryptionNotSupportedError,
+                    )
+
+                # If encryption is requested and its possible, then encrypt the file(s)
+                if encryption_requested and can_do_encryption:
+                    self.logger.info("Encrypting files")
+
+                    # Get the public key from the spec
+                    public_key = dest_file_spec["encryption"]["public_key"]
+
+                    # Loop through each file and encrypt it using gnupg
+                    remote_files = self.encrypt_files(remote_files, public_key)
+
                 # Handle the push transfers first
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
                 # If this is a default push transfer, and both source and dest protocols are the same
@@ -522,11 +583,19 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         " requested"
                     )
 
-                    transfer_result = (
-                        associated_dest_remote_handler.push_files_from_worker(
-                            self.local_staging_dir
+                    # For local transfers, the handler needs to know the source spec
+                    if self.source_file_spec["protocol"]["name"] != "local":
+                        transfer_result = (
+                            associated_dest_remote_handler.push_files_from_worker(
+                                self.local_staging_dir
+                            )
                         )
-                    )
+                    else:
+                        transfer_result = (
+                            associated_dest_remote_handler.push_files_from_worker(
+                                self.local_staging_dir, remote_files
+                            )
+                        )
 
                     if transfer_result != 0:
                         return self.return_result(
@@ -602,3 +671,122 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
         return self.return_result(0)
+
+    def encrypt_files(self, files: dict, public_key: str) -> dict:
+        """Encrypt files using GPG.
+
+        Args:
+            files (dict): Dictionary of files to encrypt.
+            public_key (str): Public key to use for encryption.
+
+        Returns:
+            dict: Dictionary of encrypted files.
+        """
+        # Use the local staging dir (or the path where the files live) as the gnupg home
+        # Get the dirname of the first file in the list
+        tmpdir = path.dirname(list(files.keys())[0])
+
+        # Make the gnupg home directory
+        makedirs(f"{tmpdir}/.gnupg", exist_ok=True)
+
+        # Set up gnupg
+        gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
+
+        # Load the public key
+        gpg.import_keys(public_key)
+
+        # Get the fingerprint of the key we just imported
+        key_fingerprint = gpg.list_keys()[0]["fingerprint"]
+
+        encrypted_files = {}
+        for file in files:
+
+            # If the filename contains .gpg on the end, then the output file will be just that but without the extension,
+            # if it doesn't contain .gpg, then we'll add .gpg to the end
+            output_filename = f"{file}.gpg"
+
+            with open(file, "rb") as input_file:
+                encryption_data = gpg.encrypt_file(
+                    input_file,
+                    recipients=key_fingerprint,
+                    output=output_filename,
+                    always_trust=True,
+                )
+
+                # Check whether the encryption worked
+                if not encryption_data.ok or encryption_data.status != "encryption ok":
+                    self.logger.error(
+                        f"Error encrypting file {file}: {encryption_data.status}"
+                    )
+                    # Print the stderr line too
+                    self.logger.error(f"GPG STDERR: {encryption_data.stderr}")
+                    raise exceptions.EncryptionError(
+                        f"Error encrypting file {file}: {encryption_data.status}"
+                    )
+
+            encrypted_files[output_filename] = files[file]
+
+        # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
+        shutil.rmtree(f"{tmpdir}/.gnupg")
+
+        return encrypted_files
+
+    def decrypt_files(self, files: dict, private_key: str) -> dict:
+        """Decrypt files using GPG.
+
+        Args:
+            files (dict): Dictionary of files to decrypt.
+            private_key (str): Private key to use for decryption.
+
+        Returns:
+            dict: Dictionary of decrypted files.
+        """
+        # Use the local staging dir (or the path where the files live) as the gnupg home
+        # Get the dirname of the first file in the list
+        tmpdir = path.dirname(list(files.keys())[0])
+
+        # Make the gnupg home directory
+        makedirs(f"{tmpdir}/.gnupg", exist_ok=True)
+
+        # Set up gnupg
+        gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
+
+        # Load the private key
+        gpg.import_keys(private_key)
+
+        decrypted_files = {}
+        for file in files:
+
+            # If the filename contains .gpg on the end, then the output file will be just that but without the extension,
+            # if it doesn't contain .gpg, then we'll add .decrypted to the end
+            output_filename = (
+                file.replace(".gpg", "") if ".gpg" in file else f"{file}.decrypted"
+            )
+
+            with open(file, "rb") as input_file:
+                decryption_data = gpg.decrypt_file(
+                    input_file,
+                    output=output_filename,
+                )
+
+                # Check whether the decryption worked
+                if not decryption_data.ok or decryption_data.returncode != 0:
+                    self.logger.error(
+                        f"Error decrypting file {file}: {decryption_data.status}"
+                    )
+                    # Print the stderr line too
+                    self.logger.error(f"GPG STDERR: {decryption_data.stderr}")
+
+                    # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
+                    shutil.rmtree(f"{tmpdir}/.gnupg")
+
+                    raise exceptions.DecryptionError(
+                        f"Error decrypting file {file}: {decryption_data.status}"
+                    )
+
+            decrypted_files[output_filename] = files[file]
+
+        # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
+        shutil.rmtree(f"{tmpdir}/.gnupg")
+
+        return decrypted_files

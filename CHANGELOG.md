@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.13.0
+
+- Add PGP encryption to transfers - N.B. This is only possible where the files are being pulled onto the worker first, and then transferred to the destination. This is because the PGP encryption is done on the worker, and not on the source machine.
+- Fixed an issue where files pushed from local worker would transfer more than just the files that matched the regex if they lived in the source directory
+
 # v24.11.0
 
 - Fix an issue with batches not killing transfers when the task times out

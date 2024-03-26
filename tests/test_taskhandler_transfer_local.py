@@ -1,13 +1,16 @@
 # pylint: skip-file
+import hashlib
 import os
 import random
 from copy import deepcopy
 
+import gnupg
 import pytest
 from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.taskhandlers import transfer
+from tests.fixtures.pgp import *  # noqa: F403
 from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_NO_LOG"] = "1"
@@ -571,3 +574,128 @@ def test_local_multi_protocol(
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt")
     assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/test.taskhandler.txt")
     assert os.path.exists(f"{local_test_dir}/dest/test.taskhandler.txt")
+
+
+def test_local_decrypt_incoming_file(
+    tmpdir, root_dir, setup_local_test_dir, private_key, public_key
+):
+
+    # Create a test file
+    fs.create_files(
+        [{f"{tmpdir}/src/test.decryption.txt": {"content": "test12345678"}}]
+    )
+
+    # Checksum the file
+    with open(f"{tmpdir}/src/test.decryption.txt", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(public_key)
+
+    # Encrypt the file
+    with open(f"{tmpdir}/src/test.decryption.txt", "rb") as f:
+        status = gpg.encrypt_file(
+            f,
+            always_trust=True,
+            recipients="test@example.com",
+            output=f"{tmpdir}/test.decryption.txt.gpg",
+        )
+
+        # Check status returns a 0 exit code
+        assert status.ok
+
+    # Check the output file exists
+    assert os.path.exists(f"{tmpdir}/test.decryption.txt.gpg")
+
+    # Now we have an encrypted file (we can pretend we are collecting from elsewhere),
+    # run a transfer to copy the file locally, and decrypt it
+    local_task_definition_copy = deepcopy(local_task_definition)
+    local_task_definition_copy["source"]["directory"] = f"{tmpdir}"
+    local_task_definition_copy["source"]["fileRegex"] = "test.decryption.txt.gpg"
+    local_task_definition_copy["source"]["encryption"] = {
+        "decrypt": True,
+        "private_key": private_key,
+    }
+
+    # Override the destination
+    local_task_definition_copy["destination"] = [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ]
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "local-decrypt", local_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(f"{local_test_dir}/dest/test.decryption.txt")
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(f"{local_test_dir}/dest/test.decryption.txt", "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
+
+
+def test_local_encrypt_outgoing_file(
+    tmpdir, root_dir, setup_local_test_dir, private_key, public_key
+):
+
+    # Create a test file
+    fs.create_files(
+        [{f"{tmpdir}/src/test.encryption.txt": {"content": "test12345678"}}]
+    )
+
+    # Checksum the file
+    with open(f"{tmpdir}/src/test.encryption.txt", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(private_key)
+
+    # run a transfer to copy the file locally, and encrypt it
+    local_task_definition_copy = deepcopy(local_task_definition)
+    local_task_definition_copy["source"]["directory"] = f"{tmpdir}/src"
+    local_task_definition_copy["source"]["fileRegex"] = "test.encryption.txt"
+
+    # Override the destination
+    local_task_definition_copy["destination"] = [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+            "encryption": {
+                "encrypt": True,
+                "public_key": public_key,
+            },
+        },
+    ]
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "local-encrypt", local_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(f"{local_test_dir}/dest/test.encryption.txt.gpg")
+
+    # Now we need to decrypt this file to check that it matches the original content,
+    # and can actually be decrypted again
+    decryption_data = gpg.decrypt_file(
+        open(f"{local_test_dir}/dest/test.encryption.txt.gpg", "rb"),
+        output=f"{local_test_dir}/dest/test.encryption.txt",
+    )
+
+    assert decryption_data.ok
+    assert decryption_data.returncode == 0
+
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(f"{local_test_dir}/dest/test.encryption.txt", "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
