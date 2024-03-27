@@ -111,13 +111,12 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             path.exists(self.local_staging_dir)
             and self.local_staging_dir != self.source_file_spec["directory"]
         ):
-            self.logger.log(
-                12, f"Removing local staging directory {self.local_staging_dir}"
+            self.logger.info(
+                f"Removing local staging directory {self.local_staging_dir}"
             )
             shutil.rmtree(self.local_staging_dir)
         else:
-            self.logger.log(
-                12,
+            self.logger.info(
                 "Local staging directory is the same as source directory. Not removing",
             )
 
@@ -645,7 +644,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 i += 1
 
-            if different_protocols:
+            if (
+                different_protocols
+                and self.local_staging_dir != self.source_file_spec["directory"]
+            ):
                 self.logger.debug("Removing local staging directory")
                 shutil.rmtree(self.local_staging_dir)
         else:

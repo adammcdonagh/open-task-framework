@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.13.1
+
+- Fix an issue where local transfers were still deleting the source directory when tidying up the staging area, causing post copy actions to fail too
+
 # v24.13.0
 
 - Add PGP encryption to transfers - N.B. This is only possible where the files are being pulled onto the worker first, and then transferred to the destination. This is because the PGP encryption is done on the worker, and not on the source machine.
