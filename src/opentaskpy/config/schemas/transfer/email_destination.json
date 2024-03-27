@@ -13,6 +13,9 @@
     "subject": {
       "type": "string"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "protocol": {
       "$ref": "http://localhost/transfer/email/protocol.json"
     }

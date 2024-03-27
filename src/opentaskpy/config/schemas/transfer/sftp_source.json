@@ -24,6 +24,9 @@
     "postCopyAction": {
       "$ref": "http://localhost/transfer/sftp_source/postCopyAction.json"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "protocol": {
       "$ref": "http://localhost/transfer/sftp_source/protocol.json"
     }

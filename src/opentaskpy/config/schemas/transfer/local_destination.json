@@ -22,6 +22,9 @@
     "flags": {
       "$ref": "http://localhost/transfer/local_destination/flags.json"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "transferType": {
       "type": "string",
       "enum": ["push", "pull", "proxy"]

@@ -22,14 +22,7 @@
       "$ref": "http://localhost/transfer/local_source/postCopyAction.json"
     },
     "encryption": {
-      "properties": {
-        "decrypt": {
-          "type": "boolean"
-        },
-        "private_key": {
-          "type": "string"
-        }
-      }
+      "$ref": "http://localhost/transfer/encryption.json"
     },
     "protocol": {
       "$ref": "http://localhost/transfer/local_source/protocol.json"

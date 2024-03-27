@@ -24,6 +24,9 @@
     "error": {
       "type": "boolean"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "postCopyAction": {
       "$ref": "http://localhost/transfer/ssh_source/postCopyAction.json"
     },
