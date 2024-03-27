@@ -7,7 +7,7 @@ from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.taskhandlers import transfer
-from tests.fixtures.ssh_clients import *  # noqa: F403
+from tests.fixtures.ssh_clients import *  # noqa: F403, F401
 
 os.environ["OTF_NO_LOG"] = "1"
 os.environ["OTF_LOG_LEVEL"] = "DEBUG"
@@ -341,6 +341,22 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     # Now run again, but ask for the dir to be created
 
     sftp_task_definition["destination"][0]["createDirectoryIfNotExists"] = True
+
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+    # Check the destination file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
+    )
+
+    # Now run again, but set supportsPosixRename to false in the protocol definition
+    sftp_task_definition["destination"][0]["protocol"]["supportsPosixRename"] = False
+
+    # Delete the destination file
+    os.remove(f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt")
 
     transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
 
