@@ -1,5 +1,16 @@
 # Changelog
 
+# v24.13.1
+
+- Fix an issue where local transfers were still deleting the source directory when tidying up the staging area, causing post copy actions to fail too
+
+# v24.13.0
+
+- Add PGP encryption to transfers - N.B. This is only possible where the files are being pulled onto the worker first, and then transferred to the destination. This is because the PGP encryption is done on the worker, and not on the source machine.
+- Fixed an issue where files pushed from local worker would transfer more than just the files that matched the regex if they lived in the source directory
+- BREAKING: Due to the above. `push_files_from_worker` now requires a file list to be passed when the source protocol is `local`. This is because the worker doesn't have the same context as the source machine, so it doesn't know what files are in the source directory. This is a breaking change, but it's necessary to ensure that the worker only pushes the files that are required.
+- Added new option to SFTP destination in case `posix-rename` feature is not supported by the server. This prevents files being uploaded with a `.partial` extension, and instead uploads directly as the final filename. This is done by setting `supportsPosixRename` to `false` in the destination protocol definition.
+
 # v24.11.0
 
 - Fix an issue with batches not killing transfers when the task times out

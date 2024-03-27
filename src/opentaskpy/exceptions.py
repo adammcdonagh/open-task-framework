@@ -97,3 +97,35 @@ class SSHClientError(Exception):
     def __init__(self, message):
         """Call the base class constructor."""
         super().__init__(message)
+
+
+class DecryptionNotSupportedError(Exception):
+    """Decryption not supported error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)
+
+
+class EncryptionNotSupportedError(Exception):
+    """Encryption not supported error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)
+
+
+class EncryptionError(Exception):
+    """Generic encryption error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)
+
+
+class DecryptionError(Exception):
+    """Generic decryption error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)

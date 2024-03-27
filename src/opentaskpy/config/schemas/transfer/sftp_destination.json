@@ -22,6 +22,9 @@
     "flags": {
       "$ref": "http://localhost/transfer/sftp_destination/flags.json"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "protocol": {
       "$ref": "http://localhost/transfer/sftp_destination/protocol.json"
     }

@@ -21,6 +21,9 @@
     "postCopyAction": {
       "$ref": "http://localhost/transfer/local_source/postCopyAction.json"
     },
+    "encryption": {
+      "$ref": "http://localhost/transfer/encryption.json"
+    },
     "protocol": {
       "$ref": "http://localhost/transfer/local_source/protocol.json"
     }
