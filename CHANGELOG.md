@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.14.0
+
+- Replace existing `now` Jinja function with `utc_now`. This always returns the UTC time. `now` will always return the localtime of the machine running the task instead.
+
 # v24.13.1
 
 - Fix an issue where local transfers were still deleting the source directory when tidying up the staging area, causing post copy actions to fail too

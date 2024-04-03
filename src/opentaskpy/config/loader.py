@@ -305,7 +305,8 @@ class ConfigLoader:
         template = self.global_variables
 
         variables_template = self.template_env.from_string(json.dumps(template))
-        variables_template.globals["now"] = datetime.datetime.utcnow
+        variables_template.globals["utc_now"] = datetime.datetime.utcnow
+        variables_template.globals["now"] = datetime.datetime.now().astimezone
 
         # Define lookup function
         variables_template.globals["lookup"] = self.template_lookup

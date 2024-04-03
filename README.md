@@ -258,6 +258,8 @@ Usage:
 "fileRegex": "somefile.*{{ YYYY }}\\.txt"
 ```
 
+`now` is added by OTF, it will return a `datetime` object aligned to whatever timezone the worker is running. If you need the UTC time, then you can use `utc_now` instead.
+
 # Task Definitions
 
 Task definitions are validated using the JSON Schemas defined within `src/opentaskpy/config/schemas/`. These are split up to make them more readable. The top level schema for each task type is defined within the `schemas.py` file, one level above.

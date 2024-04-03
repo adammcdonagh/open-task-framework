@@ -2,9 +2,10 @@
 import json
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 from jinja2.exceptions import UndefinedError
 from pytest_shell import fs
 
@@ -342,9 +343,11 @@ def test_default_date_variable_resolution(tmpdir):
         "YYYY": "{{ now().strftime('%Y') }}",
         "MM": "{{ now().strftime('%m') }}",
         "DD": "{{ now().strftime('%d') }}",
+        "UTC_DD": "{{ utc_now().strftime('%d') }}",
         "MONTH_SHORT": "{{ now().strftime('%b') }}",
         "DAY_SHORT": "{{ now().strftime('%a') }}",
         "PREV_DD": "{{ (now()|delta_days(-1)).strftime('%d') }}",
+        "PREV_UTC_DD": "{{ (utc_now()|delta_days(-1)).strftime('%d') }}",
         "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
         "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
     }
@@ -363,6 +366,9 @@ def test_default_date_variable_resolution(tmpdir):
     assert config_loader.get_global_variables()["YYYY"] == datetime.now().strftime("%Y")
     assert config_loader.get_global_variables()["MM"] == datetime.now().strftime("%m")
     assert config_loader.get_global_variables()["DD"] == datetime.now().strftime("%d")
+    assert config_loader.get_global_variables()["UTC_DD"] == datetime.now(
+        tz=UTC
+    ).strftime("%d")
     assert config_loader.get_global_variables()[
         "MONTH_SHORT"
     ] == datetime.now().strftime("%b")
@@ -375,6 +381,76 @@ def test_default_date_variable_resolution(tmpdir):
     assert config_loader.get_global_variables()["PREV_YYYY"] == yesterday.strftime("%Y")
     assert config_loader.get_global_variables()["PREV_MM"] == yesterday.strftime("%m")
     assert config_loader.get_global_variables()["PREV_DD"] == yesterday.strftime("%d")
+
+    # Play around with the current time. Set it to a GMT time before the clocks change
+    # Change the time to before BST starts
+    initial_datetime = datetime(
+        year=2024,
+        month=3,
+        day=31,
+        hour=0,
+        minute=59,
+        second=59,
+    )
+
+    # Set an environment variable so that the current timezone is set to GMT0BST
+    os.environ["TZ"] = "GMT0BST,M3.5.0/1,M10.5.0/2"
+
+    with freeze_time(initial_datetime) as frozen_datetime:
+        assert frozen_datetime() == initial_datetime
+
+        config_loader = ConfigLoader(tmpdir)
+        # At this point, "yesterday" should be 30th March 2024
+        assert config_loader.get_global_variables()["PREV_DD"] == "30"
+
+        frozen_datetime.tick()
+        # Now we should be in BST, the previous day should still be 30th March 2024
+        config_loader = ConfigLoader(tmpdir)
+        assert config_loader.get_global_variables()["PREV_DD"] == "30"
+
+        # Now jump to the next day at 00:59:59 again
+        frozen_datetime.tick(delta=timedelta(seconds=-1, days=1))
+        # This should now return 31st March 2024
+        config_loader = ConfigLoader(tmpdir)
+        assert config_loader.get_global_variables()["PREV_DD"] == "31"
+
+        # Tick and check that the date is still correct
+        frozen_datetime.tick()
+        config_loader = ConfigLoader(tmpdir)
+        assert config_loader.get_global_variables()["PREV_DD"] == "31"
+
+    # Replicate the above test but with PREV_UTC_DD instead
+    initial_datetime = datetime(
+        year=2024,
+        month=3,
+        day=31,
+        hour=0,
+        minute=59,
+        second=59,
+    )
+
+    with freeze_time(initial_datetime) as frozen_datetime:
+        assert frozen_datetime() == initial_datetime
+
+        config_loader = ConfigLoader(tmpdir)
+        # At this point, "yesterday" should be 30th March 2024
+        assert config_loader.get_global_variables()["PREV_UTC_DD"] == "30"
+
+        frozen_datetime.tick()
+        # Now we should be in BST, but we're looking at UTC the previous day should still be 30th March 2024
+        config_loader = ConfigLoader(tmpdir)
+        assert config_loader.get_global_variables()["PREV_UTC_DD"] == "30"
+
+        # Now jump to the next day at 00:59:59 again
+        frozen_datetime.tick(delta=timedelta(seconds=-1, days=1))
+        # This should now return 31st March 2024
+        config_loader = ConfigLoader(tmpdir)
+        assert config_loader.get_global_variables()["PREV_UTC_DD"] == "31"
+
+        # Tick and check that the date is still correct
+        frozen_datetime.tick()
+        config_loader = ConfigLoader(tmpdir)
+        assert config_loader.get_global_variables()["PREV_UTC_DD"] == "31"
 
 
 def test_override_date_variable_resolution(tmpdir):
