@@ -54,6 +54,7 @@ dev = [
     "ruff",
     "coverage",
     "pytest-cov",
+    "freezegun",
 ]
 
 [project.urls]
