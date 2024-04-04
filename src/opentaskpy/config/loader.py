@@ -246,7 +246,8 @@ class ConfigLoader:
 
                 template = self.template_env.from_string(json_content)
 
-            template.globals["now"] = datetime.datetime.utcnow
+            template.globals["utc_now"] = self.now_utc
+            template.globals["now"] = self.now_localtime
 
             # Define lookup function
             template.globals["lookup"] = self.template_lookup
@@ -295,6 +296,14 @@ class ConfigLoader:
 
         self.global_variables = global_variables
 
+    def now_localtime(self) -> datetime.datetime:
+        """Return the current time in the local timezone."""
+        return datetime.datetime.now().astimezone()
+
+    def now_utc(self) -> datetime.datetime:
+        """Return the current time in UTC."""
+        return datetime.datetime.utcnow()
+
     # RESOLVE ANY VARIABLES THAT USE OTHER VARIABLES IN THE VARIABLE FILES
     def _resolve_templated_variables(self) -> None:
         # We need to evaluate the variables themselves, in case there's any recursion
@@ -305,7 +314,8 @@ class ConfigLoader:
         template = self.global_variables
 
         variables_template = self.template_env.from_string(json.dumps(template))
-        variables_template.globals["now"] = datetime.datetime.utcnow
+        variables_template.globals["utc_now"] = self.now_utc
+        variables_template.globals["now"] = self.now_localtime
 
         # Define lookup function
         variables_template.globals["lookup"] = self.template_lookup

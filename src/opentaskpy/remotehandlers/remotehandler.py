@@ -58,7 +58,9 @@ class RemoteTransferHandler(RemoteHandler):
         """
 
     @abstractmethod
-    def push_files_from_worker(self, local_staging_directory: str) -> int:
+    def push_files_from_worker(
+        self, local_staging_directory: str, file_list: dict | None = None
+    ) -> int:
         """Push files from the worker to the remote location.
 
         This is used when files have been either generated on the worker, or copied
@@ -66,6 +68,7 @@ class RemoteTransferHandler(RemoteHandler):
 
         Args:
             local_staging_directory (str): The local staging directory.
+            file_list (dict, optional): The list of files to transfer. Defaults to None.
 
         Returns:
             int: The result of the transfer. 0 for success, 1 for failure.
