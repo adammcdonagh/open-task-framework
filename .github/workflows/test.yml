@@ -108,7 +108,7 @@ jobs:
       - name: Run ruff
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual ruff --all-files --show-diff-on-failure
+          pre-commit run ruff --all-files --show-diff-on-failure
 
   lint-black:
     name: black
@@ -143,7 +143,7 @@ jobs:
       - name: Run black checks
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual black --all-files --show-diff-on-failure
+          pre-commit run black --all-files --show-diff-on-failure
 
   pylint:
     name: Check pylint
@@ -182,7 +182,7 @@ jobs:
         run: |
           . venv/bin/activate
           pip install -U .
-          pre-commit run --hook-stage manual pylint --all-files
+          pre-commit run pylint --all-files
 
   mypy:
     name: Check mypy
@@ -260,7 +260,7 @@ jobs:
       - name: Run yamllint
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual yamllint --all-files --show-diff-on-failure
+          pre-commit run yamllint --all-files --show-diff-on-failure
 
       - name: Register check-json problem matcher
         run: |
@@ -268,7 +268,7 @@ jobs:
       - name: Run check-json5
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual check-json5 --all-files
+          pre-commit run check-json5 --all-files
 
       - name: Register check executables problem matcher
         run: |
@@ -276,7 +276,7 @@ jobs:
       - name: Run executables check
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual check-executables-have-shebangs --all-files
+          pre-commit run check-executables-have-shebangs --all-files
 
       - name: Register codespell problem matcher
         run: |
@@ -284,17 +284,17 @@ jobs:
       - name: Run codespell
         run: |
           . venv/bin/activate
-          pre-commit run --show-diff-on-failure --hook-stage manual codespell --all-files
+          pre-commit run --show-diff-on-failure codespell --all-files
 
       - name: Run prettier
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual prettier --all-files
+          pre-commit run prettier --all-files
 
       - name: Run bandit (fully)
         run: |
           . venv/bin/activate
-          pre-commit run --hook-stage manual bandit --all-files --show-diff-on-failure
+          pre-commit run bandit --all-files --show-diff-on-failure
 
   test:
     name: test

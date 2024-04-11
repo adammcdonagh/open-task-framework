@@ -42,9 +42,6 @@
         "python.testing.unittestEnabled": false,
         "python.testing.pytestArgs": ["."],
         "python.analysis.typeCheckingMode": "off",
-        "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
-        "http.systemCertificates": true,
-        "python.formatting.provider": "black",
         "files.associations": {
           "*.json": "jsonc"
         },
@@ -60,8 +57,12 @@
         },
         "python.testing.pytestEnabled": true,
         "editor.formatOnType": true,
+        "ruff.lint.enable": true,
         "ruff.lint.run": "onType",
-        "mypy.enabled": true
+        "mypy.enabled": true,
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        }
       }
     }
   }
