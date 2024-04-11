@@ -13,7 +13,6 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
       - id: check-executables-have-shebangs
-        stages: [manual]
       - id: no-commit-to-branch
         args:
           - --branch=dev
@@ -36,7 +35,6 @@ repos:
     rev: 24.1.1
     hooks:
       - id: black
-        stages: [manual]
         args:
           - --check
   - repo: https://github.com/codespell-project/codespell
