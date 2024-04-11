@@ -1,4 +1,5 @@
 # pylint: skip-file
+# ruff: noqa
 import contextlib
 import os
 import shutil

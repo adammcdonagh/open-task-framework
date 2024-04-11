@@ -101,7 +101,7 @@ class LocalTransfer(RemoteTransferHandler):
         return result
 
     def pull_files_to_worker(
-        self, files: list[str], local_staging_directory: str
+        self, files: list[str], local_staging_directory: str  # noqa: ARG002
     ) -> int:
         """Pull files to the worker.
 

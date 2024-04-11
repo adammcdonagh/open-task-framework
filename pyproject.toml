@@ -103,7 +103,6 @@ good-names = ["id", "_", "ip", "rc", "ex"]
 # duplicate-code - unavoidable
 # cyclic-import - doesn't test if both import on load
 # abstract-class-little-used - prevents from setting right foundation
-# unused-argument - generic callbacks and setup methods create a lot of warnings
 # too-many-* - are not enforced for the sake of readability
 # too-few-* - same as too-many-*
 # abstract-method - with intro of async there are always methods missing
@@ -211,11 +210,6 @@ disable = [
     "raise-missing-from", # TRY200
     # "redefined-builtin", # A001, ruff is way more stricter, needs work
     "try-except-raise",                  # TRY302
-    "unused-argument",                   # ARG001, we don't use it
-    "unused-format-string-argument",     #F507
-    "unused-format-string-key",          # F504
-    "unused-import",                     # F401
-    "unused-variable",                   # F841
     "useless-else-on-loop",              # PLW0120
     "wildcard-import",                   # F403
     "bad-classmethod-argument",          # N804
@@ -358,6 +352,7 @@ max-locals = 20
 [tool.ruff]
 target-version = "py311"
 select = [
+    "ARG",     # flake8-unused-arguments
     "B007",    # Loop control variable {name} not used within loop body
     "B014",    # Exception handler with duplicate exception
     "C",       # complexity

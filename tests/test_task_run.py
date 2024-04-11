@@ -1,4 +1,5 @@
 # pylint: skip-file
+# ruff: noqa
 import datetime
 import logging
 import os

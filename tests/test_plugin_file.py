@@ -1,4 +1,5 @@
 # pylint: skip-file
+# ruff: noqa
 import pytest
 from pytest_shell import fs
 

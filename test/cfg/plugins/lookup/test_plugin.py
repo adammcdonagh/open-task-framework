@@ -1,3 +1,4 @@
+# ruff: noqa
 """An example plugin that simply returns the word "hello"."""
 
 import opentaskpy.otflogging

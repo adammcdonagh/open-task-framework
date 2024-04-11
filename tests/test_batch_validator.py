@@ -1,4 +1,6 @@
 # pylint: skip-file
+# ruff: noqa
+
 import json
 import os
 
