@@ -505,6 +505,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     exception=exceptions.DecryptionNotSupportedError,
                 )
 
+            original_file_list = remote_files.copy()
+            decrypted_files = {}
             # If it's requested and decryption is possible, then we need to decrypt the files
             if decryption_requested and can_do_encryption:
                 self.logger.info("Decrypting files")
@@ -515,7 +517,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 # Loop through each file and decrypt it using gnupg
                 remote_files = self.decrypt_files(remote_files, private_key)
 
+                decrypted_files = remote_files.copy()
+
             i = 0
+            encrypted_files = {}
             for dest_file_spec in self.dest_file_specs:
                 encryption_requested = (
                     "encryption" in dest_file_spec
@@ -531,8 +536,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
 
                 # If encryption is requested and its possible, then encrypt the file(s)
-                original_file_list = remote_files.copy()
-                encrypted_files = {}
                 if encryption_requested and can_do_encryption:
 
                     self.logger.info("Encrypting files")
@@ -662,8 +665,16 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # restore the original remote_files dict
         if encrypted_files.keys():
             for encrypted_file in encrypted_files:
-                self.logger.info(f"Removing encrypted file {encrypted_file}")
+                self.logger.info(f"Removing local encrypted file {encrypted_file}")
                 remove(encrypted_file)
+
+            remote_files = original_file_list
+
+        # Do the same for the decrypted files
+        if decrypted_files.keys():
+            for decrypted_file in decrypted_files:
+                self.logger.info(f"Removing local decrypted file {decrypted_file}")
+                remove(decrypted_file)
 
             remote_files = original_file_list
 
