@@ -1,5 +1,10 @@
 # Changelog
 
+# No release
+
+- Updated linting rules and some formatting in the tests
+- Updated devcontainer config etc to reflect the new linting etc
+
 # v24.14.0
 
 - Replace existing `now` Jinja function with `utc_now`. This always returns the UTC time. `now` will always return the localtime of the machine running the task instead.
