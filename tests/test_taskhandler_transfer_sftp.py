@@ -2,6 +2,7 @@
 # ruff: noqa
 import os
 import random
+from copy import deepcopy
 
 import pytest
 from pytest_shell import fs
@@ -313,8 +314,9 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
         ]
     )
 
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
     # Create a transfer object
-    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -324,11 +326,11 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     # Generate a random number
     random_number = random.randint(1, 1000000)
     # Test transferring to a subdir that doesn't exist, and creating it
-    sftp_task_definition["destination"][0][
+    sftp_task_definition_copy["destination"][0][
         "directory"
     ] = f"/home/application/testFiles/dest/{random_number}"
 
-    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
 
     # Run the transfer and expect a false status, as we've not asked the directory to be created
     # Expect a RemoteTransferError
@@ -341,9 +343,9 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
 
     # Now run again, but ask for the dir to be created
 
-    sftp_task_definition["destination"][0]["createDirectoryIfNotExists"] = True
+    sftp_task_definition_copy["destination"][0]["createDirectoryIfNotExists"] = True
 
-    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -354,12 +356,14 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     )
 
     # Now run again, but set supportsPosixRename to false in the protocol definition
-    sftp_task_definition["destination"][0]["protocol"]["supportsPosixRename"] = False
+    sftp_task_definition_copy["destination"][0]["protocol"][
+        "supportsPosixRename"
+    ] = False
 
     # Delete the destination file
     os.remove(f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt")
 
-    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -370,14 +374,14 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     )
 
     # Finally run again, but set supportsStatAfterUpload to false in the protocol definition
-    sftp_task_definition["destination"][0]["protocol"][
+    sftp_task_definition_copy["destination"][0]["protocol"][
         "supportsStatAfterUpload"
     ] = False
 
     # Delete the destination file
     os.remove(f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt")
 
-    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
 
     # Run the transfer and expect a true status
     assert transfer_obj.run()
@@ -388,9 +392,9 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     )
 
     # Change the destination directory to / and validate that it works
-    sftp_task_definition["destination"][0]["directory"] = "/"
+    sftp_task_definition_copy["destination"][0]["directory"] = "/"
 
-    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
 
     # Run the transfer and expect a false status, because it cannot write to / on the remote
     # Expect a RemoteTransferError
