@@ -1,4 +1,5 @@
 # pylint: skip-file
+# ruff: noqa
 import os
 from copy import deepcopy
 from datetime import datetime

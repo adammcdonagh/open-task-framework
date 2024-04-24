@@ -1,11 +1,10 @@
 {
   "python.testing.unittestArgs": ["-v", "-s", "tests", "-p", "test_*.py"],
+  "python.defaultInterpreterPath": "/usr/local/bin/python",
   "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["."],
   "python.analysis.typeCheckingMode": "off",
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": false,
-  "http.systemCertificates": true,
-  "python.formatting.provider": "none",
+  "black-formatter.args": ["--preview"],
   "files.associations": {
     "*.json": "jsonc"
   },
@@ -17,14 +16,13 @@
   "isort.args": ["--profile", "black"],
   "pylint.severity": {
     "convention": "Warning",
-    "refactor": "Warning",
     "info": "Warning"
   },
-  "mypy.enabled": true,
-  "ruff.lint.run": "onType",
   "python.testing.pytestEnabled": true,
   "editor.formatOnType": true,
-  "python.testing.pytestArgs": [".", "--keepalive"],
+  "ruff.lint.enable": true,
+  "ruff.lint.run": "onType",
+  "mypy.enabled": true,
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
   }
