@@ -701,6 +701,9 @@ def test_local_encrypt_outgoing_file(
         new_file_checksum = hashlib.md5(f.read()).hexdigest()
     assert new_file_checksum == original_file_checksum
 
+    # Ensure that the source encrypted file has been deleted
+    assert not os.path.exists(f"{local_test_dir}/src/test.encryption.txt.gpg")
+
 
 def test_transfer_decryption_failure_local(
     tmpdir, root_dir, setup_local_test_dir, private_key_2, public_key

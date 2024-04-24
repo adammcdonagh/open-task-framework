@@ -6,7 +6,7 @@ import threading
 import time
 from importlib import import_module
 from math import ceil, floor
-from os import environ, getpid, makedirs, path
+from os import environ, getpid, makedirs, path, remove
 from sys import modules
 from typing import NamedTuple
 
@@ -531,7 +531,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
 
                 # If encryption is requested and its possible, then encrypt the file(s)
+                original_file_list = remote_files.copy()
+                encrypted_files = {}
                 if encryption_requested and can_do_encryption:
+
                     self.logger.info("Encrypting files")
 
                     # Get the public key from the spec
@@ -539,6 +542,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                     # Loop through each file and encrypt it using gnupg
                     remote_files = self.encrypt_files(remote_files, public_key)
+
+                    encrypted_files = remote_files.copy()
 
                 # Handle the push transfers first
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
@@ -652,6 +657,15 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 shutil.rmtree(self.local_staging_dir)
         else:
             self.logger.info("Performing filewatch only")
+
+        # If there was encryption done, we need to remove all the encrypted files regardless, and then
+        # restore the original remote_files dict
+        if encrypted_files.keys():
+            for encrypted_file in encrypted_files:
+                self.logger.info(f"Removing encrypted file {encrypted_file}")
+                remove(encrypted_file)
+
+            remote_files = original_file_list
 
         if "postCopyAction" in self.source_file_spec:
             try:
