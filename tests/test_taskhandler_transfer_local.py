@@ -633,6 +633,9 @@ def test_local_decrypt_incoming_file(
     transfer_obj = transfer.Transfer(None, "local-decrypt", local_task_definition_copy)
     assert transfer_obj.run()
 
+    # Check the source files have been deleted
+    assert not os.path.exists(f"{tmpdir}/test.decryption.txt.gpg")
+
     # Check the output file exists
     assert os.path.exists(f"{local_test_dir}/dest/test.decryption.txt")
     # Check that the file's checksum matches that of the original unencrypted source file
