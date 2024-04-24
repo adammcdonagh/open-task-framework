@@ -369,6 +369,34 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
         f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
     )
 
+    # Finally run again, but set supportsStatAfterUpload to false in the protocol definition
+    sftp_task_definition["destination"][0]["protocol"][
+        "supportsStatAfterUpload"
+    ] = False
+
+    # Delete the destination file
+    os.remove(f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt")
+
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+    # Check the destination file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
+    )
+
+    # Change the destination directory to / and validate that it works
+    sftp_task_definition["destination"][0]["directory"] = "/"
+
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition)
+
+    # Run the transfer and expect a false status, because it cannot write to / on the remote
+    # Expect a RemoteTransferError
+    with pytest.raises(exceptions.RemoteTransferError):
+        transfer_obj.run()
+
 
 def test_sftp_basic_key_from_protocol_definition(root_dir, sftp_key_file):
     # Create a test file

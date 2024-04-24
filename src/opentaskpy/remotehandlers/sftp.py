@@ -328,6 +328,15 @@ class SFTPTransfer(RemoteTransferHandler):
 
             mode = self.spec.get("mode", None)
 
+            stat_after_upload = True
+            if not self.spec["protocol"].get("supportsStatAfterUpload", True):
+                stat_after_upload = False
+
+            # If destination directory is the root, then set it to an empty string
+            # so paths don't start with //
+            if destination_directory == "/":
+                destination_directory = ""
+
             try:
 
                 # Check the protocol to see if supportsPosixRename is set
@@ -339,7 +348,9 @@ class SFTPTransfer(RemoteTransferHandler):
                     file_name_partial = re.sub(r"\.[^.]+$", ".partial", file_name)
 
                     self.sftp_client.put(
-                        file, f"{destination_directory}/{file_name_partial}"
+                        file,
+                        f"{destination_directory}/{file_name_partial}",
+                        confirm=stat_after_upload,
                     )
 
                     # Rename the file to its final name
@@ -349,7 +360,11 @@ class SFTPTransfer(RemoteTransferHandler):
                     )
                 else:
                     # Upload the file without using a temporary name
-                    self.sftp_client.put(file, f"{destination_directory}/{file_name}")
+                    self.sftp_client.put(
+                        file,
+                        f"{destination_directory}/{file_name}",
+                        confirm=stat_after_upload,
+                    )
 
                 if mode:
                     self.sftp_client.chmod(
