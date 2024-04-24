@@ -344,6 +344,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         remote_files = self.source_remote_handler.list_files(
             directory=source_directory, file_pattern=source_file_pattern
         )
+        decrypted_files = {}
+        encrypted_files = {}
 
         # Loop through the returned files to see if they match the file age and size spec (if defined)
         if "conditionals" in self.source_file_spec and remote_files:
@@ -506,7 +508,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
             original_file_list = remote_files.copy()
-            decrypted_files = {}
+
             # If it's requested and decryption is possible, then we need to decrypt the files
             if decryption_requested and can_do_encryption:
                 self.logger.info("Decrypting files")
@@ -520,7 +522,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 decrypted_files = remote_files.copy()
 
             i = 0
-            encrypted_files = {}
             for dest_file_spec in self.dest_file_specs:
                 encryption_requested = (
                     "encryption" in dest_file_spec
