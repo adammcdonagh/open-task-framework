@@ -6,7 +6,7 @@ import threading
 import time
 from importlib import import_module
 from math import ceil, floor
-from os import environ, getpid, makedirs, path
+from os import environ, getpid, makedirs, path, remove
 from sys import modules
 from typing import NamedTuple
 
@@ -344,6 +344,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         remote_files = self.source_remote_handler.list_files(
             directory=source_directory, file_pattern=source_file_pattern
         )
+        decrypted_files = {}
+        encrypted_files = {}
 
         # Loop through the returned files to see if they match the file age and size spec (if defined)
         if "conditionals" in self.source_file_spec and remote_files:
@@ -505,6 +507,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     exception=exceptions.DecryptionNotSupportedError,
                 )
 
+            original_file_list = remote_files.copy()
+
             # If it's requested and decryption is possible, then we need to decrypt the files
             if decryption_requested and can_do_encryption:
                 self.logger.info("Decrypting files")
@@ -514,6 +518,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 # Loop through each file and decrypt it using gnupg
                 remote_files = self.decrypt_files(remote_files, private_key)
+
+                decrypted_files = remote_files.copy()
 
             i = 0
             for dest_file_spec in self.dest_file_specs:
@@ -532,6 +538,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 # If encryption is requested and its possible, then encrypt the file(s)
                 if encryption_requested and can_do_encryption:
+
                     self.logger.info("Encrypting files")
 
                     # Get the public key from the spec
@@ -539,6 +546,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                     # Loop through each file and encrypt it using gnupg
                     remote_files = self.encrypt_files(remote_files, public_key)
+
+                    encrypted_files = remote_files.copy()
 
                 # Handle the push transfers first
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
@@ -652,6 +661,23 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 shutil.rmtree(self.local_staging_dir)
         else:
             self.logger.info("Performing filewatch only")
+
+        # If there was encryption done, we need to remove all the encrypted files regardless, and then
+        # restore the original remote_files dict
+        if encrypted_files.keys():
+            for encrypted_file in encrypted_files:
+                self.logger.info(f"Removing local encrypted file {encrypted_file}")
+                remove(encrypted_file)
+
+            remote_files = original_file_list
+
+        # Do the same for the decrypted files
+        if decrypted_files.keys():
+            for decrypted_file in decrypted_files:
+                self.logger.info(f"Removing local decrypted file {decrypted_file}")
+                remove(decrypted_file)
+
+            remote_files = original_file_list
 
         if "postCopyAction" in self.source_file_spec:
             try:

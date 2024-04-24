@@ -1,5 +1,14 @@
 # Changelog
 
+# v24.17.1
+
+- Fix issue where PCA when encrypting files would only handle the encrypted file(s), and not the original file(s)
+
+# v24.17.0
+
+- Add protocol option for SFTP destination - `supportsStatAfterUpload` - When set to false this will prevent `stat` being run after upload. This helps when certain custom SFTP servers do not allow you to see your uploaded file, or they move it out of the way as soon as it's written to.
+- Minor update to SFTP transfer when uploading to `/` to prevent destination path starting with `//`
+
 # No release
 
 - Updated linting rules and some formatting in the tests

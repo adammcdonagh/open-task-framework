@@ -357,6 +357,10 @@ def test_scp_file_watch(env_vars, setup_ssh_keys, root_dir):
         [{f"{root_dir}/testFiles/ssh_1/src/fileWatch.log": {"content": "01234567890"}}]
     )
 
+    # Ensure the source file doesn't exist
+    if os.path.exists(f"{root_dir}/testFiles/ssh_1/src/fileWatch.txt"):
+        os.remove(f"{root_dir}/testFiles/ssh_1/src/fileWatch.txt")
+
     # Filewatch configured to wait 15 seconds before giving up. Expect it to fail
     task_runner = taskrun.TaskRun("scp-file-watch", "test/cfg")
     assert not task_runner.run()
