@@ -35,6 +35,10 @@ logging.basicConfig(
 def test_noop_binary(env_vars, setup_ssh_keys, root_dir):
     # Pass noop argument to the binary
 
+    # Delete the destination file in case something else copied it
+    if os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/noop_test.txt"):
+        os.remove(f"{root_dir}/testFiles/ssh_2/dest/noop_test.txt")
+
     # Create a test file
     fs.create_files(
         [{f"{root_dir}/testFiles/ssh_1/src/noop_test.txt": {"content": "test1234"}}]
