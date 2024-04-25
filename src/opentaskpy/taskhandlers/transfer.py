@@ -516,8 +516,17 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 # Get the private key from the spec
                 private_key = self.source_file_spec["encryption"]["private_key"]
 
+                # For each file in the remote_files list, alter the path to start
+                # with the local staging directory instead
+                local_files = {}
+                for file in remote_files:
+                    # Strip the path and replace it with the stating directory
+                    local_files[f"{self.local_staging_dir}/{path.basename(file)}"] = (
+                        remote_files[file]
+                    )
+
                 # Loop through each file and decrypt it using gnupg
-                remote_files = self.decrypt_files(remote_files, private_key)
+                remote_files = self.decrypt_files(local_files, private_key)
 
                 decrypted_files = remote_files.copy()
 
@@ -544,8 +553,17 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     # Get the public key from the spec
                     public_key = dest_file_spec["encryption"]["public_key"]
 
+                    # For each file in the remote_files list, alter the path to start
+                    # with the local staging directory instead
+                    local_files = {}
+                    for file in remote_files:
+                        # Strip the path and replace it with the stating directory
+                        local_files[
+                            f"{self.local_staging_dir}/{path.basename(file)}"
+                        ] = remote_files[file]
+
                     # Loop through each file and encrypt it using gnupg
-                    remote_files = self.encrypt_files(remote_files, public_key)
+                    remote_files = self.encrypt_files(local_files, public_key)
 
                     encrypted_files = remote_files.copy()
 
@@ -666,16 +684,19 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # restore the original remote_files dict
         if encrypted_files.keys():
             for encrypted_file in encrypted_files:
-                self.logger.info(f"Removing local encrypted file {encrypted_file}")
-                remove(encrypted_file)
+                # Check the file still exists before removing it
+                if path.exists(encrypted_file):
+                    self.logger.info(f"Removing local encrypted file {encrypted_file}")
+                    remove(encrypted_file)
 
             remote_files = original_file_list
 
         # Do the same for the decrypted files
         if decrypted_files.keys():
             for decrypted_file in decrypted_files:
-                self.logger.info(f"Removing local decrypted file {decrypted_file}")
-                remove(decrypted_file)
+                if path.exists(decrypted_file):
+                    self.logger.info(f"Removing local decrypted file {decrypted_file}")
+                    remove(decrypted_file)
 
             remote_files = original_file_list
 

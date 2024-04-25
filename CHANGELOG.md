@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.17.2
+
+- Fix further issues relating to encryption and decryption.
+- Added some additional tests to test via SFTP instead of just local transfers.
+
 # v24.17.1
 
 - Fix issue where PCA when encrypting files would only handle the encrypted file(s), and not the original file(s)

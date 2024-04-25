@@ -1,14 +1,17 @@
 # pylint: skip-file
 # ruff: noqa
+import hashlib
 import os
 import random
 from copy import deepcopy
 
+import gnupg
 import pytest
 from pytest_shell import fs
 
 from opentaskpy import exceptions
 from opentaskpy.taskhandlers import transfer
+from tests.fixtures.pgp import *  # noqa: F403, F401
 from tests.fixtures.ssh_clients import *  # noqa: F403, F401
 
 os.environ["OTF_NO_LOG"] = "1"
@@ -497,6 +500,242 @@ def test_sftp_basic_write_fin(root_dir, setup_sftp_keys):
 
     # Check the fin file exists
     assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/sftp_with_fin.fin")
+
+
+def test_sftp_decrypt_incoming_file(
+    tmpdir, root_dir, setup_sftp_keys, private_key, public_key
+):
+
+    # Create a test file
+    source_file = f"{root_dir}/testFiles/sftp_1/src/test.decryption.txt"
+    fs.create_files([{f"{source_file}": {"content": "test12345678"}}])
+
+    # Checksum the file
+    with open(f"{source_file}", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(public_key)
+
+    # Encrypt the file
+    with open(f"{source_file}", "rb") as f:
+        status = gpg.encrypt_file(
+            f,
+            always_trust=True,
+            recipients="test@example.com",
+            output=f"{source_file}.gpg",
+        )
+
+        # Check status returns a 0 exit code
+        assert status.ok
+
+    # Check the output file exists
+    assert os.path.exists(f"{source_file}.gpg")
+
+    # Now we have an encrypted file (we can pretend we are collecting from elsewhere),
+    # run a transfer to copy the file locally, and decrypt it
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
+    sftp_task_definition_copy["source"]["fileRegex"] = "test.decryption.txt.gpg"
+    sftp_task_definition_copy["source"]["encryption"] = {
+        "decrypt": True,
+        "private_key": private_key,
+    }
+
+    # Override the destination
+    sftp_task_definition_copy["destination"] = [
+        {
+            "directory": f"{tmpdir}",
+            "protocol": {"name": "local"},
+        },
+    ]
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "local-decrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(f"{tmpdir}/test.decryption.txt")
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(f"{tmpdir}/test.decryption.txt", "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
+
+
+def test_sftp_encrypt_outgoing_file(
+    tmpdir, root_dir, setup_sftp_keys, private_key, public_key
+):
+
+    source_file = f"{root_dir}/testFiles/sftp_1/src/test.encryption.txt"
+
+    # Create a test file
+    fs.create_files([{f"{source_file}": {"content": "test12345678"}}])
+
+    # Checksum the file
+    with open(f"{source_file}", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(private_key)
+
+    # run a transfer to copy the file locally, and encrypt it
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
+    sftp_task_definition_copy["source"][
+        "directory"
+    ] = f"/home/application/testFiles/src"
+    sftp_task_definition_copy["source"]["fileRegex"] = "test.encryption.txt"
+
+    # Override the destination
+    sftp_task_definition_copy["destination"] = [
+        {
+            "directory": f"{tmpdir}",
+            "protocol": {"name": "local"},
+            "encryption": {
+                "encrypt": True,
+                "public_key": public_key,
+            },
+        },
+    ]
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-encrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(f"{tmpdir}/test.encryption.txt.gpg")
+
+    # Now we need to decrypt this file to check that it matches the original content,
+    # and can actually be decrypted again
+    decryption_data = gpg.decrypt_file(
+        open(f"{tmpdir}/test.encryption.txt.gpg", "rb"),
+        output=f"{tmpdir}/test.encryption.txt",
+    )
+
+    assert decryption_data.ok
+    assert decryption_data.returncode == 0
+
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(f"{tmpdir}/test.encryption.txt", "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
+
+
+def test_sftp_to_sftp_decrypt(
+    root_dir, setup_sftp_keys, tmpdir, private_key, public_key
+):
+    # This is the same as the above test, but instead of the destination being local
+    # we will transfer to sftp_2 instead
+
+    # Create a test file
+    source_file = f"{root_dir}/testFiles/sftp_1/src/test.decryption.e2e.txt"
+    dest_file = f"{root_dir}/testFiles/sftp_2/dest/test.decryption.e2e.txt"
+    fs.create_files([{f"{source_file}": {"content": "test12345678"}}])
+
+    # Checksum the file
+    with open(f"{source_file}", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(public_key)
+
+    # Encrypt the file
+    with open(f"{source_file}", "rb") as f:
+        status = gpg.encrypt_file(
+            f,
+            always_trust=True,
+            recipients="test@example.com",
+            output=f"{source_file}.gpg",
+        )
+
+        # Check status returns a 0 exit code
+        assert status.ok
+
+    # Check the output file exists
+    assert os.path.exists(f"{source_file}.gpg")
+
+    # Now we have an encrypted file
+    # run a transfer to copy the file to the other sftp, and decrypt it
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
+    sftp_task_definition_copy["source"]["fileRegex"] = "test.decryption.e2e.txt.gpg"
+    sftp_task_definition_copy["source"]["encryption"] = {
+        "decrypt": True,
+        "private_key": private_key,
+    }
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-decrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(dest_file)
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(dest_file, "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
+
+
+def test_sftp_to_sftp_encrypt_outgoing_file(
+    tmpdir, root_dir, setup_sftp_keys, private_key, public_key
+):
+
+    source_file = f"{root_dir}/testFiles/sftp_1/src/test.encryption.e2e.txt"
+
+    # Create a test file
+    fs.create_files([{f"{source_file}": {"content": "test12345678"}}])
+
+    # Checksum the file
+    with open(f"{source_file}", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(private_key)
+
+    # run a transfer to copy the file locally, and encrypt it
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
+    sftp_task_definition_copy["source"][
+        "directory"
+    ] = f"/home/application/testFiles/src"
+    sftp_task_definition_copy["source"]["fileRegex"] = "test.encryption.e2e.txt"
+
+    # Override the destination
+    sftp_task_definition_copy["destination"][0]["encryption"] = {
+        "encrypt": True,
+        "public_key": public_key,
+    }
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-encrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Now we need to decrypt this file to check that it matches the original content,
+    # and can actually be decrypted again
+    decryption_data = gpg.decrypt_file(
+        open(f"{root_dir}/testFiles/sftp_2/dest/test.encryption.e2e.txt.gpg", "rb"),
+        output=f"{root_dir}/testFiles/sftp_2/dest/test.encryption.e2e.txt",
+    )
+
+    assert decryption_data.ok
+    assert decryption_data.returncode == 0
+
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(f"{root_dir}/testFiles/sftp_2/dest/test.encryption.e2e.txt", "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
 
 
 def test_pca_move(root_dir, setup_sftp_keys):
