@@ -225,6 +225,7 @@ class LocalTransfer(RemoteTransferHandler):
 
             for file in files:
                 try:
+                    self.logger.info(f"[LOCALHOST] Deleting file {file}")
                     os.remove(file)
                 except OSError:
                     self.logger.error(

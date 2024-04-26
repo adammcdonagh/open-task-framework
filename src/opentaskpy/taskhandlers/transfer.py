@@ -116,9 +116,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             )
             shutil.rmtree(self.local_staging_dir)
         else:
-            self.logger.info(
-                "Local staging directory is the same as source directory. Not removing",
-            )
+            if path.exists(self.local_staging_dir):
+                self.logger.info(
+                    "Local staging directory is the same as source directory. Not removing",
+                )
 
         # Call super to do the rest
         # Log the exception
@@ -609,9 +610,13 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         " requested"
                     )
 
-                    # For local transfers, the handler needs to know the source spec
-                    # or the dest remote handler is local
-                    if self.source_file_spec["protocol"]["name"] != "local":
+                    # For local transfers, the handler needs the list of local files to push
+                    # If there was decryption, then the files will be local regardless, so
+                    # needs the list of files then too, so it doesn't upload the encrypted files
+                    if (
+                        self.source_file_spec["protocol"]["name"] != "local"
+                        and not decryption_requested
+                    ):
                         transfer_result = (
                             associated_dest_remote_handler.push_files_from_worker(
                                 self.local_staging_dir
@@ -821,6 +826,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 file.replace(".gpg", "") if ".gpg" in file else f"{file}.decrypted"
             )
 
+            self.logger.info(f"Decrypting {file} to {output_filename}")
+
             with open(file, "rb") as input_file:
                 decryption_data = gpg.decrypt_file(
                     input_file,
@@ -846,5 +853,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
         shutil.rmtree(f"{tmpdir}/.gnupg")
+
+        self.logger.debug(f"Returning decrypted files: {decrypted_files}")
 
         return decrypted_files
