@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.17.3
+
+- Fix issue where using decryption meant that the encrypted file was also transferred to the destination.
+- Improved some logging.
+
 # v24.17.2
 
 - Fix further issues relating to encryption and decryption.

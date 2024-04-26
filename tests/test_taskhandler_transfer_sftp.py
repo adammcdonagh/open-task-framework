@@ -547,7 +547,8 @@ def test_sftp_decrypt_incoming_file(
     # Override the destination
     sftp_task_definition_copy["destination"] = [
         {
-            "directory": f"{tmpdir}",
+            "directory": f"{tmpdir}/dest",
+            "createDirectoryIfNotExists": True,
             "protocol": {"name": "local"},
         },
     ]
@@ -557,12 +558,15 @@ def test_sftp_decrypt_incoming_file(
     assert transfer_obj.run()
 
     # Check the output file exists
-    assert os.path.exists(f"{tmpdir}/test.decryption.txt")
+    assert os.path.exists(f"{tmpdir}/dest/test.decryption.txt")
     # Check that the file's checksum matches that of the original unencrypted source file
     # Check the checksum of the new file
-    with open(f"{tmpdir}/test.decryption.txt", "rb") as f:
+    with open(f"{tmpdir}/dest/test.decryption.txt", "rb") as f:
         new_file_checksum = hashlib.md5(f.read()).hexdigest()
     assert new_file_checksum == original_file_checksum
+
+    # Make sure only 1 file exists under the destination
+    assert len(os.listdir(f"{tmpdir}/dest")) == 1
 
 
 def test_sftp_encrypt_outgoing_file(
