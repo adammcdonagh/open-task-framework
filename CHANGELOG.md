@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.18.0
+
+- Add the option to sign encrypted files using a private key, by setting `"sign": true`, and supplying the `private_key` property.
+
 # v24.17.3
 
 - Fix issue where using decryption meant that the encrypted file was also transferred to the destination.

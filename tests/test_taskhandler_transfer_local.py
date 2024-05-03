@@ -708,6 +708,150 @@ def test_local_encrypt_outgoing_file(
     assert not os.path.exists(f"{local_test_dir}/src/test.encryption.txt.gpg")
 
 
+def test_local_encrypt_with_signing_outgoing_file(
+    tmpdir, root_dir, setup_local_test_dir, private_key, public_key
+):
+
+    # Create a test file
+    fs.create_files(
+        [{f"{tmpdir}/src/test.encryptionSign.txt": {"content": "test12345678"}}]
+    )
+
+    # Checksum the file
+    with open(f"{tmpdir}/src/test.encryptionSign.txt", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the private key
+    import_result = gpg.import_keys(private_key)
+
+    # run a transfer to copy the file locally, and encrypt it
+    local_task_definition_copy = deepcopy(local_task_definition)
+    local_task_definition_copy["source"]["directory"] = f"{tmpdir}/src"
+    local_task_definition_copy["source"]["fileRegex"] = "test.encryptionSign.txt"
+
+    # Override the destination
+    local_task_definition_copy["destination"] = [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+            "encryption": {
+                "encrypt": True,
+                "sign": True,
+                "private_key": private_key,
+                "public_key": public_key,
+            },
+        },
+    ]
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(
+        None, "local-encrypt-and-sign", local_task_definition_copy
+    )
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(f"{local_test_dir}/dest/test.encryptionSign.txt.gpg")
+
+    # Now we need to decrypt this file to check that it matches the original content,
+    # and can actually be decrypted again
+    decryption_data = gpg.decrypt_file(
+        open(f"{local_test_dir}/dest/test.encryptionSign.txt.gpg", "rb"),
+        output=f"{local_test_dir}/dest/test.encryptionSign.txt",
+    )
+
+    assert decryption_data.ok
+    assert decryption_data.returncode == 0
+
+    # Check that it was signed to start with
+    assert decryption_data.sig_info is not None
+    # Get the sig_info, loop through the signatures and check that they all have a status of "signature valid"
+    for sig in decryption_data.sig_info:
+        assert decryption_data.sig_info[sig]["status"] == "signature valid"
+
+    # Check that the file's checksum matches that of the original unencrypted source file
+    # Check the checksum of the new file
+    with open(f"{local_test_dir}/dest/test.encryptionSign.txt", "rb") as f:
+        new_file_checksum = hashlib.md5(f.read()).hexdigest()
+    assert new_file_checksum == original_file_checksum
+
+    # Ensure that the source encrypted file has been deleted
+    assert not os.path.exists(f"{local_test_dir}/src/test.encryptionSign.txt.gpg")
+
+
+def test_local_encrypt_with_signing_missing_key_outgoing_file(
+    tmpdir,
+    root_dir,
+    setup_local_test_dir,
+    private_key,
+    public_key_2,
+    private_key_2,
+    public_key,
+):
+
+    # Create a test file
+    fs.create_files(
+        [{f"{tmpdir}/src/test.encryptionSign2.txt": {"content": "test12345678"}}]
+    )
+
+    # Checksum the file
+    with open(f"{tmpdir}/src/test.encryptionSign2.txt", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the second private key
+    import_result = gpg.import_keys(private_key_2)
+
+    # run a transfer to copy the file locally, and encrypt it
+    local_task_definition_copy = deepcopy(local_task_definition)
+    local_task_definition_copy["source"]["directory"] = f"{tmpdir}/src"
+    local_task_definition_copy["source"]["fileRegex"] = "test.encryptionSign2.txt"
+
+    # Override the destination
+    local_task_definition_copy["destination"] = [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+            "encryption": {
+                "encrypt": True,
+                "sign": True,
+                "private_key": private_key,
+                "public_key": public_key_2,
+            },
+        },
+    ]
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(
+        None, "local-encrypt-and-sign", local_task_definition_copy
+    )
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(f"{local_test_dir}/dest/test.encryptionSign2.txt.gpg")
+
+    # Now we need to decrypt this file to check that it matches the original content,
+    # and can actually be decrypted again
+    decryption_data = gpg.decrypt_file(
+        open(f"{local_test_dir}/dest/test.encryptionSign2.txt.gpg", "rb"),
+        output=f"{local_test_dir}/dest/test.encryptionSign2.txt",
+    )
+
+    # Check that there was a problem and the stratus is signature error
+    problems = decryption_data.problems
+    # There should be an object in the array with a status of signature error
+    assert any("signature error" in problem["status"] for problem in problems)
+
+    assert (
+        decryption_data.ok
+    )  # Decrypt was ok, but the return code will be non-zero due to sig error
+    assert decryption_data.returncode != 0
+
+
 def test_transfer_decryption_failure_local(
     tmpdir, root_dir, setup_local_test_dir, private_key_2, public_key
 ):

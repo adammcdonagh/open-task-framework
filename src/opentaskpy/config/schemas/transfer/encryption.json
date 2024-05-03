@@ -4,10 +4,16 @@
   "type": "object",
   "properties": {
     "decrypt": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
     },
     "encrypt": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
+    },
+    "sign": {
+      "type": "boolean",
+      "default": false
     },
     "private_key": {
       "type": "string"
@@ -15,6 +21,17 @@
     "public_key": {
       "type": "string"
     }
+  },
+  "if": {
+    "required": ["sign"],
+    "properties": {
+      "sign": {
+        "enum": [true]
+      }
+    }
+  },
+  "then": {
+    "required": ["private_key"]
   },
   "additionalProperties": false
 }
