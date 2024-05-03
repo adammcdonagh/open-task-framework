@@ -553,6 +553,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                     # Get the public key from the spec
                     public_key = dest_file_spec["encryption"]["public_key"]
+                    private_key = None
+
                     if (
                         "sign" in dest_file_spec["encryption"]
                         and dest_file_spec["encryption"]["sign"]
