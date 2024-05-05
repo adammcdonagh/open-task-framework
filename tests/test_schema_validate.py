@@ -87,3 +87,36 @@ def test_dest_with_different_protocols(
     json_data["destination"].append(valid_destination_definition_2)
 
     assert validate_transfer_json(json_data)
+
+
+def test_encryption_with_public_key(valid_source_definition):
+
+    valid_source_definition["encryption"] = {"public_key": "blah", "encrypt": True}
+
+    json_data = {
+        "type": "transfer",
+        "source": valid_source_definition,
+        "destination": [],
+    }
+
+    assert validate_transfer_json(json_data)
+
+    # Set sign to true and dont add a private key, expect a failure
+    valid_source_definition["encryption"]["sign"] = True
+    json_data = {
+        "type": "transfer",
+        "source": valid_source_definition,
+        "destination": [],
+    }
+
+    assert not validate_transfer_json(json_data)
+
+    # Add a private key
+    valid_source_definition["encryption"]["private_key"] = "blah"
+    json_data = {
+        "type": "transfer",
+        "source": valid_source_definition,
+        "destination": [],
+    }
+
+    assert validate_transfer_json(json_data)

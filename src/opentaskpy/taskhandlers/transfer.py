@@ -553,6 +553,13 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                     # Get the public key from the spec
                     public_key = dest_file_spec["encryption"]["public_key"]
+                    private_key = None
+
+                    if (
+                        "sign" in dest_file_spec["encryption"]
+                        and dest_file_spec["encryption"]["sign"]
+                    ):
+                        private_key = dest_file_spec["encryption"]["private_key"]
 
                     # For each file in the remote_files list, alter the path to start
                     # with the local staging directory instead
@@ -564,7 +571,9 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         ] = remote_files[file]
 
                     # Loop through each file and encrypt it using gnupg
-                    remote_files = self.encrypt_files(local_files, public_key)
+                    remote_files = self.encrypt_files(
+                        local_files, public_key, private_key
+                    )
 
                     encrypted_files = remote_files.copy()
 
@@ -727,12 +736,15 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         return self.return_result(0)
 
-    def encrypt_files(self, files: dict, public_key: str) -> dict:
+    def encrypt_files(
+        self, files: dict, public_key: str, private_key: str | None = None
+    ) -> dict:
         """Encrypt files using GPG.
 
         Args:
             files (dict): Dictionary of files to encrypt.
             public_key (str): Public key to use for encryption.
+            private_key (str, optional): Private key to use to sign the files. Defaults to None.
 
         Returns:
             dict: Dictionary of encrypted files.
@@ -749,6 +761,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         # Load the public key
         import_result = gpg.import_keys(public_key)
+
         # Check the key imported OK
         if not import_result.count or import_result.count == 0:
             self.logger.error("Error importing public key")
@@ -756,6 +769,18 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         # Get the fingerprint of the key we just imported
         key_fingerprint = gpg.list_keys()[0]["fingerprint"]
+        signing_key = None
+
+        if private_key:
+            # Load the private key
+            import_result = gpg.import_keys(private_key)
+
+            # Check the key imported OK
+            if not import_result.count or import_result.count == 0:
+                self.logger.error("Error importing private key")
+                raise exceptions.EncryptionError("Error importing private key")
+
+            signing_key = import_result.fingerprints[0]
 
         encrypted_files = {}
         for file in files:
@@ -770,6 +795,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     recipients=key_fingerprint,
                     output=output_filename,
                     always_trust=True,
+                    sign=signing_key,
                 )
 
                 # Check whether the encryption worked
