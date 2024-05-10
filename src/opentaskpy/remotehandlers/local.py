@@ -162,7 +162,7 @@ class LocalTransfer(RemoteTransferHandler):
             self.logger.info(
                 f"[LOCALHOST] Creating destination directory: {destination_directory}"
             )
-            os.mkdir(destination_directory)
+            os.makedirs(destination_directory)
 
         # Transfer the files
         result = 0
