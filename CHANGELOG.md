@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.19.0
+
+- When creating directories, ensure entire path is created recursively rather than just attempting to create rightmost path part
+
 # v24.18.0
 
 - Add the option to sign encrypted files using a private key, by setting `"sign": true`, and supplying the `private_key` property.
