@@ -57,6 +57,16 @@
       "justMyCode": false
     },
     {
+      "name": "Python: Batch x15",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "batch-15-sftp", "-c", "test/cfg", "-v3"],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Transfer - Multiple",
       "type": "python",
       "request": "launch",
