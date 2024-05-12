@@ -79,7 +79,7 @@ def test_init_logging(env_vars, top_level_root_dir):
     # pointing at the correct filename
     timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{3}"
     log_path = f"{top_level_root_dir}/logs"
-    expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_running.log"
+    expected_result_regex = rf"{log_path}/some_task_id/{timestamp}_WRAPPER_running.log"
     logger = opentaskpy.otflogging.init_logging(
         "some.class.name1", task_id="some_task_id"
     )

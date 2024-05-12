@@ -3,6 +3,7 @@
 # v24.19.1
 
 - Add additional timeout values for SFTP connections - Attempting to fix [#68](https://github.com/adammcdonagh/open-task-framework/issues/68)
+- Add more steps to capture all log output better
 
 # v24.19.0
 

@@ -33,7 +33,7 @@ class TaskRun:  # pylint: disable=too-few-public-methods
                 True, will only check the config loads OK and then exit. Defaults to
                 False.
         """
-        self.logger = opentaskpy.otflogging.init_logging(__name__)
+        self.logger = opentaskpy.otflogging.init_logging(__name__, task_id)
         self.task_id = task_id
         self.config_dir = config_dir
         self.active_task_definition = None
@@ -66,7 +66,7 @@ class TaskRun:  # pylint: disable=too-few-public-methods
 
         if active_task_definition["type"] == "transfer":
             # Hand off to the transfer module
-            self.logger.log(12, "Transfer")
+            self.logger.info("Starting task of type Transfer")
             # Validate the schema
             if not validate_transfer_json(active_task_definition):
                 self.logger.error("JSON format does not match schema")
@@ -85,7 +85,7 @@ class TaskRun:  # pylint: disable=too-few-public-methods
 
         elif active_task_definition["type"] == "execution":
             # Hand off to the execuiton module
-            self.logger.log(12, "Execution")
+            self.logger.info("Starting task of type Execution")
 
             # Validate the schema
             if not validate_execution_json(active_task_definition):
@@ -106,7 +106,7 @@ class TaskRun:  # pylint: disable=too-few-public-methods
 
         elif active_task_definition["type"] == "batch":
             # Hand off to the batch module
-            self.logger.log(12, "Batch")
+            self.logger.info("Starting task of type Batch")
 
             # Validate the schema
             if not validate_batch_json(active_task_definition):
@@ -133,4 +133,6 @@ class TaskRun:  # pylint: disable=too-few-public-methods
             self.logger.error("Unknown task type!")
 
         self.logger.info(f"Task completed with result: {result}")
+        # Ensure that the log is closed
+        opentaskpy.otflogging.close_log_file(self.logger, result)
         return result
