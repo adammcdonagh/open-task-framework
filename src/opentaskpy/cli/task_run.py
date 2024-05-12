@@ -8,8 +8,8 @@ import sys
 from datetime import datetime
 from textwrap import dedent
 
+import opentaskpy.otflogging
 from opentaskpy import taskrun  # type: ignore[attr-defined]
-from opentaskpy.otflogging import OTF_LOG_FORMAT
 
 CONFIG_PATH = f"{os.getcwd()}/cfg"
 
@@ -92,6 +92,9 @@ def main() -> None:
     if args.runId:
         os.environ["OTF_RUN_ID"] = args.runId
 
+    if args.taskId:
+        os.environ["OTF_TASK_ID"] = args.taskId
+
     if args.noop:
         os.environ["OTF_NOOP"] = "true"
 
@@ -108,16 +111,16 @@ def main() -> None:
     logging.addLevelName(11, "VERBOSE2")
     logging.addLevelName(12, "VERBOSE1")
 
-    logging.basicConfig(
-        format=OTF_LOG_FORMAT,
-        level=logging_level,
-        handlers=[logging.StreamHandler()],
+    # logging.basicConfig(
+    #     format=OTF_LOG_FORMAT,
+    #     level=logging_level,
+    #     handlers=[logging.StreamHandler()],
+    # )
+
+    logger = opentaskpy.otflogging.init_logging(
+        __name__, args.taskId, level=logging_level, override_root_logger=True
     )
 
-    logger = logging.getLogger()
-    logger.setLevel(logging_level)
-
-    logger = logging.getLogger(__name__)
     logger.log(11, f"Log verbosity: {args.verbosity}")
 
     # Create the TaskRun object

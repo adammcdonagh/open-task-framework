@@ -30,7 +30,17 @@
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": ["-t", "scp-basic", "-c", "test/cfg"],
+      "args": ["-t", "scp-basic", "-c", "test/cfg", "-v3"],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - Basic - As job",
+      "type": "python",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "scp-basic", "-c", "test/cfg", "-v3", "-r", "J-scp-basic"],
       "justMyCode": false
     },
     {
@@ -239,6 +249,18 @@
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
       "args": ["-t", "df-local", "-v", "1", "-c", "test/cfg"],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Bad variables file",
+      "type": "python",
+      "request": "launch",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "env": {
+        "OTF_VARIABLES_FILE": "test/cfg/variables-bad.json"
+      },
+      "args": ["-t", "bad-variables", "-c", "test/cfg", "-v3"],
       "justMyCode": false
     }
   ]
