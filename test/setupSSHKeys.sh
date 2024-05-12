@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 # Get current script directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -31,3 +31,17 @@ docker exec ssh_1 /bin/sh -c "chown -R application ~application/.ssh && chmod -R
 docker cp $DIR/testFiles/id_rsa ssh_2:/home/application/.ssh
 docker cp $DIR/testFiles/id_rsa.pub ssh_2:/home/application/.ssh/authorized_keys
 docker exec ssh_2 /bin/sh -c "chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh && chown -R application /tmp/testFiles"
+
+
+docker exec sftp_1 /bin/sh -c "usermod -G operator -a application -u $UID"
+docker exec sftp_2 /bin/sh -c "usermod -G operator -a application -u $UID"
+docker exec sftp_1 /bin/sh -c "mkdir -p ~application/.ssh"
+docker exec sftp_2 /bin/sh -c "mkdir -p ~application/.ssh"
+
+docker cp $DIR/testFiles/id_rsa sftp_1:/home/application/.ssh
+docker cp $DIR/testFiles/id_rsa.pub sftp_1:/home/application/.ssh/authorized_keys
+docker exec sftp_1 /bin/sh -c "chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh && chown -R application /home/application/testFiles"
+
+docker cp $DIR/testFiles/id_rsa sftp_2:/home/application/.ssh
+docker cp $DIR/testFiles/id_rsa.pub sftp_2:/home/application/.ssh/authorized_keys
+docker exec sftp_2 /bin/sh -c "chown -R application ~application/.ssh && chmod -R 700 ~application/.ssh && chown -R application /home/application/testFiles"
