@@ -5,6 +5,7 @@ import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from logging import DEBUG
 
 import opentaskpy.otflogging
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
@@ -24,6 +25,9 @@ class EmailTransfer(RemoteTransferHandler):
         self.logger = opentaskpy.otflogging.init_logging(
             __name__, spec["task_id"], self.TASK_TYPE
         )
+
+        # Ensure this logs to the same location as this module
+        opentaskpy.otflogging.set_log_file("smtplib")
 
         super().__init__(spec)
 
@@ -119,6 +123,8 @@ class EmailTransfer(RemoteTransferHandler):
                     self.protocol_vars["smtp_server"],
                     port=self.protocol_vars["smtp_port"],
                 )
+                if self.logger.getEffectiveLevel() <= DEBUG:
+                    smtp.set_debuglevel(1)
                 smtp.starttls()
 
                 # Authenticate

@@ -33,6 +33,9 @@ def run(**kwargs) -> str | None:  # type: ignore[no-untyped-def]
     Returns:
         _type_: The value read from the file
     """
+    # Ensure this logs to the same location as this module
+    opentaskpy.otflogging.set_log_file("urllib3")
+
     # Expect a kwarg named url, and value
     expected_kwargs = ["url", "jsonpath"]
     for kwarg in expected_kwargs:

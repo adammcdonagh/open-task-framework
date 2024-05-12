@@ -17,9 +17,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import opentaskpy.otflogging
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
 
-SSH_OPTIONS: str = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
-REMOTE_SCRIPT_BASE_DIR: str = "/tmp"  # nosec B108
-
 
 class SFTPTransfer(RemoteTransferHandler):
     """SFTP Transfer Handler."""
@@ -123,6 +120,12 @@ class SFTPTransfer(RemoteTransferHandler):
             )
             ssh_client.set_missing_host_key_policy(AutoAddPolicy())
             self.logger.info(f"Connecting to {client_kwargs['hostname']}")
+
+            # Set additional timeout options to match the standard timeout
+            client_kwargs["banner_timeout"] = client_kwargs["timeout"]
+            client_kwargs["auth_timeout"] = client_kwargs["timeout"]
+            client_kwargs["channel_timeout"] = client_kwargs["timeout"]
+
             ssh_client.connect(**client_kwargs)
             self.sftp_client = ssh_client.open_sftp()
 

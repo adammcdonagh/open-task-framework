@@ -85,6 +85,15 @@ def test_remote_handler_vars(env_vars):
 
 
 def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
+
+    import logging
+
+    import opentaskpy.otflogging
+
+    logger = opentaskpy.otflogging.init_logging(
+        __name__, "email-transfer", level=logging.DEBUG, override_root_logger=True
+    )
+
     # In GitHub Actions, the variables we need are in the environment
     # Pull those and write them to the config files first
     if os.getenv("GITHUB_ACTIONS"):

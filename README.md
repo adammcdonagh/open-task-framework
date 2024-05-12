@@ -28,6 +28,7 @@
     - [Building and uploading to PyPi](#building-and-uploading-to-pypi)
   - [Official Addons/Plugins](#official-addonsplugins)
     - [otf-addons-aws](#otf-addons-aws)
+    - [otf-addons-vault](#otf-addons-vault)
   - [Developing your own addon/plugin](#developing-your-own-addonplugin)
     - [Lookup Plugins](#lookup-plugins-1)
     - [Addons](#addons)
@@ -437,7 +438,15 @@ Lookup plugins:
 
 - Support for AWS SSM Parameter Store for retrieving global variables
 
+### [otf-addons-vault](https://github.com/adammcdonagh/otf-addons-vault)
+
+Lookup plugins:
+
+- Support for lookup of global variables from Hashicorp Vault
+
 ## Developing your own addon/plugin
+
+When using external libraries, be sure to add `opentaskpy.otflogging.set_log_file("<PACKAGE>")` somewhere to ensure that any additional logs from the 3rd party library make their way into the OTF logs.
 
 ### Lookup Plugins
 

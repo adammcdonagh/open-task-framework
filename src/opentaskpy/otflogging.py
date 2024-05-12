@@ -93,7 +93,11 @@ def _define_log_file_name(task_id: str | None, task_type: str | None) -> str:
 
 
 def init_logging(
-    name: str, task_id: str | None = None, task_type: str | None = None
+    name: str,
+    task_id: str | None = None,
+    task_type: str | None = None,
+    level: int = logging.INFO,
+    override_root_logger: bool = False,
 ) -> logging.Logger:
     """Setup a logger with the custom format and output filename.
 
@@ -101,7 +105,10 @@ def init_logging(
         name (str): The name of the logger, usually the class name, but can also
         reference the thread, or batch task
         task_id (str | None, optional): The Task ID. Defaults to None.
-        task_type (str | None, optional): The Task Type, either T for transfer, E for execution or B for batch. Defaults to None.
+        task_type (str | None, optional): The Task Type, either T for transfer, E for
+            execution or B for batch. Defaults to None, or WRAPPER if the task_id is not set yet
+        level (int, optional): The logging level. Defaults to logging.INFO.
+        override_root_logger (bool, optional): Whether to set up the root logger
 
     Returns:
         logging.Logger: The logger object used for logging output.
@@ -109,8 +116,15 @@ def init_logging(
     # Set the log format
     formatter = logging.Formatter(OTF_LOG_FORMAT)
 
+    # If the task_id isn't set yet, then use the env var
+    if not task_id:
+        task_id = os.getenv("OTF_TASK_ID")
+
+    if not task_type:
+        task_type = "WRAPPER"
+
     # Check if there's a root logger already
-    if not logging.getLogger().hasHandlers():
+    if override_root_logger:
         sfh = logging.StreamHandler()
 
         formatter = (
@@ -124,7 +138,7 @@ def init_logging(
         # Set the root logger
         logging.basicConfig(
             format=OTF_LOG_FORMAT,
-            level=logging.INFO,
+            level=level,
             handlers=[
                 sfh,
             ],
@@ -153,6 +167,7 @@ def init_logging(
     log_file_name = _define_log_file_name(task_id, task_type)
 
     tfh = TaskFileHandler(log_file_name)
+
     # Check there are no handlers of this class already with the same baseFilename
     if not any(
         isinstance(handler, TaskFileHandler)
@@ -165,6 +180,41 @@ def init_logging(
     otf_logger.debug("Logging initialised")
 
     return otf_logger
+
+
+def set_log_file(logger_name: str, task_type: str = None) -> None:
+    """Given a logger name, set the handler as appropriate for the current context.
+
+    Args:
+        logger_name (str): The name of the logger to set the handler for.
+        task_type (str, optional): The task type. Defaults to None.
+    """
+    _logger = logging.getLogger(logger_name)
+
+    task_id = os.environ.get("OTF_TASK_ID")
+
+    log_file_name = _define_log_file_name(
+        task_id, task_type if task_type else "WRAPPER"
+    )
+
+    formatter = logging.Formatter(OTF_LOG_FORMAT)
+
+    formatter = (
+        JSONFormatter(task_id)
+        if os.environ.get("OTF_LOG_JSON") and os.environ.get("OTF_LOG_JSON") == "1"
+        else formatter
+    )
+
+    tfh = TaskFileHandler(log_file_name)
+
+    # Check there are no handlers of this class already with the same baseFilename
+    if not any(
+        isinstance(handler, TaskFileHandler)
+        and handler.baseFilename == tfh.baseFilename
+        for handler in _logger.handlers
+    ):
+        _logger.addHandler(tfh)
+        tfh.setFormatter(formatter)
 
 
 def get_latest_log_file(task_id: str, task_type: str) -> str | None:
