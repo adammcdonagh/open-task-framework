@@ -435,6 +435,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             self.logger.info(f" * {file}")
 
         can_do_encryption = False
+        original_file_list = remote_files.copy()
         # If there's a destination file spec, then we need to transfer the files
         if self.dest_file_specs:
             # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
@@ -508,8 +509,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     exception=exceptions.DecryptionNotSupportedError,
                 )
 
-            original_file_list = remote_files.copy()
-
             # If it's requested and decryption is possible, then we need to decrypt the files
             if decryption_requested and can_do_encryption:
                 self.logger.info("Decrypting files")
@@ -570,9 +569,12 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                             f"{self.local_staging_dir}/{path.basename(file)}"
                         ] = remote_files[file]
 
+                    extension = dest_file_spec["encryption"].get(
+                        "output_extension", "gpg"
+                    )
                     # Loop through each file and encrypt it using gnupg
                     remote_files = self.encrypt_files(
-                        local_files, public_key, private_key
+                        local_files, public_key, private_key, extension
                     )
 
                     encrypted_files = remote_files.copy()
@@ -737,7 +739,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         return self.return_result(0)
 
     def encrypt_files(
-        self, files: dict, public_key: str, private_key: str | None = None
+        self,
+        files: dict,
+        public_key: str,
+        private_key: str | None = None,
+        extension: str = "gpg",
     ) -> dict:
         """Encrypt files using GPG.
 
@@ -745,6 +751,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             files (dict): Dictionary of files to encrypt.
             public_key (str): Public key to use for encryption.
             private_key (str, optional): Private key to use to sign the files. Defaults to None.
+            extension (str, optional): Extension to add to the encrypted files. Defaults to "gpg".
 
         Returns:
             dict: Dictionary of encrypted files.
@@ -787,7 +794,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
             # If the filename contains .gpg on the end, then the output file will be just that but without the extension,
             # if it doesn't contain .gpg, then we'll add .gpg to the end
-            output_filename = f"{file}.gpg"
+            output_filename = f"{file}.{extension}"
 
             with open(file, "rb") as input_file:
                 encryption_data = gpg.encrypt_file(
@@ -846,10 +853,12 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         decrypted_files = {}
         for file in files:
 
-            # If the filename contains .gpg on the end, then the output file will be just that but without the extension,
-            # if it doesn't contain .gpg, then we'll add .decrypted to the end
+            # If the filename contains .gpg or .pgp on the end, then the output file will be just that but without the extension,
+            # if it doesn't contain .gpg or .pgp, then we'll add .decrypted to the end
             output_filename = (
-                file.replace(".gpg", "") if ".gpg" in file else f"{file}.decrypted"
+                file.replace(".gpg", "").replace(".pgp", "")
+                if file.endswith((".gpg", ".pgp"))
+                else f"{file}.decrypted"
             )
 
             self.logger.info(f"Decrypting {file} to {output_filename}")

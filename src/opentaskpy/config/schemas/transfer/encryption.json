@@ -11,6 +11,10 @@
       "type": "boolean",
       "default": false
     },
+    "output_extension": {
+      "type": "string",
+      "default": "gpg"
+    },
     "sign": {
       "type": "boolean",
       "default": false

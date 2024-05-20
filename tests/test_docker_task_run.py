@@ -279,5 +279,5 @@ def test_standard_docker_image(
     # We dont care whether this worked or not, we just want to check the logs
     # Check that the log file exists containing scp-basic in the name in log_dir
     log_files = os.listdir(f"{log_dir}/docker_log_test")
-    assert len(log_files) == 1
+    assert len(log_files) == 2
     assert "scp-basic" in log_files[0]
