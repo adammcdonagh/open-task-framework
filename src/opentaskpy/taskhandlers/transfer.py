@@ -627,6 +627,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     if (
                         self.source_file_spec["protocol"]["name"] != "local"
                         and not decryption_requested
+                        and not encryption_requested
                     ):
                         transfer_result = (
                             associated_dest_remote_handler.push_files_from_worker(

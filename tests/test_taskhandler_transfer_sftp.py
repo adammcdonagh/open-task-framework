@@ -630,6 +630,143 @@ def test_sftp_encrypt_outgoing_file(
         new_file_checksum = hashlib.md5(f.read()).hexdigest()
     assert new_file_checksum == original_file_checksum
 
+    # Run the transfer again, except do a rename as part of the upload
+    sftp_task_definition_copy["destination"][0]["rename"] = {
+        "pattern": "^test.encryption.txt.gpg$",
+        "sub": "RENAMED.encryption.txt.pgp",
+    }
+    # Also upload the file to SFTP_1 instead of local
+    sftp_task_definition_copy["destination"][0]["protocol"] = {
+        "name": "sftp",
+        "credentials": {"username": "application"},
+    }
+    sftp_task_definition_copy["destination"][0]["hostname"] = "172.16.0.21"
+    sftp_task_definition_copy["destination"][0][
+        "directory"
+    ] = "/home/application/testFiles/dest"
+    sftp_task_definition_copy["destination"][0]["createDirectoryIfNotExists"] = True
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-encrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/RENAMED.encryption.txt.pgp"
+    )
+    # Check the unencrypted file doesn't exist
+    assert not os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/renamed.encryption.txt"
+    )
+
+    # Do the same again, but set the posixRename flag to false for the protocol and validate the same behaviour
+    sftp_task_definition_copy["destination"][0]["protocol"][
+        "supportsPosixRename"
+    ] = False
+    sftp_task_definition_copy["destination"][0]["rename"] = {
+        "pattern": "^test.encryption.txt.gpg$",
+        "sub": "NOPOSIXRENAME.encryption.txt.pgp",
+    }
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-encrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/NOPOSIXRENAME.encryption.txt.pgp"
+    )
+    # Check the unencrypted file doesn't exist
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/dest/test.encryption.txt")
+    assert not os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/NOPOSIXRENAME.encryption.txt"
+    )
+
+
+def test_sftp_encrypt_outgoing_file_from_local_source(
+    tmpdir, root_dir, setup_sftp_keys, private_key, public_key
+):
+
+    source_file = f"{root_dir}/testFiles/sftp_1/src/test.encryption.txt"
+
+    # Create a test file
+    fs.create_files([{f"{source_file}": {"content": "test12345678"}}])
+
+    # Checksum the file
+    with open(f"{source_file}", "rb") as f:
+        original_file_checksum = hashlib.md5(f.read()).hexdigest()
+
+    # Create a gpg object
+    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
+
+    # Import the public key
+    gpg.import_keys(private_key)
+
+    # run a transfer to copy the file locally, and encrypt it
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
+    sftp_task_definition_copy["source"]["protocol"] = {"name": "local"}
+    del sftp_task_definition_copy["source"]["hostname"]
+    sftp_task_definition_copy["source"][
+        "directory"
+    ] = f"/{root_dir}/testFiles/sftp_1/src"
+    sftp_task_definition_copy["source"]["fileRegex"] = "test.encryption.txt"
+
+    sftp_task_definition_copy["destination"][0]["rename"] = {
+        "pattern": "^test.encryption.txt.gpg$",
+        "sub": "RENAMED.encryption.txt.pgp",
+    }
+    # Also upload the file to SFTP_1 instead of local
+    sftp_task_definition_copy["destination"][0]["encryption"] = {
+        "encrypt": True,
+        "public_key": public_key,
+    }
+
+    sftp_task_definition_copy["destination"][0]["protocol"] = {
+        "name": "sftp",
+        "credentials": {"username": "application"},
+    }
+    sftp_task_definition_copy["destination"][0]["hostname"] = "172.16.0.21"
+    sftp_task_definition_copy["destination"][0][
+        "directory"
+    ] = "/home/application/testFiles/dest"
+    sftp_task_definition_copy["destination"][0]["createDirectoryIfNotExists"] = True
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-encrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/RENAMED.encryption.txt.pgp"
+    )
+    # Check the unencrypted file doesn't exist
+    assert not os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/renamed.encryption.txt"
+    )
+
+    # Do the same again, but set the posixRename flag to false for the protocol and validate the same behaviour
+    sftp_task_definition_copy["destination"][0]["protocol"][
+        "supportsPosixRename"
+    ] = False
+    sftp_task_definition_copy["destination"][0]["rename"] = {
+        "pattern": "^test.encryption.txt.gpg$",
+        "sub": "NOPOSIXRENAME.encryption.txt.pgp",
+    }
+
+    # Run the transfer
+    transfer_obj = transfer.Transfer(None, "sftp-encrypt", sftp_task_definition_copy)
+    assert transfer_obj.run()
+
+    # Check the output file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/NOPOSIXRENAME.encryption.txt.pgp"
+    )
+    # Check the unencrypted file doesn't exist
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/dest/test.encryption.txt")
+    assert not os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/dest/NOPOSIXRENAME.encryption.txt"
+    )
+
 
 def test_sftp_to_sftp_decrypt(
     root_dir, setup_sftp_keys, tmpdir, private_key, public_key
