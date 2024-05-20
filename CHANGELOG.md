@@ -1,5 +1,12 @@
 # Changelog
 
+# v24.21.0
+
+- Fixed renaming encrypted files when uploading via SFTP - Fixes [#79](https://github.com/adammcdonagh/open-task-framework/issues/79)
+- Fix WRAPPER log file to ensure it closes when a child task fails due to an Exception - Fixes [#81](https://github.com/adammcdonagh/open-task-framework/issues/81)
+- Allow different file extension for encrypted files. Added `output_extension` to allow a different file extension for GPG encrypted files, instead of the default `.gpg`
+- When decrypting, handle both .gpg and .pgp file extensions by default before reverting to .decrypted exetnsion
+
 # v24.19.1
 
 - Add additional timeout values for SFTP connections - Attempting to fix [#68](https://github.com/adammcdonagh/open-task-framework/issues/68)

@@ -132,6 +132,8 @@ def main() -> None:
         result = task_run_obj.run()
     except Exception as ex:  # pylint: disable=broad-exception-caught
         logger.error(f"Error running task: {ex}")
+        # Ensure that the log is closed
+        opentaskpy.otflogging.close_log_file(logger, False)
         if logger.getEffectiveLevel() <= 12:
             raise ex
         sys.exit(1)

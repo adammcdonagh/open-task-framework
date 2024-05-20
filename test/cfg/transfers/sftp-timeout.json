@@ -1,0 +1,27 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "localhost",
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": ".*\\.txt",
+    "protocol": {
+      "name": "sftp",
+      "port": 1234,
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  },
+  "destination": [
+    {
+      "hostname": "{{ HOST_B }}",
+      "directory": "/tmp/testFiles/dest",
+      "protocol": {
+        "name": "ssh",
+        "credentials": {
+          "username": "{{ SSH_USERNAME }}"
+        }
+      }
+    }
+  ]
+}
