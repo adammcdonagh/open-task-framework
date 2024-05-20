@@ -1,5 +1,6 @@
 # pylint: skip-file
 # ruff: noqa
+import ctypes
 import datetime
 import logging
 import os
@@ -30,6 +31,23 @@ Tests for the "binary" task runner
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
 )
+
+
+@pytest.fixture(scope="module")
+def log_dir(root_dir):
+    return f"{root_dir}/testLogs"
+
+
+@pytest.fixture(scope="function")
+def clear_logs(log_dir):
+    # Delete the output log directory
+    if os.path.exists(log_dir):
+        shutil.rmtree(log_dir)
+
+    # Create an empty directory for the logs
+    os.makedirs(log_dir, exist_ok=True)
+    # Check the directory exists
+    assert os.path.exists(log_dir)
 
 
 def test_noop_binary(env_vars, setup_ssh_keys, root_dir):
@@ -148,6 +166,73 @@ def test_binary_invalid_config_directory(env_vars, setup_ssh_keys, root_dir):
     assert result["returncode"] == 1
     # Check the output indicates that no variables could be loaded
     assert "Couldn't find any variables" in (result["stderr"])
+
+
+class thread_with_exception(threading.Thread):
+    def __init__(self, name):
+        threading.Thread.__init__(self)
+        self.name = name
+
+    def run(self):
+
+        import socket
+
+        # Create a TCP/IP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Bind the socket to the address
+        server_address = ("localhost", 1234)
+        sock.bind(server_address)
+        # Listen for incoming connections
+        sock.listen(1)
+
+    def get_id(self):
+
+        # returns id of the respective thread
+        if hasattr(self, "_thread_id"):
+            return self._thread_id
+        for id, thread in threading._active.items():
+            if thread is self:
+                return id
+
+    def raise_exception(self):
+        thread_id = self.get_id()
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            thread_id, ctypes.py_object(SystemExit)
+        )
+        if res > 1:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+            print("Exception raise failure")
+
+
+def test_binary_sftp_timeout(env_vars, setup_ssh_keys, root_dir):
+
+    # Start a new thread, listening in port 1234 that does nothing listen on the port and accept connections
+    # This will cause the sftp connection to timeout
+    t = thread_with_exception("Dummy socket")
+    t.start()
+
+    # Use the "binary" to trigger the job with command line arguments
+    assert run_task_run("sftp-timeout")["returncode"] == 1
+
+    # Kill the thread
+    t.raise_exception()
+
+    # Check the logs directory for the most recent log files in the sftp-timeout sub
+    # directory, there should be 2, both with _failed.log at the end of the filename
+    log_files = os.listdir("logs/sftp-timeout")
+
+    # Find the most recent 2 log files
+    log_files = sorted(
+        log_files,
+        key=lambda x: os.path.getmtime(f"logs/sftp-timeout/{x}"),
+        reverse=True,
+    )[:2]
+    # Check that they both have the same starting timestamp up to the _
+    assert log_files[0].split("_")[0] == log_files[1].split("_")[0]
+
+    # Check they both end with _failed
+    for file in log_files:
+        assert "_failed.log" in file
 
 
 """
