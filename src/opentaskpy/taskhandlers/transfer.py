@@ -435,6 +435,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             self.logger.info(f" * {file}")
 
         can_do_encryption = False
+        original_file_list = remote_files.copy()
         # If there's a destination file spec, then we need to transfer the files
         if self.dest_file_specs:
             # Loop through all dest_file specs and see if there are any transfers where the source and dest protocols are different
@@ -507,8 +508,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     "Decryption requested but not supported for this transfer",
                     exception=exceptions.DecryptionNotSupportedError,
                 )
-
-            original_file_list = remote_files.copy()
 
             # If it's requested and decryption is possible, then we need to decrypt the files
             if decryption_requested and can_do_encryption:
