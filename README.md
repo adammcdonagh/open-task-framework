@@ -18,6 +18,7 @@
   - [Runtime Overrides](#runtime-overrides)
   - [Lookup plugins](#lookup-plugins)
     - [Adding your own](#adding-your-own)
+    - [Advanced Variables](#advanced-variables)
     - [Example Variables](#example-variables)
 - [Task Definitions](#task-definitions)
   - [Transfers](#transfers)
@@ -29,6 +30,7 @@
   - [Official Addons/Plugins](#official-addonsplugins)
     - [otf-addons-aws](#otf-addons-aws)
     - [otf-addons-vault](#otf-addons-vault)
+    - [otf-addons-o365](#otf-addons-o365)
   - [Developing your own addon/plugin](#developing-your-own-addonplugin)
     - [Lookup Plugins](#lookup-plugins-1)
     - [Addons](#addons)
@@ -237,6 +239,40 @@ Alternatively a lookup plugin could be placed under `cfg/plugins` named `my_look
 "{{ lookup('my_lookup', name='my_param') }}"
 ```
 
+### Advanced Variables
+
+Some variables, such as access tokens or refresh tokens for OAuth might need to be updated as part of a transfer, if a new refresh_token is issued for example. This can be achieve by using the `cacheableVariables` attribute in the task definition.
+
+By default only "file" based cacheable variables are supported, but like lookup plugins and addons, it is possible to add functionality for your own.
+
+Cacheable variables should be defined using an equivalent caching plugin to the lookup plugin that is used by the template to retrieve it. For example the following task definition shows the "dummy" handler being used, where an "access_token" is retrieved using the file plugin. When the dummy handler updates the access_token, it uses the file caching plugin to write the updated variable to the same file:
+
+```json
+{
+  "task_id": 1234,
+  "type": "transfer",
+  "source": {
+    "accessToken": "{{ lookup('file', path='/tmp/cacheable_variable.txt') }}",
+    "protocol": { "name": "opentaskpy.remotehandlers.dummy" }
+  },
+  "cacheableVariables": [
+    {
+      "variableName": "source.accessToken",
+      "cachingPlugin": "file",
+      "cacheArgs": {
+        "file": "/tmp/cacheable_variable.txt"
+      }
+    }
+  ]
+}
+```
+
+The `cacheableVariables` attribute is a list of objects, each containing the following attributes:
+
+- `variableName` - The name of the variable to cache. This should be defined using dot notation with reference to the base of the task definition. e.g. `source.accessToken`. This also supports array indexing, e.g. `source.destinations[0].hostname` (though this is a very unlikely use case)
+- `cachingPlugin` - The name of the caching plugin to use. If anything other than "file" is used, the plugin must be available in the `opentaskpy.config.variablecaching` namespace, and fully qualified.
+- `cacheArgs` - A dictionary of arguments to pass to the caching plugin. This should be a dictionary or arguments required by the caching plugin, excluding the updated value itself.
+
 ### Example Variables
 
 Below are examples of some useful variables to start with:
@@ -438,11 +474,21 @@ Lookup plugins:
 
 - Support for AWS SSM Parameter Store for retrieving global variables
 
+Caching Plugins:
+
+- Support for caching variables to AWS Secrets Manager/Parameter Store
+
 ### [otf-addons-vault](https://github.com/adammcdonagh/otf-addons-vault)
 
 Lookup plugins:
 
 - Support for lookup of global variables from Hashicorp Vault
+
+### [otf-addons-o365](https://github.com/adammcdonagh/otf-addons-o365)
+
+Provides transfer addons:
+
+- Remote handler for interacting with Microsoft SharePoint Online
 
 ## Developing your own addon/plugin
 

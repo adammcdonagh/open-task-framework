@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/cacheable_variables.json",
+  "type": "object",
+  "properties": {
+    "variableName": {
+      "type": "string",
+      "description": "The name of the variable in the JSON schema to be cached. Use dot notation to access nested properties."
+    },
+    "cachingPlugin": {
+      "type": "string",
+      "description": "The cache plugin to use for caching the variable. This can be 'file' or refer to a custom cache plugin."
+    },
+    "cacheArgs": {
+      "type": "object",
+      "description": "Arguments to pass to the cache plugin. This can be used to configure the cache plugin."
+    }
+  },
+  "additionalProperties": false,
+  "required": ["variableName", "cachingPlugin", "cacheArgs"]
+}

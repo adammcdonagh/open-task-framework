@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "http://localhost/transfer/dummy_source/protocol.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": ["dummy"]
+    }
+  },
+  "required": ["name"],
+  "additionalProperties": false
+}
