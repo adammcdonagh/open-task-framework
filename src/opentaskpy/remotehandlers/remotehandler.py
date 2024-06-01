@@ -157,14 +157,22 @@ class RemoteTransferHandler(RemoteHandler):
         # We also need to handle arrays e.g. x.y[0] should return spec['x']['y'][0]
 
         # Not ideal, but don't want this loading all the time for no reason
-        from ast import literal_eval  # pylint: disable=import-outside-toplevel
+        from re import match  # pylint: disable=import-outside-toplevel
 
         from omegaconf import OmegaConf  # pylint: disable=import-outside-toplevel
 
         # pylint: disable-next=unused-variable
         dotted_dict = OmegaConf.create(spec)  # noqa: F841
 
-        return str(literal_eval(f"dotted_dict.{variable_name}"))
+        # Validate the variable_name is something safe, and just a string
+        if not match(r"^[\w.\[\]]+$", variable_name):
+            raise ValueError(
+                f"Variable name {variable_name} is not a valid variable name."
+            )
+
+        # Eval is needed explicitly here, the above should prevent the majority of bad
+        # code being executed
+        return str(eval(f"dotted_dict.{variable_name}"))  # nosec: B307
 
 
 class RemoteExecutionHandler(RemoteHandler):
