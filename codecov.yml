@@ -17,3 +17,4 @@ coverage:
 
 ignore:
   - "tests/*"
+  - "src/opentaskpy/remotehandlers/dummy.py"

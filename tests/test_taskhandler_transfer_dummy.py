@@ -23,6 +23,22 @@ dummy_task_definition = {
 }
 
 
+def test_dummy_transfer_cacheable_invalid_variable_name():
+    from opentaskpy.remotehandlers.dummy import DummyTransfer
+
+    dummy_task_definition["cacheableVariables"][0][
+        "variableName"
+    ] = "print('something_bad')"
+
+    with pytest.raises(ValueError) as e:
+        DummyTransfer(dummy_task_definition)
+        # Check the message
+    assert (
+        "Variable name print('something_bad') is not a valid variable name."
+        in e.value.args[0]
+    )
+
+
 def test_dummy_transfer(tmpdir):
     #  The key thing to test is that the access token
     #  is written to the cache file
