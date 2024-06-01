@@ -54,7 +54,6 @@ TRANSFER_SCHEMA = {
         "variables": {"type": "object"},
     },
     "required": ["type", "source"],
-    "additionalProperties": False,
 }
 
 # Determine the type of transfer, and apply the correct sub schema based on the protocol used
@@ -74,7 +73,6 @@ EXECUTION_SCHEMA = {
         "variables": {"type": "object"},
     },
     "required": ["type", "protocol"],
-    "additionalProperties": False,
 }
 
 # Declare a constant that cannot be changed
@@ -91,7 +89,6 @@ BATCH_SCHEMA = {
         },
     },
     "required": ["type", "tasks"],
-    "additionalProperties": False,
 }
 
 logger = opentaskpy.otflogging.init_logging(__name__)
