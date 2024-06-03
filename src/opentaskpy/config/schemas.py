@@ -138,7 +138,15 @@ def validate_transfer_json(json_data: dict) -> bool:
     new_schema: dict
 
     try:
-        validate(instance=json_data, schema=TRANSFER_SCHEMA)
+
+        # Load the schema file for XXX_source
+        resolver = Registry(retrieve=_retrieve_from_filesystem)
+
+        validator = DefaultValidatingValidator(
+            TRANSFER_SCHEMA,
+            registry=resolver,
+        )
+        validator.validate(json_data)
 
         # If this works, then determine the protocol and apply the correct sub schema
         # Source protocol
@@ -151,9 +159,6 @@ def validate_transfer_json(json_data: dict) -> bool:
         schema_dir = files("opentaskpy.config").joinpath("schemas")
         # This gets us the right path for default protocol schemas. But we need to be able to load custom schemas too
         # based on the protocol name, we need to find the location of the package using the files() function
-
-        # Load the schema file for XXX_source
-        resolver = Registry(retrieve=_retrieve_from_filesystem)
 
         # source_protocol is the class name within the plugin, we need to determine if it's a default protocol or a custom one
         # If it's a default protocol, then we can use the files() function to get the path to the schema file

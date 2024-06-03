@@ -43,6 +43,9 @@ DEFAULT_PROTOCOL_MAP = {
     "local": DefaultProtocolCharacteristics(
         "opentaskpy.remotehandlers.local", "LocalTransfer"
     ),
+    "dummy": DefaultProtocolCharacteristics(
+        "opentaskpy.remotehandlers.dummy", "DummyTransfer"
+    ),
 }
 DEFAULT_STAGING_DIR_BASE = "/tmp"  # nosec B108
 

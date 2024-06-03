@@ -1,0 +1,19 @@
+{
+  "$id": "http://localhost/transfer/ssh_source.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "accessToken": {
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "http://localhost/transfer/dummy_source/protocol.json"
+    },
+    "cacheableVariables": {
+      "type": "array",
+      "items": { "$ref": "http://localhost/cacheable_variables.json" }
+    }
+  },
+  "additionalProperties": false,
+  "required": ["accessToken", "protocol"]
+}

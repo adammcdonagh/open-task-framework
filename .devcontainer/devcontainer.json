@@ -66,6 +66,16 @@
           "editor.defaultFormatter": "ms-python.black-formatter"
         }
       }
+    },
+    "codespaces": {
+      "repositories": {
+        "adammcdonagh/otf-addons-aws": {
+          "permissions": "write-all"
+        },
+        "adammcdonagh/otf-addons-o365": {
+          "permissions": "write-all"
+        }
+      }
     }
   }
   // Configure tool-specific properties.

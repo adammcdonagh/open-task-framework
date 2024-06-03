@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.23.0
+
+- Added new `cacheableVariables` option for transfers. This allows you to specify a list of variables that should be cached and written back to somewhere (depending on the `cachingPlugin` referenced). This is useful for dynamically updated variables that need to be stored centrally. For more detail see the `README.md`ß
+
 # v24.21.0
 
 - Fixed renaming encrypted files when uploading via SFTP - Fixes [#79](https://github.com/adammcdonagh/open-task-framework/issues/79)

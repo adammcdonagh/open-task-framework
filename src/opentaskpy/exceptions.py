@@ -83,6 +83,14 @@ class LookupPluginError(Exception):
         super().__init__(message)
 
 
+class CachingPluginError(Exception):
+    """Caching plugin error."""
+
+    def __init__(self, message):
+        """Call the base class constructor."""
+        super().__init__(message)
+
+
 class VariableResolutionTooDeepError(Exception):
     """Variable resolution too deep error."""
 

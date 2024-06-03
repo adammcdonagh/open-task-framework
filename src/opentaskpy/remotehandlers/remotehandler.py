@@ -131,8 +131,48 @@ class RemoteTransferHandler(RemoteHandler):
             int: The result of the transfer. 0 for success, 1 for failure.
         """
 
+    def handle_cacheable_variables(self) -> None:
+        """Handle cacheable variables.
+
+        This method is called whenever appropriate in the flow of the remote handler. It
+        should handle any cacheable variables that need to be updated by calling the
+        appropriate caching plugin.
+        """
+
     def tidy(self) -> None:
         """Tidy up after the transfer, if necessary. Otherwise do nothing."""
+
+    def obtain_variable_from_spec(self, variable_name: str, spec: dict) -> str:
+        """Using the spec, obtain the current value of the variable.
+
+        Args:
+            variable_name (str): The name of the variable to obtain.
+            spec (dict): The spec to search for the variable.
+
+        Returns:
+            str: The value of the variable.
+        """
+        # Look in the dictionary for the variable based on the variable name
+        # e.g. if the variable name is x.y obtain the value of spec['x']['y']
+        # We also need to handle arrays e.g. x.y[0] should return spec['x']['y'][0]
+
+        # Not ideal, but don't want this loading all the time for no reason
+        from re import match  # pylint: disable=import-outside-toplevel
+
+        from omegaconf import OmegaConf  # pylint: disable=import-outside-toplevel
+
+        # pylint: disable-next=unused-variable
+        dotted_dict = OmegaConf.create(spec)  # noqa: F841
+
+        # Validate the variable_name is something safe, and just a string
+        if not match(r"^[\w.\[\]]+$", variable_name):
+            raise ValueError(
+                f"Variable name {variable_name} is not a valid variable name."
+            )
+
+        # Eval is needed explicitly here, the above should prevent the majority of bad
+        # code being executed
+        return str(eval(f"dotted_dict.{variable_name}"))  # nosec: B307
 
 
 class RemoteExecutionHandler(RemoteHandler):
