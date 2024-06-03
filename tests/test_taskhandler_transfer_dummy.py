@@ -5,22 +5,25 @@ from copy import deepcopy
 
 import pytest
 
+from opentaskpy.exceptions import FilesDoNotMeetConditionsError
+from opentaskpy.taskhandlers import transfer
+
 dummy_task_definition = {
     "task_id": 1234,
     "type": "transfer",
     "source": {
         "accessToken": "0",
-        "protocol": {"name": "opentaskpy.remotehandlers.dummy"},
+        "protocol": {"name": "dummy"},
+        "cacheableVariables": [
+            {
+                "variableName": "accessToken",
+                "cachingPlugin": "file",
+                "cacheArgs": {
+                    "file": "/tmp/cacheable_variable.txt",
+                },
+            }
+        ],
     },
-    "cacheableVariables": [
-        {
-            "variableName": "source.accessToken",
-            "cachingPlugin": "file",
-            "cacheArgs": {
-                "file": "/tmp/cacheable_variable.txt",
-            },
-        }
-    ],
 }
 
 
@@ -50,11 +53,15 @@ def test_dummy_transfer(tmpdir):
 
     dummy_task_definition_copy = deepcopy(dummy_task_definition)
 
-    dummy_task_definition_copy["cacheableVariables"][0]["cacheArgs"][
+    dummy_task_definition_copy["source"]["cacheableVariables"][0]["cacheArgs"][
         "file"
     ] = f"{tmpdir}/cacheable_variable.txt"
 
-    dummy_transfer = DummyTransfer(dummy_task_definition_copy)
+    dummy_transfer_obj = transfer.Transfer(
+        None, "dummy-transfer", dummy_task_definition_copy
+    )
+    with pytest.raises(FilesDoNotMeetConditionsError) as e:
+        dummy_transfer_obj.run()
 
     # Check the cache file exists on the filesystem
     assert os.path.exists(f"{tmpdir}/cacheable_variable.txt")
