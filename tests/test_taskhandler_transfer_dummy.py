@@ -9,9 +9,9 @@ from opentaskpy.exceptions import FilesDoNotMeetConditionsError
 from opentaskpy.taskhandlers import transfer
 
 dummy_task_definition = {
-    "task_id": 1234,
     "type": "transfer",
     "source": {
+        "taskId": 123,
         "accessToken": "0",
         "protocol": {"name": "dummy"},
         "cacheableVariables": [
@@ -33,12 +33,12 @@ def test_dummy_transfer_cacheable_invalid_variable_name():
     # Copy the task definition
     dummy_task_definition_copy = deepcopy(dummy_task_definition)
 
-    dummy_task_definition_copy["cacheableVariables"][0][
+    dummy_task_definition_copy["source"]["cacheableVariables"][0][
         "variableName"
     ] = "print('something_bad')"
 
     with pytest.raises(ValueError) as e:
-        DummyTransfer(dummy_task_definition_copy)
+        DummyTransfer(dummy_task_definition_copy["source"])
         # Check the message
     assert (
         "Variable name print('something_bad') is not a valid variable name."
