@@ -26,7 +26,7 @@ class DummyTransfer(RemoteTransferHandler):
 
         # Pretend that this handler does something, and gets a new accessToken, we need
         # to update the cache with this new value
-        self.spec["source"]["accessToken"] = randint(1, 100000)
+        self.spec["accessToken"] = randint(1, 100000)
 
         # If there's cacheable variables, handle them
         if "cacheableVariables" in spec:

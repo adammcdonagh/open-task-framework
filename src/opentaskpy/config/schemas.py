@@ -47,10 +47,6 @@ TRANSFER_SCHEMA = {
                 "required": ["protocol"],
             },
         },
-        "cacheableVariables": {
-            "type": "array",
-            "items": {"$ref": "http://localhost/cacheable_variables.json"},
-        },
         "variables": {"type": "object"},
     },
     "required": ["type", "source"],

@@ -23,19 +23,20 @@ def test_dummy_with_cachable_variables(valid_source_definition):
     json_data = {
         "type": "transfer",
         "source": valid_source_definition,
-        "cacheableVariables": [
-            {
-                "variableName": "source.accessToken",
-                "cachingPlugin": "file",
-                "cacheArgs": {
-                    "file": "/tmp/cacheable_variable.txt",
-                },
-            }
-        ],
     }
+
+    json_data["source"]["cacheableVariables"] = [
+        {
+            "variableName": "accessToken",
+            "cachingPlugin": "file",
+            "cacheArgs": {
+                "file": "/tmp/cacheable_variable.txt",
+            },
+        }
+    ]
 
     assert validate_transfer_json(json_data)
 
     # Remove the cacheArgs and validate the validation fails
-    del json_data["cacheableVariables"][0]["cacheArgs"]
+    del json_data["source"]["cacheableVariables"][0]["cacheArgs"]
     assert not validate_transfer_json(json_data)

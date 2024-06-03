@@ -8,6 +8,10 @@
     },
     "protocol": {
       "$ref": "http://localhost/transfer/dummy_source/protocol.json"
+    },
+    "cacheableVariables": {
+      "type": "array",
+      "items": { "$ref": "http://localhost/cacheable_variables.json" }
     }
   },
   "additionalProperties": false,
