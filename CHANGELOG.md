@@ -3,6 +3,7 @@
 # v24.25.0
 
 - Remove stray `\\n` characters from private and public keys when doing encryption/decryption, and replace with proper newlines
+- Fix workflow for changelog checking
 
 # v24.23.0
 
