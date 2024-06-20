@@ -770,6 +770,9 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # Set up gnupg
         gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
 
+        # Remove any escaped newline characters from the key
+        public_key = public_key.replace("\\n", "\n")
+
         # Load the public key
         import_result = gpg.import_keys(public_key)
 
@@ -846,6 +849,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         # Set up gnupg
         gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
+
+        private_key = private_key.replace("\\n", "\n")
 
         # Load the private key
         import_result = gpg.import_keys(private_key)
