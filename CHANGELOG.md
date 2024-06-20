@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.25.0
+
+- Remove stray `\\n` characters from private and public keys when doing encryption/decryption, and replace with proper newlines
+
 # v24.23.0
 
 - Added new `cacheableVariables` option for transfers. This allows you to specify a list of variables that should be cached and written back to somewhere (depending on the `cachingPlugin` referenced). This is useful for dynamically updated variables that need to be stored centrally. For more detail see the `README.md`ß
