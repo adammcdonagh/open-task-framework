@@ -487,9 +487,14 @@ class SFTPTransfer(RemoteTransferHandler):
                             f"[{self.spec['hostname']}] Renaming {file} to"
                             f" {new_file_dir}/{new_file_name}"
                         )
-                        self.sftp_client.posix_rename(
-                            file, f"{new_file_dir}/{new_file_name}"
-                        )
+                        if self.spec["protocol"].get("supportsPosixRename", True):
+                            self.sftp_client.posix_rename(
+                                file, f"{new_file_dir}/{new_file_name}"
+                            )
+                        else:
+                            self.sftp_client.rename(
+                                file, f"{new_file_dir}/{new_file_name}"
+                            )
                 except OSError as e:
                     self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
                     self.logger.error(
