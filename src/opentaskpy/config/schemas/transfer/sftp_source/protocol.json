@@ -10,6 +10,10 @@
     "port": {
       "type": "integer"
     },
+    "supportsPosixRename": {
+      "type": "boolean",
+      "default": true
+    },
     "credentials": {
       "type": "object",
       "properties": {

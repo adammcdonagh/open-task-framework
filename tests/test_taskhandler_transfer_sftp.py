@@ -941,6 +941,34 @@ def test_pca_move(root_dir, setup_sftp_keys):
     assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/archive/pca_move_bad.txt")
 
 
+def test_pca_move_posix(root_dir, setup_sftp_keys):
+    # Empty the PCA archive directory
+    for file in os.listdir(f"{root_dir}/testFiles/sftp_1/archive"):
+        os.remove(f"{root_dir}/testFiles/sftp_1/archive/{file}")
+
+    # Create the test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/sftp_1/src/pca_move.txt": {"content": "test1234"}}]
+    )
+
+    # Create a transfer object, but set the posixRename flag to false
+    sftp_pca_move_task_definition_1["source"]["protocol"]["supportsPosixRename"] = False
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-move", sftp_pca_move_task_definition_1
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/pca_move.txt")
+    # Check the source file no longer exists
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/src/pca_move.txt")
+
+    # Check the source file has been archived
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_1/archive/pca_move.txt")
+
+
 def test_pca_delete(root_dir, setup_sftp_keys):
     # Create the next test file
     fs.create_files(
@@ -1000,6 +1028,37 @@ def test_pca_rename(root_dir, setup_sftp_keys):
     fs.create_files(
         [{f"{root_dir}/testFiles/sftp_1/src/pca_rename_1.txt": {"content": "test1234"}}]
     )
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-rename", sftp_pca_rename_task_definition_1
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/pca_rename_1.txt")
+    # Check the source file no longer exists
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/src/pca_rename_1.txt")
+
+    # Check the source file has been archived
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_1/archive/pca_renamed_1.txt")
+
+
+def test_pca_rename_posix(root_dir, setup_sftp_keys):
+
+    # Empty the PCA archive directory
+    for file in os.listdir(f"{root_dir}/testFiles/sftp_1/archive"):
+        os.remove(f"{root_dir}/testFiles/sftp_1/archive/{file}")
+
+    # Create the test file
+    fs.create_files(
+        [{f"{root_dir}/testFiles/sftp_1/src/pca_rename_1.txt": {"content": "test1234"}}]
+    )
+
+    sftp_pca_rename_task_definition_1["source"]["protocol"][
+        "supportsPosixRename"
+    ] = False
+
     # Create a transfer object
     transfer_obj = transfer.Transfer(
         None, "scp-pca-rename", sftp_pca_rename_task_definition_1
