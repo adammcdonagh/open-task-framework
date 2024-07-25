@@ -458,10 +458,16 @@ class SFTPTransfer(RemoteTransferHandler):
                         )
                         # Get the actual file name
                         file_name = os.path.basename(file)
-                        self.sftp_client.posix_rename(
-                            file,
-                            f"{self.spec['postCopyAction']['destination']}/{file_name}",
-                        )
+                        if self.spec["protocol"].get("supportsPosixRename", True):
+                            self.sftp_client.posix_rename(
+                                file,
+                                f"{self.spec['postCopyAction']['destination']}/{file_name}",
+                            )
+                        else:
+                            self.sftp_client.rename(
+                                file,
+                                f"{self.spec['postCopyAction']['destination']}/{file_name}",
+                            )
                     # If this is a rename, then we need to rename the file
                     if self.spec["postCopyAction"]["action"] == "rename":
                         # Determine the new file name

@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.30.0
+
+- Add `supportsPosixRename` option to SFTP source so that post copy actions will work on server that don't support POSIX renames
+
 # v24.25.0
 
 - Remove stray `\\n` characters from private and public keys when doing encryption/decryption, and replace with proper newlines
