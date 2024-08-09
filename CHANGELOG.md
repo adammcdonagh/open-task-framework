@@ -1,5 +1,9 @@
 # Changelog
 
+# No version update
+
+- Add dependabot config
+
 # v24.30.0
 
 - Add `supportsPosixRename` option to SFTP source so that post copy actions will work on server that don't support POSIX renames
