@@ -2,7 +2,7 @@
 
 # No version update
 
-- Add dependabot config
+- Add dependabot config.
 
 # v24.30.0
 
