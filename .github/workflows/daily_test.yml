@@ -1,0 +1,45 @@
+name: Daily Test
+
+env:
+  DEFAULT_PYTHON: "3.11"
+  PRE_COMMIT_CACHE: ~/.cache/pre-commit
+  KEY_PREFIX: base-venv
+  CACHE_VERSION: 1
+# yamllint disable-line rule:truthy
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-base:
+    name: Prepare base dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3.5.2
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        id: python
+        uses: actions/setup-python@v4.6.0
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          check-latest: true
+      - name: Create Python virtual environment
+        run: |
+          python -m venv venv
+          . venv/bin/activate
+          python -m pip install -U pip setuptools wheel
+          pip install -U ".[dev]"
+      - name: Run tests
+        env:
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          . venv/bin/activate
+          pip install -U .
+          python -m pytest
