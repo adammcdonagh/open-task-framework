@@ -168,7 +168,7 @@ def test_get_latest_log_file(env_vars):
     # Run the function again and validate that it returns this file
     print("Testing finding a failed log to resume from")
     print(f"Expect to find {failed_file}")
-    assert not opentaskpy.otflogging.get_latest_log_file(None, "B") == failed_file
+    assert opentaskpy.otflogging.get_latest_log_file(None, "B") == failed_file
 
     # Create a new file that has succeeded, make sure it still returns None, as the latest
     # state is success
