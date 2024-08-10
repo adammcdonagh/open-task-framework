@@ -1,8 +1,10 @@
 # Changelog
 
-# No version update
+# v24.31.0
 
 - Add dependabot config.
+- Add debug logging to `get_latest_log_file` function
+- Fix test for `get_latest_log_file` function to clear the log directory before running the test
 
 # v24.30.0
 
