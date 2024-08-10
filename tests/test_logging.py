@@ -3,11 +3,12 @@
 import logging
 import os
 import re
+import shutil
 import time
 from datetime import datetime
 
 import opentaskpy.otflogging
-from tests.fixtures.ssh_clients import *  # noqa: F403
+from tests.fixtures.ssh_clients import *  # noqa: F403, F401
 
 
 def test_define_log_file_name(env_vars, tmpdir, top_level_root_dir):
@@ -120,8 +121,13 @@ def test_get_latest_log_file(env_vars):
     # Setup some dummy log files
     log_path = "test/testLogs"
     os.environ["OTF_LOG_DIRECTORY"] = log_path
+    # Set debug logging
+    opentaskpy.otflogging.logger.setLevel(logging.DEBUG)
 
     last_created_file = None
+
+    # Empty the log directory
+    shutil.rmtree(log_path, ignore_errors=True)
 
     # loop 1 to 10
     for _ in range(1, 11):
@@ -146,14 +152,23 @@ def test_get_latest_log_file(env_vars):
     # Rename the last created file to remove the _running suffix
     os.rename(last_created_file, last_created_file.replace("_running", ""))
     last_created_file = last_created_file.replace("_running", "")
+
+    # Check the rename worked
+    assert os.path.exists(last_created_file)
+
     # Run the function again and validate that it still returns nothing
     assert opentaskpy.otflogging.get_latest_log_file(None, "B") is None
 
     # Rename this file to _failed
-    os.rename(last_created_file, last_created_file.replace("_B", "_B_failed"))
-    last_created_file = last_created_file.replace("_B", "_B_failed")
+    failed_file = last_created_file.replace("_B", "_B_failed")
+    os.rename(last_created_file, failed_file)
+    # Check the rename worked
+    assert os.path.exists(failed_file)
+
     # Run the function again and validate that it returns this file
-    assert opentaskpy.otflogging.get_latest_log_file(None, "B") == last_created_file
+    print("Testing finding a failed log to resume from")
+    print(f"Expect to find {failed_file}")
+    assert opentaskpy.otflogging.get_latest_log_file(None, "B") == failed_file
 
     # Create a new file that has succeeded, make sure it still returns None, as the latest
     # state is success

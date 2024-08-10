@@ -236,11 +236,14 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
     # Also, we don't want to limit to running jobs, only failed or successful ones
     log_file_name = log_file_name.replace("_running", "(_failed)*")
 
+    logger.debug(f"Looking for log file: {log_file_name}")
     if not os.path.exists(os.path.dirname(log_file_name)):
         return None
 
     # List the contents of the directory
     log_files = os.listdir(os.path.dirname(log_file_name))
+    logger.debug(f"Found {len(log_files)} files")
+    logger.debug(f"Log files: {log_files}")
     # Filter the list to only include files that match the log_file_name, and contain a valid date/time prefix
     log_files = [
         f
@@ -248,6 +251,9 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
         if re.match(os.path.basename(log_file_name), f)
         and re.match(r"\d{8}-\d{6}\.\d{3}", f.split("_")[0])
     ]
+    logger.debug(
+        f"Log files after filtering out logs that dont have valid date prefix and {log_file_name}: {log_files}"
+    )
 
     # Unless another date is given, only look at today's logs
     batch_resume_date = datetime.now().date()
@@ -263,9 +269,13 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
         if datetime.strptime(f.split("_")[0], "%Y%m%d-%H%M%S.%f").date()
         == batch_resume_date
     ]
+    logger.debug(
+        f"Log files after filtering out logs that dont match date: {log_files}"
+    )
 
     # Sort the list by the date/time in the filename
     log_files.sort(key=lambda x: datetime.strptime(x.split("_")[0], "%Y%m%d-%H%M%S.%f"))
+    logger.debug(f"Log files after sorting: {log_files}")
     # Get the latest log file
     if log_files:
         log_file_name = f"{os.path.dirname(log_file_name)}/{log_files[-1]}"
