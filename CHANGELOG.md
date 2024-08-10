@@ -1,6 +1,6 @@
 # Changelog
 
-# v24.31.0
+# v24.32.0
 
 - Add dependabot config.
 - Add debug logging to `get_latest_log_file` function
