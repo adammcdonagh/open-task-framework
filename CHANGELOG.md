@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.36.1
+
+Revert removal of some local transfer tests
+
 # v24.36.0
 
 - Add the option to specify conditionals for minimum and maximum expected counts of files matching regex to local, sftp and ssh sources
