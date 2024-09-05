@@ -287,6 +287,55 @@ fail_invalid_protocol_task_definition = {
     },
 }
 
+# Count conditional tests
+sftp_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.21",
+        "directory": "/home/application/testFiles/src",
+        "fileRegex": "counts[0-9]\\.txt",
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+        },
+        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.22",
+            "directory": "/home/application/testFiles/dest",
+            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
+sftp_file_watch_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.21",
+        "directory": "/home/application/testFiles/src",
+        "fileRegex": "counts_watch[0-9]\\.txt",
+        "fileWatch": {"timeout": 5},
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+            "checkDuringFilewatch": True,
+        },
+        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.22",
+            "directory": "/home/application/testFiles/dest",
+            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 
 def test_remote_handler(setup_sftp_keys):
     # Validate that given a transfer with sftp protocol, that we get a remote handler of type SFTP
@@ -1140,3 +1189,149 @@ def test_sftp_proxy(root_dir, setup_sftp_keys):
 
     # Ensure that local files are tidied up
     assert not os.path.exists(local_staging_dir)
+
+
+def test_sftp_counts(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{root_dir}/testFiles/sftp_1/src/counts1.txt": {"content": "test1234"}},
+            {f"{root_dir}/testFiles/sftp_1/src/counts2.txt": {"content": "test1234"}},
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(None, "sftp-counts", sftp_task_with_counts)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_sftp_counts_error(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_error1.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+    sftp_task_with_counts_error = deepcopy(sftp_task_with_counts)
+    sftp_task_with_counts_error["source"]["fileRegex"] = "counts_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "sftp-filewatch-counts-error-min",
+        sftp_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_error2.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_error3.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "sftp-filewatch-counts-error-max",
+        sftp_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+
+def test_sftp_filewatch_counts(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_watch1.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_watch2.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "sftp-filewatch-counts", sftp_file_watch_task_with_counts
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_sftp_filewatch_counts_error(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_watch_error1.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+    sftp_file_watch_task_with_counts_error = deepcopy(sftp_file_watch_task_with_counts)
+    sftp_file_watch_task_with_counts_error["source"][
+        "fileRegex"
+    ] = "counts_watch_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "sftp-filewatch-counts-error-min",
+        sftp_file_watch_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_watch_error2.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/sftp_1/src/counts_watch_error3.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "sftp-filewatch-counts-error-max",
+        sftp_file_watch_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
+        transfer_obj.run()

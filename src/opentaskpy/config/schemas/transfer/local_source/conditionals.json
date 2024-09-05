@@ -42,6 +42,29 @@
         }
       ],
       "additionalProperties": false
+    },
+    "count": {
+      "type": "object",
+      "properties": {
+        "minCount": {
+          "type": "integer"
+        },
+        "maxCount": {
+          "type": "integer"
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["minCount"]
+        },
+        {
+          "required": ["maxCount"]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "checkDuringFilewatch": {
+      "type": "boolean"
     }
   },
   "additionalProperties": false

@@ -279,6 +279,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 if "fileRegex" in self.source_file_spec["fileWatch"]
                 else self.source_file_spec["fileRegex"]
             )
+            # Determine if we should check for file conditionals during filewatch, or only after watch is completed
+            check_conditionals_during_filewatch = (
+                "conditionals" in self.source_file_spec
+                and "checkDuringFilewatch" in self.source_file_spec["conditionals"]
+            )
 
             self.logger.info(
                 f"Performing a file watch on {watch_directory}/{watch_file_pattern}"
@@ -295,6 +300,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
+                if check_conditionals_during_filewatch and remote_files:
+                    self.check_conditionals(remote_files)
                 # TODO: #5 Change all references to remote_files to expect a generator # pylint: disable=fixme
                 if remote_files:
                     self.logger.info("Filewatch found remote file(s)")
@@ -314,7 +321,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 actual_sleep_seconds = max(actual_sleep_seconds, 0)
 
                 self.logger.info(
-                    f"No files found. Sleeping for {sleep_seconds} secs."
+                    f"No valid files found. Sleeping for {sleep_seconds} secs."
                     f" {remaining_seconds} seconds remain"
                 )
                 time.sleep(actual_sleep_seconds)
@@ -332,13 +339,13 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     and not self.source_file_spec["error"]
                 ):
                     self.logger.info(
-                        "No files found after timeout, but error is set to false"
+                        "Valid files not found after timeout, but error is set to false"
                     )
-                    return self.return_result(0, "No files found")
+                    return self.return_result(0, "Valid files not found")
 
                 return self.return_result(
                     1,
-                    f"No files found after {timeout_seconds} seconds",
+                    f"No valid files found after {timeout_seconds} seconds",
                     exception=exceptions.RemoteFileNotFoundError,
                 )
 
@@ -351,85 +358,21 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         decrypted_files = {}
         encrypted_files = {}
 
-        # Loop through the returned files to see if they match the file age and size spec (if defined)
+        # Loop through the returned files to see if they match any conditionals ( file age, size spec, counts) (if defined)
         if "conditionals" in self.source_file_spec and remote_files:
-            for remote_file in list(remote_files):
-                self.logger.info(f"Checking {remote_file}")
-
-                # Check to see if there's a size condition
-                meets_condition = True
-
-                if "size" in self.source_file_spec["conditionals"]:
-                    self.logger.log(12, "Checking file size")
-                    min_size = self.source_file_spec["conditionals"]["size"].get(
-                        "gt", None
-                    )
-                    max_size = self.source_file_spec["conditionals"]["size"].get(
-                        "lt", None
-                    )
-
-                    file_size = remote_files[remote_file]["size"]
-
-                    if min_size and file_size <= min_size:
-                        self.logger.info(
-                            f"File is too small: Min size: [{min_size} B] Actual size:"
-                            f" [{file_size} B]"
-                        )
-                        meets_condition = False
-
-                    if max_size and file_size >= max_size:
-                        self.logger.info(
-                            f"File is too big: Max size: [{max_size} B] Actual size:"
-                            f" [{file_size} B]"
-                        )
-                        meets_condition = False
-
-                if "age" in self.source_file_spec["conditionals"]:
-                    min_age = self.source_file_spec["conditionals"]["age"].get(
-                        "gt", None
-                    )
-                    max_age = self.source_file_spec["conditionals"]["age"].get(
-                        "lt", None
-                    )
-
-                    file_modified_time = remote_files[remote_file]["modified_time"]
-                    file_age = time.time() - file_modified_time
-
-                    self.logger.log(
-                        12,
-                        "Checking file age - Last modified time:"
-                        f" {time.ctime(file_modified_time)} - Age in secs:"
-                        f" {file_age} secs",
-                    )
-
-                    if min_age and file_age <= min_age:
-                        self.logger.info(
-                            f"File is too new: Min age: [{min_age} secs] Actual age:"
-                            f" [{file_age} secs]"
-                        )
-                        meets_condition = False
-
-                    if max_age and file_age >= max_age:
-                        self.logger.info(
-                            f"File is too old: Max age: [{max_age} secs] Actual age:"
-                            f" [{file_age} secs]"
-                        )
-                        meets_condition = False
-
-                if not meets_condition:
-                    remote_files.pop(remote_file)
+            remote_files = self.check_conditionals(remote_files)
 
         if not remote_files:
             if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,
-                    "No remote files could be found to transfer. But not erroring"
+                    "Valid remote files could not be found to transfer. But not erroring"
                     " due to config",
                 )
 
             return self.return_result(
                 1,
-                "No remote files could be found to transfer",
+                "Valid remote files could not be found to transfer",
                 exception=exceptions.FilesDoNotMeetConditionsError,
             )
 
@@ -901,3 +844,85 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         self.logger.debug(f"Returning decrypted files: {decrypted_files}")
 
         return decrypted_files
+
+    def check_conditionals(self, remote_files: dict) -> dict:
+        """Check conditionals of found files.
+
+        Args:
+            remote_files (dict): Dictionary of files found matching regex.
+
+        Returns:
+            dict: Dictionary of decrypted files.
+        """
+        for remote_file in list(remote_files):
+            self.logger.info(f"Checking {remote_file}")
+
+            # Check to see if there's a size condition
+            meets_condition = True
+
+            if "size" in self.source_file_spec["conditionals"]:
+                self.logger.log(12, "Checking file size")
+                min_size = self.source_file_spec["conditionals"]["size"].get("gt", None)
+                max_size = self.source_file_spec["conditionals"]["size"].get("lt", None)
+
+                file_size = remote_files[remote_file]["size"]
+
+                if min_size and file_size <= min_size:
+                    self.logger.info(
+                        f"File is too small: Min size: [{min_size} B] Actual size:"
+                        f" [{file_size} B]"
+                    )
+                    meets_condition = False
+
+                if max_size and file_size >= max_size:
+                    self.logger.info(
+                        f"File is too big: Max size: [{max_size} B] Actual size:"
+                        f" [{file_size} B]"
+                    )
+                    meets_condition = False
+
+            if "age" in self.source_file_spec["conditionals"]:
+                min_age = self.source_file_spec["conditionals"]["age"].get("gt", None)
+                max_age = self.source_file_spec["conditionals"]["age"].get("lt", None)
+
+                file_modified_time = remote_files[remote_file]["modified_time"]
+                file_age = time.time() - file_modified_time
+
+                self.logger.log(
+                    12,
+                    "Checking file age - Last modified time:"
+                    f" {time.ctime(file_modified_time)} - Age in secs:"
+                    f" {file_age} secs",
+                )
+
+                if min_age and file_age <= min_age:
+                    self.logger.info(
+                        f"File is too new: Min age: [{min_age} secs] Actual age:"
+                        f" [{file_age} secs]"
+                    )
+                    meets_condition = False
+
+                if max_age and file_age >= max_age:
+                    self.logger.info(
+                        f"File is too old: Max age: [{max_age} secs] Actual age:"
+                        f" [{file_age} secs]"
+                    )
+                    meets_condition = False
+            if not meets_condition:
+                remote_files.pop(remote_file)
+        if "count" in self.source_file_spec["conditionals"]:
+            min_count = self.source_file_spec["conditionals"]["count"].get(
+                "minCount", None
+            )
+            max_count = self.source_file_spec["conditionals"]["count"].get(
+                "maxCount", None
+            )
+            # clear remote_files to ensure filewatch continues if count conditionals not correct
+            if (max_count and (len(remote_files) > max_count)) or (
+                min_count and (len(remote_files) < min_count)
+            ):
+                self.logger.info(
+                    f"Number of found files {len(remote_files)} does not meet minCount/maxCount conditional: maxCount:{max_count if max_count else 'n/a'}, minCount:{min_count if min_count else 'n/a'}"
+                )
+                remote_files.clear()
+        return remote_files
