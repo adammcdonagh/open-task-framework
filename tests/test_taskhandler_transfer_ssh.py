@@ -246,6 +246,55 @@ fail_invalid_protocol_task_definition = {
     },
 }
 
+# Count conditional tests
+scp_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.11",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": "counts[0-9]\\.txt",
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+        },
+        "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.12",
+            "directory": "/tmp/testFiles/dest",
+            "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
+scp_file_watch_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.11",
+        "directory": "/tmp/testFiles/src",
+        "fileRegex": "counts_watch[0-9]\\.txt",
+        "fileWatch": {"timeout": 5},
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+            "checkDuringFilewatch": True,
+        },
+        "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.12",
+            "directory": "/tmp/testFiles/dest",
+            "protocol": {"name": "ssh", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 
 def test_invalid_protocol():
     transfer_obj = transfer.Transfer(
@@ -354,7 +403,7 @@ def test_scp_basic_create_dest_dir(root_dir, setup_ssh_keys):
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt")
 
 
-def test_scp_basic_no_permissions(root_dir, setup_sftp_keys):
+def test_scp_basic_no_permissions(root_dir, setup_ssh_keys):
     # Create a test file
     fs.create_files(
         [
@@ -615,4 +664,150 @@ def test_invalid_ssh_encryption_direct():
 
     # Expect a EncryptionNotSupportedError exception
     with pytest.raises(exceptions.EncryptionNotSupportedError):
+        transfer_obj.run()
+
+
+def test_scp_counts(root_dir, setup_ssh_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{root_dir}/testFiles/ssh_1/src/counts1.txt": {"content": "test1234"}},
+            {f"{root_dir}/testFiles/ssh_1/src/counts2.txt": {"content": "test1234"}},
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(None, "ssh-counts", scp_task_with_counts)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_scp_counts_error(root_dir, setup_ssh_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_error1.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+    scp_task_with_counts_error = deepcopy(scp_task_with_counts)
+    scp_task_with_counts_error["source"]["fileRegex"] = "counts_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "ssh-filewatch-counts-error-min",
+        scp_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_error2.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_error3.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "ssh-filewatch-counts-error-max",
+        scp_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+
+def test_scp_filewatch_counts(root_dir, setup_ssh_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_watch1.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_watch2.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "ssh-filewatch-counts", scp_file_watch_task_with_counts
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_scp_filewatch_counts_error(root_dir, setup_ssh_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_watch_error1.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+    scp_file_watch_task_with_counts_error = deepcopy(scp_file_watch_task_with_counts)
+    scp_file_watch_task_with_counts_error["source"][
+        "fileRegex"
+    ] = "counts_watch_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "ssh-filewatch-counts-error-min",
+        scp_file_watch_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_watch_error2.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/ssh_1/src/counts_watch_error3.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "ssh-filewatch-counts-error-max",
+        scp_file_watch_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
         transfer_obj.run()

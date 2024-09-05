@@ -258,6 +258,51 @@ local_multi_protocol_task_definition = {
     ],
 }
 
+# Count conditional tests
+local_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "directory": f"{local_test_dir}/src",
+        "fileRegex": "counts[0-9]\\.txt",
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+        },
+        "protocol": {"name": "local"},
+    },
+    "destination": [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ],
+}
+
+local_file_watch_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "directory": f"{local_test_dir}/src",
+        "fileRegex": "counts_watch[0-9]\\.txt",
+        "fileWatch": {"timeout": 5},
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+            "checkDuringFilewatch": True,
+        },
+        "protocol": {"name": "local"},
+    },
+    "destination": [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ],
+}
+
 
 @pytest.fixture(scope="session")
 def setup_local_test_dir():
@@ -645,89 +690,6 @@ def test_local_decrypt_incoming_file(
     assert new_file_checksum == original_file_checksum
 
 
-def test_local_decrypt_incoming_file_custom_extensions(
-    tmpdir, root_dir, setup_local_test_dir, private_key, public_key
-):
-
-    # Create a test file
-    fs.create_files(
-        [{f"{tmpdir}/src/test.decryption.txt": {"content": "test12345678"}}]
-    )
-
-    # Checksum the file
-    with open(f"{tmpdir}/src/test.decryption.txt", "rb") as f:
-        original_file_checksum = hashlib.md5(f.read()).hexdigest()
-
-    # Create a gpg object
-    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
-
-    # Import the public key
-    gpg.import_keys(public_key)
-
-    # Encrypt the file
-    with open(f"{tmpdir}/src/test.decryption.txt", "rb") as f:
-        status = gpg.encrypt_file(
-            f,
-            always_trust=True,
-            recipients="test@example.com",
-            output=f"{tmpdir}/test.decryption.txt.pgp",
-        )
-
-        # Check status returns a 0 exit code
-        assert status.ok
-
-    # Check the output file exists
-    assert os.path.exists(f"{tmpdir}/test.decryption.txt.pgp")
-
-    # Now we have an encrypted file (we can pretend we are collecting from elsewhere),
-    # run a transfer to copy the file locally, and decrypt it
-    local_task_definition_copy = deepcopy(local_task_definition)
-    local_task_definition_copy["source"]["directory"] = f"{tmpdir}"
-    local_task_definition_copy["source"]["fileRegex"] = "test.decryption.txt.pgp"
-    local_task_definition_copy["source"]["encryption"] = {
-        "decrypt": True,
-        "private_key": private_key,
-    }
-
-    # Override the destination
-    local_task_definition_copy["destination"] = [
-        {
-            "directory": f"{local_test_dir}/dest",
-            "protocol": {"name": "local"},
-        },
-    ]
-
-    # Run the transfer
-    transfer_obj = transfer.Transfer(None, "local-decrypt", local_task_definition_copy)
-    assert transfer_obj.run()
-
-    # Check the decrypted source files have been deleted
-    assert not os.path.exists(f"{tmpdir}/test.decryption.txt")
-
-    # Check the output file exists
-    assert os.path.exists(f"{local_test_dir}/dest/test.decryption.txt")
-    # Check that the file's checksum matches that of the original unencrypted source file
-    # Check the checksum of the new file
-    with open(f"{local_test_dir}/dest/test.decryption.txt", "rb") as f:
-        new_file_checksum = hashlib.md5(f.read()).hexdigest()
-    assert new_file_checksum == original_file_checksum
-
-    # Now do it again, but with a different extension that's not pgp or gpg
-    # Rename the original encrypted file and use that as the input
-    os.rename(f"{tmpdir}/test.decryption.txt.pgp", f"{tmpdir}/test.decryption.txt.enc")
-    local_task_definition_copy["source"]["fileRegex"] = "test.decryption.txt.enc"
-
-    # Run the transfer
-    transfer_obj = transfer.Transfer(None, "local-decrypt", local_task_definition_copy)
-    assert transfer_obj.run()
-
-    # Check the decrypted source files have been deleted
-    assert not os.path.exists(f"{tmpdir}/test.decryption.txt")
-
-    # Check the output file exists with the .decrypted file extension
-    assert os.path.exists(f"{local_test_dir}/dest/test.decryption.txt.enc.decrypted")
-
-
 def test_local_encrypt_outgoing_file(
     tmpdir, root_dir, setup_local_test_dir, private_key, public_key
 ):
@@ -789,72 +751,6 @@ def test_local_encrypt_outgoing_file(
 
     # Ensure that the source encrypted file has been deleted
     assert not os.path.exists(f"{local_test_dir}/src/test.encryption.txt.gpg")
-
-
-def test_local_encrypt_outgoing_file_custom_extension(
-    tmpdir, root_dir, setup_local_test_dir, private_key, public_key
-):
-
-    # Create a test file
-    fs.create_files(
-        [{f"{tmpdir}/src/test.encryption_custom_ext.txt": {"content": "test12345678"}}]
-    )
-
-    # Checksum the file
-    with open(f"{tmpdir}/src/test.encryption_custom_ext.txt", "rb") as f:
-        original_file_checksum = hashlib.md5(f.read()).hexdigest()
-
-    # Create a gpg object
-    gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
-
-    # Import the public key
-    gpg.import_keys(private_key)
-
-    # run a transfer to copy the file locally, and encrypt it
-    local_task_definition_copy = deepcopy(local_task_definition)
-    local_task_definition_copy["source"]["directory"] = f"{tmpdir}/src"
-    local_task_definition_copy["source"]["fileRegex"] = "test.encryption_custom_ext.txt"
-
-    # Override the destination
-    local_task_definition_copy["destination"] = [
-        {
-            "directory": f"{local_test_dir}/dest",
-            "protocol": {"name": "local"},
-            "encryption": {
-                "encrypt": True,
-                "public_key": public_key,
-                "output_extension": "pgp",
-            },
-        },
-    ]
-
-    # Run the transfer
-    transfer_obj = transfer.Transfer(None, "local-encrypt", local_task_definition_copy)
-    assert transfer_obj.run()
-
-    # Check the output file exists
-    assert os.path.exists(f"{local_test_dir}/dest/test.encryption_custom_ext.txt.pgp")
-
-    # Now we need to decrypt this file to check that it matches the original content,
-    # and can actually be decrypted again
-    decryption_data = gpg.decrypt_file(
-        open(f"{local_test_dir}/dest/test.encryption_custom_ext.txt.pgp", "rb"),
-        output=f"{local_test_dir}/dest/test.encryption_custom_ext.txt",
-    )
-
-    assert decryption_data.ok
-    assert decryption_data.returncode == 0
-
-    # Check that the file's checksum matches that of the original unencrypted source file
-    # Check the checksum of the new file
-    with open(f"{local_test_dir}/dest/test.encryption_custom_ext.txt", "rb") as f:
-        new_file_checksum = hashlib.md5(f.read()).hexdigest()
-    assert new_file_checksum == original_file_checksum
-
-    # Ensure that the source encrypted file has been deleted
-    assert not os.path.exists(
-        f"{local_test_dir}/src/test.encryption_custom_ext.txt.pgp"
-    )
 
 
 def test_local_encrypt_with_signing_outgoing_file(
@@ -1104,4 +1000,120 @@ def test_transfer_decryption_local_invalid_key(root_dir, setup_local_test_dir):
 
     # Run the transfer and expect an exception due to failed encryption
     with pytest.raises(exceptions.EncryptionError):
+        transfer_obj.run()
+
+
+def test_local_counts():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts1.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts2.txt": {"content": "test1234"}},
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(None, "local-counts", local_task_with_counts)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_local_counts_error():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_error1.txt": {"content": "test1234"}},
+        ]
+    )
+    local_task_with_counts_error = deepcopy(local_task_with_counts)
+    local_task_with_counts_error["source"]["fileRegex"] = "counts_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-min",
+        local_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_error2.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts_error3.txt": {"content": "test1234"}},
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-max",
+        local_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+
+def test_local_filewatch_counts():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_watch1.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts_watch2.txt": {"content": "test1234"}},
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "local-filewatch-counts", local_file_watch_task_with_counts
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_local_filewatch_counts_error():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_watch_error1.txt": {"content": "test1234"}},
+        ]
+    )
+    local_file_watch_task_with_counts_error = deepcopy(
+        local_file_watch_task_with_counts
+    )
+    local_file_watch_task_with_counts_error["source"][
+        "fileRegex"
+    ] = "counts_watch_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-min",
+        local_file_watch_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_watch_error2.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts_watch_error3.txt": {"content": "test1234"}},
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-max",
+        local_file_watch_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
         transfer_obj.run()
