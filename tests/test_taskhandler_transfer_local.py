@@ -258,6 +258,51 @@ local_multi_protocol_task_definition = {
     ],
 }
 
+# Count conditional tests
+local_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "directory": f"{local_test_dir}/src",
+        "fileRegex": "counts[0-9]\\.txt",
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+        },
+        "protocol": {"name": "local"},
+    },
+    "destination": [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ],
+}
+
+local_file_watch_task_with_counts = {
+    "type": "transfer",
+    "source": {
+        "directory": f"{local_test_dir}/src",
+        "fileRegex": "counts_watch[0-9]\\.txt",
+        "fileWatch": {"timeout": 5},
+        "conditionals": {
+            "count": {
+                "minCount": 2,
+                "maxCount": 2,
+            },
+            "checkDuringFilewatch": True,
+        },
+        "protocol": {"name": "local"},
+    },
+    "destination": [
+        {
+            "directory": f"{local_test_dir}/dest",
+            "protocol": {"name": "local"},
+        },
+    ],
+}
+
 
 @pytest.fixture(scope="session")
 def setup_local_test_dir():
@@ -1104,4 +1149,120 @@ def test_transfer_decryption_local_invalid_key(root_dir, setup_local_test_dir):
 
     # Run the transfer and expect an exception due to failed encryption
     with pytest.raises(exceptions.EncryptionError):
+        transfer_obj.run()
+
+
+def test_local_counts():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts1.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts2.txt": {"content": "test1234"}},
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(None, "local-counts", local_task_with_counts)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_local_counts_error():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_error1.txt": {"content": "test1234"}},
+        ]
+    )
+    local_task_with_counts_error = deepcopy(local_task_with_counts)
+    local_task_with_counts_error["source"]["fileRegex"] = "counts_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-min",
+        local_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_error2.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts_error3.txt": {"content": "test1234"}},
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-max",
+        local_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a FilesDoNotMeetConditionsError exception
+    with pytest.raises(exceptions.FilesDoNotMeetConditionsError):
+        transfer_obj.run()
+
+
+def test_local_filewatch_counts():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_watch1.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts_watch2.txt": {"content": "test1234"}},
+        ]
+    )
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "local-filewatch-counts", local_file_watch_task_with_counts
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
+def test_local_filewatch_counts_error():
+    # Create a test file
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_watch_error1.txt": {"content": "test1234"}},
+        ]
+    )
+    local_file_watch_task_with_counts_error = deepcopy(
+        local_file_watch_task_with_counts
+    )
+    local_file_watch_task_with_counts_error["source"][
+        "fileRegex"
+    ] = "counts_watch_error[0-9]\\.txt"
+
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-min",
+        local_file_watch_task_with_counts_error,
+    )
+    # Test 1 file < minCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
+        transfer_obj.run()
+
+    fs.create_files(
+        [
+            {f"{local_test_dir}/src/counts_watch_error2.txt": {"content": "test1234"}},
+            {f"{local_test_dir}/src/counts_watch_error3.txt": {"content": "test1234"}},
+        ]
+    )
+
+    transfer_obj = transfer.Transfer(
+        None,
+        "local-filewatch-counts-error-max",
+        local_file_watch_task_with_counts_error,
+    )
+    #  Test 3 files > maxCount of 2 errors
+    # Run the transfer and expect a RemoteFileNotFoundError exception
+    with pytest.raises(exceptions.RemoteFileNotFoundError):
         transfer_obj.run()
