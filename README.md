@@ -163,7 +163,7 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_STAGING_DIR` - Staging base directory to place files before they're dropped into their final location. Default is `/tmp`
 - `OTF_BATCH_RESUME_LOG_DATE` - Allow resuming of batch runs from a specific date. This is useful if you want to rerun a batch from a specific date, especially if the failure happens just after midnight and the date is no longer the same as the original run. Date format is `YYYYMMDD`
 - `OTF_VARIABLES_FILE` - Override the default variables file. This is useful when you want to use the same job definitions, but point at a different environment with different for example.
-- `OTF_PARAMIKO_ULTRA_DEBUG` - Enables the hidden `ultra_debug` option for Paramiko. This will log all SSH communications to the console, and can be very verbose, so be careful when using this.
+- `OTF_PARAMIKO_ULTRA_DEBUG` - Enables the hidden `ultra_debug` option for Paramiko. This will log all SSH communications to the console, and can be very verbose, so be careful when using this. Set to `1` to enable
 
 ## Logging
 
