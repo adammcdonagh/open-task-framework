@@ -16,6 +16,51 @@ LOG_DIRECTORY = (
     else os.environ.get("OTF_LOG_DIRECTORY")
 )
 
+SENSITIVE_KEY_REGEXES = [
+    r"password",
+    r"passwd",
+    r"pass",
+    r"secret",
+    r"token",
+    r"key",
+    r"private",
+    r"credentials",
+    r"authori[sz]ation",
+]
+
+SENSITIVE_REGEXES = [
+    r"-----BEGIN.*PRIVATE KEY-----.*-----END.*PRIVATE KEY-----",
+    r"-----BEGIN.*PRIVATE KEY BLOCK-----.*-----END.*PRIVATE KEY BLOCK-----",
+]
+
+REDACT_STRING = "********"
+
+
+class SensitiveDataFilter(logging.Filter):
+    """Filter to redact sensitive data from logs."""
+
+    def filter(self, record):
+        """Filter the log message.
+
+        Args:
+            record (logging.LogRecord): The log record to filter
+        """
+        record.msg = self.mask_sensitive_data(record.msg)
+        return True
+
+    def mask_sensitive_data(self, message):
+        """Redact any sensitive data from the log message.
+
+        Args:
+            message (str): The log message to redact
+
+        Returns:
+            str: The redacted log message
+        """
+        redacted_message = redact(message)
+
+        return redacted_message
+
 
 class JSONFormatter(logging.Formatter):
     """JSON formatter.
@@ -342,6 +387,46 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
             # wants to log anything else
             for handler in log_handlers:
                 handler.baseFilename = new_log_filename
+
+
+def redact(log_message: str) -> str:
+    """Redact any sensitive information from the log message.
+
+    Args:
+        log_message (str): The log message to redact
+
+    Returns:
+        str: The redacted log message
+    """
+    # Try and parse the log message as JSON
+    try:
+        log_object = json.loads(log_message)
+        # If it's a dictionary, then we need to redact any sensitive information
+        if isinstance(log_object, dict):
+            for key in log_object:
+                # If the key matches any of the sensitive regexes, then redact it
+                for sensitive_regex in SENSITIVE_KEY_REGEXES:
+                    if re.search(sensitive_regex, key, re.IGNORECASE | re.DOTALL):
+                        log_object[key] = REDACT_STRING
+
+        log_message = json.dumps(log_object)
+    except json.JSONDecodeError:
+        pass
+    except Exception:  # pylint: disable=broad-except
+        pass
+
+    # If it's not JSON, or even if it is, then we need to redact any sensitive information
+    # Look at the list of sensitive regexes to match and replace any that match
+    for sensitive_regex in SENSITIVE_REGEXES:
+        if re.search(sensitive_regex, log_message, re.IGNORECASE | re.DOTALL):
+            log_message = re.sub(
+                sensitive_regex,
+                REDACT_STRING,
+                log_message,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+
+    return log_message
 
 
 logger = init_logging(__name__)

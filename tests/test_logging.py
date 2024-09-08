@@ -11,6 +11,36 @@ import opentaskpy.otflogging
 from tests.fixtures.ssh_clients import *  # noqa: F403, F401
 
 
+def test_log_redaction():
+    redacted_string = opentaskpy.otflogging.REDACT_STRING
+
+    # # Test a simple string
+    log_message = "This is a test message"
+    redacted_message = opentaskpy.otflogging.redact(log_message)
+    assert redacted_message == "This is a test message"
+
+    # Test a string with a sensitive key
+    log_message = '{"password": "test1234", "username": "test"}'
+    redacted_message = opentaskpy.otflogging.redact(log_message)
+    assert (
+        redacted_message
+        == '{"password": "' + redacted_string + '", "username": "test"}'
+    )
+
+    log_message = '{"something": "-----BEGIN PRIVATE KEY-----\ntest1234\n-----END PRIVATE KEY-----"}'
+    redacted_message = opentaskpy.otflogging.redact(log_message)
+    assert redacted_message == '{"something": "' + redacted_string + '"}'
+
+    log_message = '{"something": "-----BEGIN PRIVATE KEY-----\\ntest1234\\n-----END PRIVATE KEY-----"}'
+    redacted_message = opentaskpy.otflogging.redact(log_message)
+    assert redacted_message == '{"something": "' + redacted_string + '"}'
+
+    # Without line breaks
+    log_message = '{"something": "-----BEGIN PRIVATE KEY BLOCK-----test1234-----END PRIVATE KEY BLOCK-----"}'
+    redacted_message = opentaskpy.otflogging.redact(log_message)
+    assert redacted_message == '{"something": "' + redacted_string + '"}'
+
+
 def test_define_log_file_name(env_vars, tmpdir, top_level_root_dir):
     # Pass in different task types and validate that the log file name is correct
     timestamp = datetime.now().strftime("%Y%m%d-") + r"\d{6}\.\d{3}"
