@@ -181,19 +181,23 @@ def init_logging(
         sfh.setFormatter(formatter)
 
         # Set the root logger
-        logging.basicConfig(
-            format=OTF_LOG_FORMAT,
-            level=level,
-            handlers=[
-                sfh,
-            ],
-        )
+        root_logger = logging.getLogger()
+        root_logger.setLevel(level)
+        root_logger.addHandler(sfh)
+
+        # Add SensitiveDataFilter to the root logger
+        sensitive_filter = SensitiveDataFilter()
+        root_logger.addFilter(sensitive_filter)
 
     # Create a unique logger object for this task
     if not task_id:
         otf_logger = logging.getLogger(f"{name}")
     else:
         otf_logger = logging.getLogger(f"{name}.{task_id}")
+
+    # Add SensitiveDataFilter to the logger
+    sensitive_filter = SensitiveDataFilter()
+    otf_logger.addFilter(sensitive_filter)
 
     # Set verbosity
     otf_logger.setLevel(logging.getLogger().getEffectiveLevel())
@@ -235,6 +239,10 @@ def set_log_file(logger_name: str, task_type: str = None) -> None:
         task_type (str, optional): The task type. Defaults to None.
     """
     _logger = logging.getLogger(logger_name)
+
+    # Add SensitiveDataFilter to the logger
+    sensitive_filter = SensitiveDataFilter()
+    _logger.addFilter(sensitive_filter)
 
     task_id = os.environ.get("OTF_TASK_ID")
 
