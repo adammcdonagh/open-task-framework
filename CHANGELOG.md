@@ -1,5 +1,11 @@
 # Changelog
 
+# v24.36.2
+
+- Add OTF_PARAMIKO_ULTRA_DEBUG environment variable to enable the hidden `ultra_debug` option for Paramiko.
+- Add some more logging to the SFTP transfers
+- Set `sftp_client` to `None` when closing the SFTP connection
+
 # v24.36.1
 
 Revert removal of some local transfer tests
