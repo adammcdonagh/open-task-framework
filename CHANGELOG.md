@@ -7,6 +7,7 @@
 - Set `sftp_client` to `None` when closing the SFTP connection
 - Added `OTF_LAZY_LOAD_VARIABLES` environment variable to enable lazy loading of variables.
 - Updated `otflogging` to redact sensitive data from logs
+- Increate the number of retries for SSH and SFTP connections
 
 # v24.36.1
 

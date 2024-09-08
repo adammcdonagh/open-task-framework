@@ -101,8 +101,8 @@ class SFTPTransfer(RemoteTransferHandler):
 
     @retry(
         reraise=True,
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
+        stop=stop_after_attempt(6),
+        wait=wait_exponential(multiplier=2, min=5, max=60),
     )
     def connect_with_retry(self, client_kwargs: dict) -> SSHClient:
         """Connect to the remote host with retry.
