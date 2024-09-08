@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare-base:
-    name: Prepare base dependencies
+  daily-test:
+    name: Daily Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
