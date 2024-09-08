@@ -173,6 +173,8 @@ def test_load_task_definition_lazy_load_too_deep(tmpdir):
 
     config_loader = ConfigLoader(tmpdir)
 
+    del os.environ["OTF_LAZY_LOAD_VARIABLES"]
+
     with pytest.raises(VariableResolutionTooDeepError):
         config_loader.load_task_definition("task")
 
