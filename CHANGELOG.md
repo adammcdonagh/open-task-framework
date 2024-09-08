@@ -10,7 +10,7 @@
 
 # v24.36.1
 
-Revert removal of some local transfer tests
+- Revert removal of some local transfer tests
 
 # v24.36.0
 
