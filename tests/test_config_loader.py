@@ -97,6 +97,48 @@ def test_load_task_definition(write_dummy_variables_file, tmpdir):
     assert e.value.args[0] == "Couldn't find task with name: task"
 
 
+def test_load_task_definition_lazy_load(tmpdir):
+    # Set the OTF_LAZY_LOAD_VARIABLES environment variable
+    os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"
+
+    # Modify the variables file to include a variable that is templated
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": '{"test": "{{ now().strftime(\'%Y\') }}"}'
+                }
+            }
+        ]
+    )
+
+    # Evaluate the variable
+    expected_variable = datetime.now().strftime("%Y")
+
+    # Initialise the task runner
+    config_loader = ConfigLoader(tmpdir)
+
+    # Unset the env variable to not mess with other tests
+    del os.environ["OTF_LAZY_LOAD_VARIABLES"]
+
+    # Check the the test variable is not evaluated yet
+    assert config_loader.global_variables["test"] == "{{ now().strftime('%Y') }}"
+
+    # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
+    fs.create_files([{f"{tmpdir}/task.json": {"content": '{"test": "{{ test }}"}'}}])
+
+    expected_task_definition = {"test": f"{expected_variable}"}
+
+    # Test that the task definition is loaded correctly
+    assert config_loader.load_task_definition("task") == expected_task_definition
+
+    # Test that a non existent task definition file raises an error
+    os.remove(f"{tmpdir}/task.json")
+    with pytest.raises(FileNotFoundError) as e:
+        config_loader.load_task_definition("task")
+    assert e.value.args[0] == "Couldn't find task with name: task"
+
+
 def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):
     config_loader = ConfigLoader(tmpdir)
 

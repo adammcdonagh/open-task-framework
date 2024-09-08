@@ -8,6 +8,7 @@ import sys
 from glob import glob
 
 import jinja2
+from jinja2 import meta
 
 import opentaskpy.otflogging
 from opentaskpy.exceptions import (
@@ -39,7 +40,12 @@ class ConfigLoader:
         self.template_env.filters["delta_days"] = self.delta_days
 
         self._load_global_variables()
-        self._resolve_templated_variables()
+
+        lazy_load = False
+        if os.environ.get("OTF_LAZY_LOAD_VARIABLES", None) == "1":
+            lazy_load = True
+
+        self._resolve_templated_variables(lazy_load=lazy_load)
 
     def get_global_variables(self) -> dict:
         """Return the set of global variables that have been assigned via config files.
@@ -252,10 +258,48 @@ class ConfigLoader:
             # Define lookup function
             template.globals["lookup"] = self.template_lookup
 
+            # Using the active task definition, resolve any templated variables
+            # Find any variables that are templated from the template object
+
+            ast = self.template_env.parse(json_content)
+            undeclared_variables = meta.find_undeclared_variables(ast)
+
+            self.logger.log(
+                12,
+                f"Found undeclared variables: {undeclared_variables}",
+            )
+
+            # For each undeclared variable, resolve it
+            for undeclared_variable in undeclared_variables:
+
+                # Get the value of the variable from global variables, if it exists,
+                # if it doesn't it must be a task variable, so this can be resolved below
+                if undeclared_variable not in self.global_variables:
+                    self.logger.log(
+                        12,
+                        f"Variable {undeclared_variable} not found in global variables, must be a task variable",
+                    )
+                    continue
+
+                unresolved_variable = self.global_variables[undeclared_variable]
+
+                evaluated_variable = self._resolve_templated_variables_from_string(
+                    unresolved_variable
+                )
+
+                self.logger.log(
+                    12,
+                    f"Resolved variable {undeclared_variable}",
+                )
+
+                # Now update the global variables with the resolved value
+                self.global_variables[undeclared_variable] = evaluated_variable
+
             rendered_template = template.render(self.global_variables)
             active_task_definition = dict(json.loads(rendered_template))
             self.logger.log(
-                12, f"Evaluated task definition: {json.dumps(active_task_definition)}"
+                12,
+                f"Evaluated task definition: {opentaskpy.otflogging.redact(json.dumps(active_task_definition))}",
             )
 
         return active_task_definition
@@ -305,7 +349,7 @@ class ConfigLoader:
         return datetime.datetime.utcnow()
 
     # RESOLVE ANY VARIABLES THAT USE OTHER VARIABLES IN THE VARIABLE FILES
-    def _resolve_templated_variables(self) -> None:
+    def _resolve_templated_variables(self, lazy_load: bool = False) -> None:
         # We need to evaluate the variables themselves, in case there's any recursion
         # Convert the variables to a JSON string which we can process with the jinja2 templater
         current_depth = 0
@@ -319,6 +363,10 @@ class ConfigLoader:
 
         # Define lookup function
         variables_template.globals["lookup"] = self.template_lookup
+
+        # Don't do anything if lazy loading is enabled
+        if lazy_load:
+            return
 
         evaluated_variables = variables_template.render(template)
 
@@ -341,3 +389,39 @@ class ConfigLoader:
                 )
 
         self.global_variables = json.loads(evaluated_variables)
+
+    def _resolve_templated_variables_from_string(self, json_content: str) -> str:
+        # This has some code duplication with _resolve_templated_variables, but it's
+        # easier to keep them separate for now
+
+        # We need to evaluate the variables themselves, in case there's any recursion
+        # Convert the variables to a JSON string which we can process with the jinja2 templater
+        current_depth = 0
+        previous_render = None
+
+        variables_template = self.template_env.from_string(json_content)
+        variables_template.globals["utc_now"] = self.now_utc
+        variables_template.globals["now"] = self.now_localtime
+
+        # Define lookup function
+        variables_template.globals["lookup"] = self.template_lookup
+
+        evaluated_variables = variables_template.render(self.global_variables)
+
+        while evaluated_variables != previous_render and current_depth < MAX_DEPTH:
+            previous_render = evaluated_variables
+
+            variables_template = self.template_env.from_string(evaluated_variables)
+            evaluated_variables = variables_template.render(self.global_variables)
+
+            current_depth += 1
+            if current_depth >= MAX_DEPTH:
+                self.logger.error(
+                    "Reached max depth of recursive template evaluation. Please check"
+                    " the task as variable definitions for infinite recursion"
+                )
+                raise VariableResolutionTooDeepError(
+                    "Reached max depth of recursive template evaluation"
+                )
+
+        return str(evaluated_variables)
