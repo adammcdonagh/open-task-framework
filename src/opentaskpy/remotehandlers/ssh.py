@@ -148,11 +148,6 @@ class SSHTransfer(RemoteTransferHandler):
             self.logger.info(f"Connecting to {kwargs['hostname']}")
             ssh_client.connect(**kwargs)
 
-            # Check if OTF_PARAMIKO_ULTRA_DEBUG is set
-            if os.environ.get("OTF_PARAMIKO_ULTRA_DEBUG", None) == "1":
-                self.logger.info("Enabling Paramiko ultra debug")
-                self.sftp_client.ultra_debug = True
-
         except Exception as ex:
             self.logger.error(
                 f"[{self.spec['hostname']}] Unable to connect to {kwargs['hostname']}: {ex}"
