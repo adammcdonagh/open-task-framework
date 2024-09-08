@@ -15,6 +15,7 @@
   - [Environment Variables](#environment-variables)
   - [Logging](#logging)
   - [Variables](#variables)
+    - [Lazy Loading Variables](#lazy-loading-variables)
   - [Runtime Overrides](#runtime-overrides)
   - [Lookup plugins](#lookup-plugins)
     - [Adding your own](#adding-your-own)
@@ -164,6 +165,7 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_BATCH_RESUME_LOG_DATE` - Allow resuming of batch runs from a specific date. This is useful if you want to rerun a batch from a specific date, especially if the failure happens just after midnight and the date is no longer the same as the original run. Date format is `YYYYMMDD`
 - `OTF_VARIABLES_FILE` - Override the default variables file. This is useful when you want to use the same job definitions, but point at a different environment with different for example.
 - `OTF_PARAMIKO_ULTRA_DEBUG` - Enables the hidden `ultra_debug` option for Paramiko. This will log all SSH communications to the console, and can be very verbose, so be careful when using this. Set to `1` to enable
+- `OTF_LAZY_LOAD_VARIABLES` - Enables lazy loading of variables. This will only load variables that are used by the task definition. This can be useful if you have a large number of variables, and you only need a few of them.
 
 ## Logging
 
@@ -178,6 +180,10 @@ You must always have a `variables.json.j2` file defined at the root of your `con
 Variables can be used using the Jinja2 template syntax within task definitions. They can also be nested.
 
 Individual tasks can have their own local variables too
+
+### Lazy Loading Variables
+
+By default, all variables are loaded whenever the variables file is loaded. This can be slow if you have a large number of variables, or there are variables that some tasks use that others don't. To avoid this, you can set the `OTF_LAZY_LOAD_VARIABLES` environment variable to `1`. This will only load variables that are used by the task definition at runtime.
 
 ## Runtime Overrides
 
