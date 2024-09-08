@@ -57,6 +57,10 @@ class SensitiveDataFilter(logging.Filter):
         Returns:
             str: The redacted log message
         """
+        # if message is not a string, then return it as is
+        if not isinstance(message, str):
+            return message
+
         redacted_message = redact(message)
 
         return redacted_message
