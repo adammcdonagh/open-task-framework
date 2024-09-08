@@ -102,11 +102,11 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         """
         # Delete the remote connection objects
         if self.source_remote_handler:
-            self.logger.log(12, "Closing source connection")
+            self.logger.info("Closing source connection")
             self.source_remote_handler.tidy()
         if self.dest_remote_handlers:
             for remote_handler in self.dest_remote_handlers:
-                self.logger.log(12, f"Closing dest connection for {remote_handler}")
+                self.logger.info(f"Closing dest connection for {remote_handler}")
                 remote_handler.tidy()
 
         # Remove local staging directory if it exists (and this isn't a local transfer)

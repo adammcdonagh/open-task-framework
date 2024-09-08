@@ -283,13 +283,13 @@ class Batch(TaskHandler):
                         logged = True
                         batch_task["status"] = "TIMED_OUT"
                         # Send event to the thread to kill it
-                        self.logger.debug(
+                        self.logger.info(
                             f"Sending kill event to task {order_id} ({batch_task['task_id']})"
                         )
                         batch_task["kill_event"].set()
                         # Wait for the thread to return
                         batch_task["thread"].join()
-                        self.logger.debug(
+                        self.logger.info(
                             f"Task {order_id} ({batch_task['task_id']}) has been killed"
                         )
                         batch_task["result"] = False
@@ -401,8 +401,7 @@ class Batch(TaskHandler):
         ) as executor:
             while True:
                 if batch_task["executing_thread"] is None:
-                    self.logger.log(
-                        12,
+                    self.logger.info(
                         f"Spawning task handler for {batch_task['task_id']} with timeout of {batch_task['timeout']}",
                     )
                     # Spawn the task as it's own thread
@@ -421,7 +420,9 @@ class Batch(TaskHandler):
                         and batch_task["status"] != "TIMED_OUT"
                     ):
                         # Get the returncode from the thread
-
+                        self.logger.info(
+                            f"{batch_task['task_id']} has finished running"
+                        )
                         batch_task["result"] = batch_task["executing_thread"][
                             0
                         ].result()
@@ -439,8 +440,8 @@ class Batch(TaskHandler):
 
                     # Check if we have been asked to kill the thread
                     if event.is_set():
-                        self.logger.log(
-                            12, f"Killing task handler for {batch_task['task_id']}"
+                        self.logger.info(
+                            f"Killing task handler for {batch_task['task_id']}"
                         )
                         # Kill the thread and all it's child processes
                         batch_task["executing_thread"][0].cancel()
