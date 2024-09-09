@@ -310,16 +310,17 @@ class ConfigLoader:
         global_variables: dict = {}
         variable_configs: list[str] = []
 
-        # See if the variables file has been overridden via environment variable
+        # See if variables file(s) have been overridden via environment variable
         if "OTF_VARIABLES_FILE" in os.environ:
-            new_variables_file = os.environ["OTF_VARIABLES_FILE"]
-            self.logger.info(f"Overriding variables file with {new_variables_file}")
-            # Validate that the file exists
-            if not os.path.isfile(new_variables_file):
-                raise FileNotFoundError(
-                    f"Couldn't find variables file: {new_variables_file}"
-                )
-            variable_configs.append(new_variables_file)
+            new_variables_files = os.environ["OTF_VARIABLES_FILE"].split(",")
+            for new_variables_file in new_variables_files:
+                self.logger.info(f"Overriding variables file with {new_variables_file}")
+                # Validate that the file exists
+                if not os.path.isfile(new_variables_file):
+                    raise FileNotFoundError(
+                        f"Couldn't find variables file: {new_variables_file}"
+                    )
+                variable_configs.append(new_variables_file)
 
         else:
             file_types = (".json.j2", ".json")
@@ -375,6 +376,11 @@ class ConfigLoader:
             previous_render = evaluated_variables
 
             variables_template = self.template_env.from_string(evaluated_variables)
+            variables_template.globals["utc_now"] = self.now_utc
+            variables_template.globals["now"] = self.now_localtime
+
+            # Define lookup function
+            variables_template.globals["lookup"] = self.template_lookup
             evaluated_variables = variables_template.render(
                 json.loads(evaluated_variables)
             )
@@ -413,6 +419,12 @@ class ConfigLoader:
             previous_render = evaluated_variables
 
             variables_template = self.template_env.from_string(evaluated_variables)
+
+            variables_template.globals["utc_now"] = self.now_utc
+            variables_template.globals["now"] = self.now_localtime
+
+            # Define lookup function
+            variables_template.globals["lookup"] = self.template_lookup
             evaluated_variables = variables_template.render(self.global_variables)
 
             current_depth += 1

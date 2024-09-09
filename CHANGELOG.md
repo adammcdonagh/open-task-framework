@@ -1,5 +1,10 @@
 # Changelog
 
+# v24.37.1
+
+- Allow loading of multiple variables files via `OTF_VARIABLES_FILE` by specifying them comma-separated
+- Ensure global time-based variables resolve when rendering nested variables
+
 # v24.37.0
 
 - Fix issue where new lazy loading code conflicts with `NOOP` mode, where it was trying to resolve variables regardless

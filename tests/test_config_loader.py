@@ -80,6 +80,49 @@ def test_load_variables_file_override(tmpdir):
         ConfigLoader("test/cfg")
 
 
+def test_load_multiple_variables_file_override(tmpdir):
+    # Write a different variables file. Load it, and verify the variable matches
+    custom_vars = {"CUSTOM_VARS_FILE": "{{ XYZ }}1", "XYZ": "ABC", "REPEATED": "123"}
+    custom_vars2 = {"CUSTOM_VARS_FILE2": "{{ ZYX }}1", "ZYX": "DEF", "REPEATED": "456"}
+
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/custom_vars_file.json.j2": {
+                    "content": json.dumps(custom_vars)
+                }
+            },
+            {
+                f"{tmpdir}/custom_vars_file2.json.j2": {
+                    "content": json.dumps(custom_vars2)
+                }
+            },
+        ]
+    )
+
+    # Set environment variable to point to the new variables files
+    os.environ["OTF_VARIABLES_FILE"] = (
+        f"{tmpdir}/custom_vars_file.json.j2,{tmpdir}/custom_vars_file2.json.j2"
+    )
+
+    assert ConfigLoader("test/cfg") is not None
+
+    # Verify the variable is loaded correctly
+    assert ConfigLoader("test/cfg").get_global_variables()["CUSTOM_VARS_FILE"] == "ABC1"
+    assert (
+        ConfigLoader("test/cfg").get_global_variables()["CUSTOM_VARS_FILE2"] == "DEF1"
+    )
+
+    # Verify that repeated variables has value loaded from last file loaded
+    assert ConfigLoader("test/cfg").get_global_variables()["REPEATED"] == "456"
+
+    # Delete the files and verify that we get an exception thrown
+    os.remove(f"{tmpdir}/custom_vars_file.json.j2")
+    os.remove(f"{tmpdir}/custom_vars_file2.json.j2")
+    with pytest.raises(FileNotFoundError):
+        ConfigLoader("test/cfg")
+
+
 def test_load_task_definition(write_dummy_variables_file, tmpdir):
     # Initialise the task runner
     config_loader = ConfigLoader(tmpdir)
