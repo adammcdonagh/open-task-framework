@@ -41,11 +41,11 @@ class ConfigLoader:
 
         self._load_global_variables()
 
-        lazy_load = False
+        self.lazy_load = False
         if os.environ.get("OTF_LAZY_LOAD_VARIABLES", None) == "1":
-            lazy_load = True
+            self.lazy_load = True
 
-        self._resolve_templated_variables(lazy_load=lazy_load)
+        self._resolve_templated_variables(lazy_load=self.lazy_load)
 
     def get_global_variables(self) -> dict:
         """Return the set of global variables that have been assigned via config files.
@@ -260,40 +260,41 @@ class ConfigLoader:
 
             # Using the active task definition, resolve any templated variables
             # Find any variables that are templated from the template object
+            if self.lazy_load:
 
-            ast = self.template_env.parse(json_content)
-            undeclared_variables = meta.find_undeclared_variables(ast)
-
-            self.logger.log(
-                12,
-                f"Found undeclared variables: {undeclared_variables}",
-            )
-
-            # For each undeclared variable, resolve it
-            for undeclared_variable in undeclared_variables:
-
-                # Get the value of the variable from global variables, if it exists,
-                # if it doesn't it must be a task variable, so this can be resolved below
-                if undeclared_variable not in self.global_variables:
-                    self.logger.log(
-                        12,
-                        f"Variable {undeclared_variable} not found in global variables, must be a task variable",
-                    )
-                    continue
-
-                unresolved_variable = self.global_variables[undeclared_variable]
-
-                evaluated_variable = self._resolve_templated_variables_from_string(
-                    unresolved_variable
-                )
+                ast = self.template_env.parse(json_content)
+                undeclared_variables = meta.find_undeclared_variables(ast)
 
                 self.logger.log(
                     12,
-                    f"Resolved variable {undeclared_variable}",
+                    f"Found undeclared variables: {undeclared_variables}",
                 )
 
-                # Now update the global variables with the resolved value
-                self.global_variables[undeclared_variable] = evaluated_variable
+                # For each undeclared variable, resolve it
+                for undeclared_variable in undeclared_variables:
+
+                    # Get the value of the variable from global variables, if it exists,
+                    # if it doesn't it must be a task variable, so this can be resolved below
+                    if undeclared_variable not in self.global_variables:
+                        self.logger.log(
+                            12,
+                            f"Variable {undeclared_variable} not found in global variables, must be a task variable",
+                        )
+                        continue
+
+                    unresolved_variable = self.global_variables[undeclared_variable]
+
+                    evaluated_variable = self._resolve_templated_variables_from_string(
+                        unresolved_variable
+                    )
+
+                    self.logger.log(
+                        12,
+                        f"Resolved variable {undeclared_variable}",
+                    )
+
+                    # Now update the global variables with the resolved value
+                    self.global_variables[undeclared_variable] = evaluated_variable
 
             rendered_template = template.render(self.global_variables)
             active_task_definition = dict(json.loads(rendered_template))

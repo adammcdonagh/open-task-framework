@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.37.0
+
+- Fix issue where new lazy loading code conflicts with `NOOP` mode, where it was trying to resolve variables regardless
+
 # v24.36.2
 
 - Add OTF_PARAMIKO_ULTRA_DEBUG environment variable to enable the hidden `ultra_debug` option for Paramiko (SFTP only).
