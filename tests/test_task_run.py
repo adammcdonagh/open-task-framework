@@ -2,6 +2,7 @@
 # ruff: noqa
 import ctypes
 import datetime
+import json
 import logging
 import os
 import random
@@ -48,6 +49,123 @@ def clear_logs(log_dir):
     os.makedirs(log_dir, exist_ok=True)
     # Check the directory exists
     assert os.path.exists(log_dir)
+
+
+def test_lazy_load_performance(env_vars, tmpdir):
+    # Dont run on GITHUB actions
+    if os.getenv("GITHUB_ACTIONS"):
+        return
+
+    # Create a variables file with 5000 different dynamic variables using the random number addon
+
+    # This point of this test is to prove that loading lots of variables that aren't used is slower
+    # that loading just the variable that is used. This is very hard to do with a unit test, so there's
+    # no assertion on the time. It's more to prove the concept.
+
+    # Having lots of different tasks that lookup variables that are not used by that task adds unnecessary
+    # overhead to the task run, and risks failures for no reason if the variable is not used by the task.
+
+    file_content_json = {}
+    for i in range(1, 5001):
+        file_content_json[f"test{i}"] = "{{ lookup('random_number', min=1, max=100) }}"
+
+    task_definition = {
+        "type": "transfer",
+        "source": {
+            "directory": "/tmp",
+            "fileRegex": ".*",
+            "protocol": {"name": "local"},
+        },
+        "destination": [],
+    }
+    fs.create_files(
+        [{f"{tmpdir}/test-task1.json.j2": {"content": json.dumps(task_definition)}}]
+    )
+
+    fs.create_files(
+        [{f"{tmpdir}/variables.json.j2": {"content": json.dumps(file_content_json)}}]
+    )
+
+    # Create a batch task definition
+    batch_task_definition = {
+        "type": "batch",
+        "tasks": [
+            {"order_id": i, "task_id": "test-task1", "timeout": 60} for i in range(1, 5)
+        ],
+    }
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/batch-task.json.j2": {
+                    "content": json.dumps(batch_task_definition)
+                }
+            }
+        ]
+    )
+
+    # Get the current time in milliseconds
+    current_time_ms = time.time_ns() / 1000000
+
+    # Run the binary
+    result = subprocess.run(
+        [
+            "python",
+            "src/opentaskpy/cli/task_run.py",
+            "-t",
+            "batch-task",
+            "-r",
+            "test-lazy-performance-no-lazy",
+            "-v",
+            "3",
+            "-c",
+            tmpdir,
+        ],
+        capture_output=True,
+    )
+
+    # Check the return code
+    assert result.returncode == 0
+
+    # Get the time in milliseconds after the task run
+    end_time_ms = time.time_ns() / 1000000
+
+    # Calculate the time taken to run the task
+    time_taken_ms = end_time_ms - current_time_ms
+
+    # Set the OTF_LAZY_LOAD_VARIABLES environment variable
+    os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"
+
+    current_time_ms = time.time_ns() / 1000000
+
+    # Run the binary again
+    result = subprocess.run(
+        [
+            "python",
+            "src/opentaskpy/cli/task_run.py",
+            "-t",
+            "batch-task",
+            "-r",
+            "test-lazy-performance-with-lazy",
+            "-v",
+            "3",
+            "-c",
+            tmpdir,
+        ],
+        capture_output=True,
+    )
+
+    # Check the return code
+    assert result.returncode == 0
+
+    # Get the time in milliseconds after the task run
+    end_time_ms = time.time_ns() / 1000000
+
+    # Calculate the time taken to run the task
+    time_taken_ms_lazy = end_time_ms - current_time_ms
+
+    # Check that the time taken to run the task is more than the time taken without lazy loading
+    print(f"Time taken without lazy loading: {time_taken_ms} ms")
+    print(f"Time taken with lazy loading: {time_taken_ms_lazy} ms")
 
 
 def test_noop_binary(env_vars, setup_ssh_keys, root_dir):

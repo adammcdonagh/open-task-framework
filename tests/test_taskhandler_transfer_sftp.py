@@ -454,6 +454,29 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
         transfer_obj.run()
 
 
+def test_sftp_basic_ultra_debug(root_dir, setup_sftp_keys):
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/test.taskhandler.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+
+    sftp_task_definition_copy = deepcopy(sftp_task_definition)
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
+
+    # Set the OTF_PARAMIKO_ULTRA_DEBUG environment variable
+    os.environ["OTF_PARAMIKO_ULTRA_DEBUG"] = "1"
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+
 def test_sftp_basic_key_from_protocol_definition(root_dir, sftp_key_file):
     # Create a test file
     fs.create_files(
@@ -639,9 +662,7 @@ def test_sftp_encrypt_outgoing_file(
 
     # run a transfer to copy the file locally, and encrypt it
     sftp_task_definition_copy = deepcopy(sftp_task_definition)
-    sftp_task_definition_copy["source"][
-        "directory"
-    ] = f"/home/application/testFiles/src"
+    sftp_task_definition_copy["source"]["directory"] = "/home/application/testFiles/src"
     sftp_task_definition_copy["source"]["fileRegex"] = "test.encryption.txt"
 
     # Override the destination
@@ -741,10 +762,6 @@ def test_sftp_encrypt_outgoing_file_from_local_source(
     # Create a test file
     fs.create_files([{f"{source_file}": {"content": "test12345678"}}])
 
-    # Checksum the file
-    with open(f"{source_file}", "rb") as f:
-        original_file_checksum = hashlib.md5(f.read()).hexdigest()
-
     # Create a gpg object
     gpg = gnupg.GPG(gnupghome=f"{tmpdir}")
 
@@ -788,6 +805,7 @@ def test_sftp_encrypt_outgoing_file_from_local_source(
     assert os.path.exists(
         f"{root_dir}/testFiles/sftp_1/dest/RENAMED.encryption.txt.pgp"
     )
+
     # Check the unencrypted file doesn't exist
     assert not os.path.exists(
         f"{root_dir}/testFiles/sftp_1/dest/renamed.encryption.txt"
@@ -896,9 +914,7 @@ def test_sftp_to_sftp_encrypt_outgoing_file(
 
     # run a transfer to copy the file locally, and encrypt it
     sftp_task_definition_copy = deepcopy(sftp_task_definition)
-    sftp_task_definition_copy["source"][
-        "directory"
-    ] = f"/home/application/testFiles/src"
+    sftp_task_definition_copy["source"]["directory"] = "/home/application/testFiles/src"
     sftp_task_definition_copy["source"]["fileRegex"] = "test.encryption.e2e.txt"
 
     # Override the destination

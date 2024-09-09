@@ -1,8 +1,17 @@
 # Changelog
 
+# v24.36.2
+
+- Add OTF_PARAMIKO_ULTRA_DEBUG environment variable to enable the hidden `ultra_debug` option for Paramiko (SFTP only).
+- Add some more logging to the SFTP transfers
+- Set `sftp_client` to `None` when closing the SFTP connection
+- Added `OTF_LAZY_LOAD_VARIABLES` environment variable to enable lazy loading of variables.
+- Updated `otflogging` to redact sensitive data from logs
+- Increate the number of retries for SSH and SFTP connections
+
 # v24.36.1
 
-Revert removal of some local transfer tests
+- Revert removal of some local transfer tests
 
 # v24.36.0
 

@@ -11,6 +11,7 @@ from jinja2.exceptions import UndefinedError
 from pytest_shell import fs
 
 from opentaskpy.config.loader import ConfigLoader
+from opentaskpy.exceptions import VariableResolutionTooDeepError
 
 GLOBAL_VARIABLES: str | None = None
 
@@ -95,6 +96,87 @@ def test_load_task_definition(write_dummy_variables_file, tmpdir):
     with pytest.raises(FileNotFoundError) as e:
         config_loader.load_task_definition("task")
     assert e.value.args[0] == "Couldn't find task with name: task"
+
+
+def test_load_task_definition_lazy_load(tmpdir):
+    # Set the OTF_LAZY_LOAD_VARIABLES environment variable
+    os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"
+
+    # Modify the variables file to include a variable that is templated
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": '{"test": "{{ now().strftime(\'%Y\') }}"}'
+                }
+            }
+        ]
+    )
+
+    # Evaluate the variable
+    expected_variable = datetime.now().strftime("%Y")
+
+    # Initialise the task runner
+    config_loader = ConfigLoader(tmpdir)
+
+    # Unset the env variable to not mess with other tests
+    del os.environ["OTF_LAZY_LOAD_VARIABLES"]
+
+    # Check the the test variable is not evaluated yet
+    assert config_loader.global_variables["test"] == "{{ now().strftime('%Y') }}"
+
+    # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
+    fs.create_files([{f"{tmpdir}/task.json": {"content": '{"test": "{{ test }}"}'}}])
+
+    expected_task_definition = {"test": f"{expected_variable}"}
+
+    # Test that the task definition is loaded correctly
+    assert config_loader.load_task_definition("task") == expected_task_definition
+
+    # Test that a non existent task definition file raises an error
+    os.remove(f"{tmpdir}/task.json")
+    with pytest.raises(FileNotFoundError) as e:
+        config_loader.load_task_definition("task")
+    assert e.value.args[0] == "Couldn't find task with name: task"
+
+
+def test_load_task_definition_lazy_load_too_deep(tmpdir):
+    # Set the OTF_LAZY_LOAD_VARIABLES environment variable
+    os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"
+
+    # Create a task definition that uses a heavily nested variable
+    fs.create_files(
+        [{f"{tmpdir}/task.json": {"content": '{"test": "{{ SOME_VARIABLE7 }}"}'}}]
+    )
+
+    # Crete a variables file that uses a heavily nested variable
+    json_obj = {
+        "test": "{{ SOME_VARIABLE }}7",
+        "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}6",
+        "SOME_VARIABLE2": "{{ SOME_VARIABLE3 }}5",
+        "SOME_VARIABLE3": "{{ SOME_VARIABLE4 }}4",
+        "SOME_VARIABLE4": "{{ SOME_VARIABLE5 }}3",
+        "SOME_VARIABLE5": "{{ SOME_VARIABLE6 }}2",
+        "SOME_VARIABLE6": "{{ SOME_VARIABLE7 }}1",
+        "SOME_VARIABLE7": (
+            "{{ SOME_VARIABLE8 }}{{ SOME_VARIABLE2 }}{{ SOME_VARIABLE3 }}"
+        ),
+        "SOME_VARIABLE8": "test1234",
+    }
+
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    config_loader = ConfigLoader(tmpdir)
+
+    del os.environ["OTF_LAZY_LOAD_VARIABLES"]
+
+    with pytest.raises(VariableResolutionTooDeepError):
+        config_loader.load_task_definition("task")
 
 
 def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):

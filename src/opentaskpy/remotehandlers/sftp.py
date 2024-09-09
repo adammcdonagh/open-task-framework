@@ -101,8 +101,8 @@ class SFTPTransfer(RemoteTransferHandler):
 
     @retry(
         reraise=True,
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
+        stop=stop_after_attempt(6),
+        wait=wait_exponential(multiplier=2, min=5, max=60),
     )
     def connect_with_retry(self, client_kwargs: dict) -> SSHClient:
         """Connect to the remote host with retry.
@@ -129,6 +129,11 @@ class SFTPTransfer(RemoteTransferHandler):
             ssh_client.connect(**client_kwargs)
             self.sftp_client = ssh_client.open_sftp()
 
+            # Check if OTF_PARAMIKO_ULTRA_DEBUG is set
+            if os.environ.get("OTF_PARAMIKO_ULTRA_DEBUG", None) == "1":
+                self.logger.info("Enabling Paramiko ultra debug")
+                self.sftp_client.ultra_debug = True
+
         except Exception as ex:
             self.logger.error(f"Unable to connect to {client_kwargs['hostname']}: {ex}")
             raise ex
@@ -150,11 +155,18 @@ class SFTPTransfer(RemoteTransferHandler):
             time.sleep(0.25)
             for _ in range(2):
                 if not self.sftp_client.get_channel().closed:  # type: ignore[union-attr]
+                    self.logger.warning(
+                        f"[{self.spec['hostname']}] SFTP connection not closed"
+                    )
                     time.sleep(0.5)
                 else:
+                    self.logger.info(
+                        f"[{self.spec['hostname']}] SFTP connection closed"
+                    )
                     break
 
             self.sftp_client.close()
+            self.sftp_client = None
 
     def list_files(
         self, directory: str | None = None, file_pattern: str | None = None
