@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": "Python: Pytest All",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "-m",
       "console": "integratedTerminal",
@@ -15,7 +15,7 @@
     },
     {
       "name": "Python: Current File",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "preLaunchTask": "Build Test containers",
@@ -25,7 +25,7 @@
     },
     {
       "name": "Python: Transfer - Basic",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -35,7 +35,7 @@
     },
     {
       "name": "Python: Transfer - Basic - As job",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -45,7 +45,7 @@
     },
     {
       "name": "Python: Transfer - SSH Vars",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -55,7 +55,7 @@
     },
     {
       "name": "Python: Transfer - Basic - JSON Logging",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -68,7 +68,7 @@
     },
     {
       "name": "Python: Batch x15",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -78,7 +78,7 @@
     },
     {
       "name": "Python: Transfer - Multiple",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -88,7 +88,7 @@
     },
     {
       "name": "Python: Transfer - File Conditions 1",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -98,7 +98,7 @@
     },
     {
       "name": "Python: Transfer - File Watch only",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -108,7 +108,7 @@
     },
     {
       "name": "Python: Transfer - Log Watch only",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -118,7 +118,7 @@
     },
     {
       "name": "Python: Transfer - Log Watch tail only",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -128,7 +128,7 @@
     },
     {
       "name": "Python: Batch - Basic",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -138,7 +138,7 @@
     },
     {
       "name": "Python: Batch - Parallel",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -148,7 +148,7 @@
     },
     {
       "name": "Python: Batch - Timeout",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -167,7 +167,7 @@
     },
     {
       "name": "Python: Batch - Dependencies",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -186,7 +186,7 @@
     },
     {
       "name": "Python: Batch - Dependencies - Fail - No retry",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -205,7 +205,7 @@
     },
     {
       "name": "Python: Batch - Dependencies - Fail - Retry",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -224,7 +224,7 @@
     },
     {
       "name": "Python: Batch - Continue on fail",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -234,7 +234,7 @@
     },
     {
       "name": "Python: Execution - Basic - df - 2 hosts",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
@@ -244,7 +244,7 @@
     },
     {
       "name": "Python: Execution - Basic - df - local",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
@@ -253,7 +253,7 @@
     },
     {
       "name": "Python: Bad variables file",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",

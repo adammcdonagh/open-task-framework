@@ -284,6 +284,16 @@ class ConfigLoader:
 
                     unresolved_variable = self.global_variables[undeclared_variable]
 
+                    # Check the type of the variable, if it's not a string, then dump it into a JSON string
+                    converted_variable = False
+                    if not isinstance(unresolved_variable, str):
+                        self.logger.debug(
+                            "Converted unresolved variable into a RAW string"
+                        )
+                        unresolved_variable = json.dumps(unresolved_variable)
+                        converted_variable = True
+
+                    self.logger.info(f"Resolving variable {undeclared_variable}")
                     evaluated_variable = self._resolve_templated_variables_from_string(
                         unresolved_variable
                     )
@@ -292,6 +302,11 @@ class ConfigLoader:
                         12,
                         f"Resolved variable {undeclared_variable}",
                     )
+
+                    # If the variable was not a string, then convert it back to the original type
+                    if converted_variable:
+                        self.logger.debug("Converting variable back into a JSON object")
+                        evaluated_variable = json.loads(evaluated_variable)
 
                     # Now update the global variables with the resolved value
                     self.global_variables[undeclared_variable] = evaluated_variable

@@ -141,6 +141,33 @@ def test_load_task_definition(write_dummy_variables_file, tmpdir):
     assert e.value.args[0] == "Couldn't find task with name: task"
 
 
+def test_lazy_loading_nested_variables(tmpdir):
+    os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"
+    # Create a variables file with some test variables in it
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": '{"NEST": { "NEST1": "{{ now().strftime(\'%Y\') }}" } } '
+                }
+            },
+        ]
+    )
+
+    # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
+    fs.create_files(
+        [{f"{tmpdir}/task.json": {"content": '{"test": "{{ NEST.NEST1 }}"}'}}]
+    )
+
+    evaluated_year = datetime.now().strftime("%Y")
+    expected_task_definition = {"test": f"{evaluated_year}"}
+
+    # Test that the task definition is loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+    del os.environ["OTF_LAZY_LOAD_VARIABLES"]
+    assert config_loader.load_task_definition("task") == expected_task_definition
+
+
 def test_load_task_definition_lazy_load(tmpdir):
     # Set the OTF_LAZY_LOAD_VARIABLES environment variable
     os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"

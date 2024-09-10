@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.37.2
+
+- Fix issue where nested variables were not being resolved correctly when using lazy loading
+
 # v24.37.1
 
 - Allow loading of multiple variables files via `OTF_VARIABLES_FILE` by specifying them comma-separated
