@@ -1,5 +1,9 @@
 # Changelog
 
+# No release
+
+- Bump `black` to 24.10.0
+
 # v24.37.2
 
 - Fix issue where nested variables were not being resolved correctly when using lazy loading
