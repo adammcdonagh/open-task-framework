@@ -32,7 +32,7 @@ dependencies = [
     "referencing >= 0.29.1",
     "tenacity >= 8.2.3",
     "python-gnupg >= 0.5.2",
-    "omegaconf >= 2.3.0"
+    "omegaconf >= 2.3.0",
 ]
 description = "A framework for automation execution of commands and transferring files between hosts"
 readme = "README.md"
