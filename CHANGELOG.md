@@ -3,6 +3,7 @@
 # v24.42.0
 
 - Fix issue where different protocols where not being detected properly, and proxy had to be explicitly defined when it was unnecessary
+- When creating a destination directory with SFTP, it will now check whether lower level directories exist, and create them if not
 
 # No release
 
