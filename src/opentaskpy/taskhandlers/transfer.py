@@ -403,7 +403,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 ):
                     different_protocols = True
                     any_different_protocols = True
-                    i += 1
 
                 # If there are differences, download the file locally first
                 # so it's ready to upload to multiple destinations at once
@@ -431,6 +430,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                             "Pull to worker from remote source errored",
                             exception=exceptions.RemoteTransferError,
                         )
+                i += 1
 
             # Before doing any file movements, check to see if file decryption or encryption is
             # required on the source or destination. For any unsupported transferTypes we need to fail here first

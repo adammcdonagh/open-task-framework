@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.42.0
+
+- Fix issue where different protocols where not being detected properly, and proxy had to be explicitly defined when it was unnecessary
+
 # No release
 
 - Bump `black` to 24.10.0
