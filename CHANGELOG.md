@@ -6,6 +6,7 @@
 - When creating a destination directory with SFTP, it will now check whether lower level directories exist, and create them if not
 - Always check for a directory before trying to delete it and thowing an exception if it doesn't exist.
 - Moved exception printing for transfers to earlier in th code to ensure log messages aren't confusing.
+- Add ability to check for SSH host key and validate it before proceeding with connection
 
 # No release
 

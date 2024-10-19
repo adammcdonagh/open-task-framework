@@ -9,3 +9,9 @@ rm -fr $DIR/testFiles/ssh_2/src $DIR/testFiles/ssh_2/dest $DIR/testFiles/ssh_2/a
 
 mkdir -p $DIR/testFiles/ssh_1/dest $DIR/testFiles/ssh_1/src $DIR/testFiles/ssh_1/archive $DIR/testFiles/ssh_1/ssh
 mkdir -p $DIR/testFiles/ssh_2/dest $DIR/testFiles/ssh_2/src $DIR/testFiles/ssh_2/archive $DIR/testFiles/ssh_2/ssh
+
+rm -fr $DIR/testFiles/sftp_1/src $DIR/testFiles/sftp_1/dest $DIR/testFiles/sftp_1/archive 2>/dev/null
+rm -fr $DIR/testFiles/sftp_2/src $DIR/testFiles/sftp_2/dest $DIR/testFiles/sftp_2/archive  2>/dev/null
+
+mkdir -p $DIR/testFiles/sftp_1/dest $DIR/testFiles/sftp_1/src $DIR/testFiles/sftp_1/archive $DIR/testFiles/sftp_1/ssh
+mkdir -p $DIR/testFiles/sftp_2/dest $DIR/testFiles/sftp_2/src $DIR/testFiles/sftp_2/archive $DIR/testFiles/sftp_2/ssh

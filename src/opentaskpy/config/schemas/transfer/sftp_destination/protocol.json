@@ -10,6 +10,12 @@
     "port": {
       "type": "integer"
     },
+    "hostKeyValidation": {
+      "type": "boolean"
+    },
+    "knownHostsFile": {
+      "type": "string"
+    },
     "supportsPosixRename": {
       "type": "boolean",
       "default": true
