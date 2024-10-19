@@ -34,6 +34,16 @@
       "justMyCode": false
     },
     {
+      "name": "Python: Transfer - SFTP Basic",
+      "type": "debugpy",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "sftp-basic", "-c", "test/cfg", "-v3"],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Transfer - Basic - As job",
       "type": "debugpy",
       "request": "launch",

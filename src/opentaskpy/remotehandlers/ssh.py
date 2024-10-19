@@ -13,9 +13,15 @@ import time
 from io import StringIO
 from shlex import quote
 
-from paramiko import AutoAddPolicy, RSAKey, SFTPClient, SSHClient, Transport
+from paramiko import RSAKey, SFTPClient, SSHClient, Transport
 from paramiko.channel import ChannelFile, ChannelStderrFile
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_not_exception_message,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 import opentaskpy.otflogging
 from opentaskpy.exceptions import SSHClientError
@@ -23,6 +29,8 @@ from opentaskpy.remotehandlers.remotehandler import (
     RemoteExecutionHandler,
     RemoteTransferHandler,
 )
+
+from .ssh_utils import setup_host_key_validation
 
 SSH_OPTIONS: str = "-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5"
 REMOTE_SCRIPT_BASE_DIR: str = "/tmp"  # nosec B108
@@ -52,7 +60,7 @@ class SSHTransfer(RemoteTransferHandler):
 
         client = SSHClient()
         client.set_log_channel(f"{__name__}.{ spec['task_id']}.paramiko.transport")
-        client.set_missing_host_key_policy(AutoAddPolicy())
+        setup_host_key_validation(client, spec, self.logger)
         self.ssh_client = client
 
         # Handle default values
@@ -136,6 +144,12 @@ class SSHTransfer(RemoteTransferHandler):
         reraise=True,
         stop=stop_after_attempt(6),
         wait=wait_exponential(multiplier=2, min=5, max=60),
+        retry=(
+            retry_if_not_exception_message(
+                match=r".*(not found in known_hosts|Name or service not known).*"
+            )
+            & retry_if_exception(Exception)
+        ),
     )
     def connect_with_retry(self, ssh_client: SSHClient, kwargs: dict) -> None:
         """Connect to the remote host with retry.
@@ -916,7 +930,8 @@ class SSHExecution(RemoteExecutionHandler):
 
         client = SSHClient()
         client.set_log_channel(f"{__name__}.{ spec['task_id']}.paramiko.transport")
-        client.set_missing_host_key_policy(AutoAddPolicy())
+
+        setup_host_key_validation(client, spec, self.logger)
 
         self.ssh_client = client
 

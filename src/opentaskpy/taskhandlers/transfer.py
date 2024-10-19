@@ -100,6 +100,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         Returns:
             bool: The result of the task run.
         """
+        # Log the exception
+        if exception:
+            self.logger.exception(exception)
+
         # Delete the remote connection objects
         if self.source_remote_handler:
             self.logger.info("Closing source connection")
@@ -125,9 +129,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 )
 
         # Call super to do the rest
-        # Log the exception
-        if exception:
-            self.logger.exception(exception)
         return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
     def _get_default_class(self, protocol_name: str) -> type:
@@ -403,7 +404,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 ):
                     different_protocols = True
                     any_different_protocols = True
-                    i += 1
 
                 # If there are differences, download the file locally first
                 # so it's ready to upload to multiple destinations at once
@@ -431,6 +431,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                             "Pull to worker from remote source errored",
                             exception=exceptions.RemoteTransferError,
                         )
+                i += 1
 
             # Before doing any file movements, check to see if file decryption or encryption is
             # required on the source or destination. For any unsupported transferTypes we need to fail here first
@@ -639,7 +640,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 and self.local_staging_dir != self.source_file_spec["directory"]
             ):
                 self.logger.debug("Removing local staging directory")
-                shutil.rmtree(self.local_staging_dir)
+                if path.exists(self.local_staging_dir):
+                    shutil.rmtree(self.local_staging_dir)
         else:
             self.logger.info("Performing filewatch only")
 
@@ -769,7 +771,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             encrypted_files[output_filename] = files[file]
 
         # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-        shutil.rmtree(f"{tmpdir}/.gnupg")
+        if path.exists(f"{tmpdir}/.gnupg"):
+            shutil.rmtree(f"{tmpdir}/.gnupg")
 
         return encrypted_files
 
@@ -830,7 +833,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     self.logger.error(f"GPG STDERR: {decryption_data.stderr}")
 
                     # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-                    shutil.rmtree(f"{tmpdir}/.gnupg")
+                    if path.exists(f"{tmpdir}/.gnupg"):
+                        shutil.rmtree(f"{tmpdir}/.gnupg")
 
                     raise exceptions.DecryptionError(
                         f"Error decrypting file {file}: {decryption_data.status}"
@@ -839,7 +843,9 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
             decrypted_files[output_filename] = files[file]
 
         # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-        shutil.rmtree(f"{tmpdir}/.gnupg")
+        # Check if the directory exists first
+        if path.exists(f"{tmpdir}/.gnupg"):
+            shutil.rmtree(f"{tmpdir}/.gnupg")
 
         self.logger.debug(f"Returning decrypted files: {decrypted_files}")
 

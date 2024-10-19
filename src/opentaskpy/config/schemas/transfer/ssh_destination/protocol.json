@@ -10,6 +10,12 @@
     "port": {
       "type": "integer"
     },
+    "hostKeyValidation": {
+      "type": "boolean"
+    },
+    "knownHostsFile": {
+      "type": "string"
+    },
     "credentials": {
       "type": "object",
       "properties": {

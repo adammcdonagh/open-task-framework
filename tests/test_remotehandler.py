@@ -8,7 +8,7 @@ from opentaskpy.remotehandlers.ssh import SSHTransfer
 
 def test_cacheable_variable_dotted_notation():
 
-    spec = {"task_id": "1234", "x": {"y": "value"}}
+    spec = {"task_id": "1234", "x": {"y": "value"}, "protocol": {"name": "ssh"}}
     rh = SSHTransfer(spec)
 
     assert rh.obtain_variable_from_spec("x.y", spec) == "value"

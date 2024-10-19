@@ -5,6 +5,7 @@ from copy import deepcopy
 from datetime import datetime
 
 import pytest
+from paramiko.ssh_exception import SSHException
 from pytest_shell import fs
 
 from opentaskpy import exceptions
@@ -352,6 +353,76 @@ def test_scp_basic(root_dir, setup_ssh_keys):
     assert transfer_obj.run()
     # Check the destination file exists
     assert os.path.exists(f"{root_dir}/testFiles/ssh_2/dest/test.taskhandler.txt")
+
+
+def test_ssh_basic_host_key_validation(root_dir, setup_ssh_keys):
+    # Run the above test again, but this time with host key validation
+    ssh_validation_task_definition = deepcopy(scp_task_definition)
+    ssh_validation_task_definition["source"]["fileRegex"] = ".*hostValidation.*\\.txt"
+    ssh_validation_task_definition["source"]["protocol"]["hostKeyValidation"] = True
+    ssh_validation_task_definition["destination"][0]["protocol"][
+        "hostKeyValidation"
+    ] = True
+
+    # Create a test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/test.hostValidation.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+
+    print("Running test")
+    # Delete the known hosts file if it exists
+    user_home = os.path.expanduser("~")
+    known_hosts_file = f"{user_home}/.ssh/known_hosts"
+    if os.path.exists(known_hosts_file):
+        os.remove(known_hosts_file)
+
+    print("Running first transfer")
+
+    transfer_obj = transfer.Transfer(
+        None, "ssh-host-key-validation", ssh_validation_task_definition
+    )
+
+    # Run the execution and expect a false status
+    with pytest.raises(SSHException):
+        transfer_obj.run()
+
+    print("Done first transfer")
+
+    # SSH onto the host manually and accept the host key so it's saved to the system known hosts
+    cmd = "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=1 application@172.16.0.11 echo 'test'; ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=1 application@172.16.0.12 echo 'test' "
+    result = subprocess.run(cmd, shell=True, capture_output=True)
+
+    print("Done SSH")
+
+    # Now rerun the execution, but this time it should work
+    assert transfer_obj.run()
+
+    print("Done second transfer")
+
+    # Move the known host file elsewhere and pass the new location to the protocol definition
+    known_hosts_file = f"{user_home}/.ssh/known_hosts"
+    new_known_hosts_file = f"{user_home}/known_hosts.new"
+    os.rename(known_hosts_file, new_known_hosts_file)
+
+    ssh_validation_task_definition["source"]["protocol"][
+        "knownHostsFile"
+    ] = new_known_hosts_file
+    ssh_validation_task_definition["destination"][0]["protocol"][
+        "knownHostsFile"
+    ] = new_known_hosts_file
+
+    transfer_obj = transfer.Transfer(
+        None, "ssh-host-key-validation", ssh_validation_task_definition
+    )
+
+    # Run the execution and expect a false status
+    assert transfer_obj.run()
 
 
 def test_scp_basic_ultra_debug(root_dir, setup_ssh_keys):
