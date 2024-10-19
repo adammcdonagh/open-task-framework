@@ -38,6 +38,14 @@ def test_ssh_basic(valid_execution):
 
     assert validate_execution_json(json_data)
 
+    # Add hostKeyValidation
+    json_data["protocol"]["hostKeyValidation"] = True
+    assert validate_execution_json(json_data)
+
+    # Add knownHostsFile
+    json_data["protocol"]["knownHostsFile"] = "/some/file"
+    assert validate_execution_json(json_data)
+
     # Remove protocol
     del json_data["protocol"]
     assert not validate_execution_json(json_data)

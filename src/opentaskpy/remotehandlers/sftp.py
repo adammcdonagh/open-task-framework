@@ -11,11 +11,19 @@ import time
 from io import StringIO
 from shlex import quote
 
-from paramiko import AutoAddPolicy, Channel, RSAKey, SFTPClient, SSHClient
-from tenacity import retry, stop_after_attempt, wait_exponential
+from paramiko import Channel, RSAKey, SFTPClient, SSHClient
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_not_exception_message,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 import opentaskpy.otflogging
 from opentaskpy.remotehandlers.remotehandler import RemoteTransferHandler
+
+from .ssh_utils import setup_host_key_validation
 
 
 class SFTPTransfer(RemoteTransferHandler):
@@ -103,6 +111,12 @@ class SFTPTransfer(RemoteTransferHandler):
         reraise=True,
         stop=stop_after_attempt(6),
         wait=wait_exponential(multiplier=2, min=5, max=60),
+        retry=(
+            retry_if_not_exception_message(
+                match=r".*(not found in known_hosts|Name or service not known).*"
+            )
+            & retry_if_exception(Exception)
+        ),
     )
     def connect_with_retry(self, client_kwargs: dict) -> SSHClient:
         """Connect to the remote host with retry.
@@ -118,7 +132,7 @@ class SFTPTransfer(RemoteTransferHandler):
             ssh_client.set_log_channel(
                 f"{__name__}.{ self.spec['task_id']}.paramiko.transport"
             )
-            ssh_client.set_missing_host_key_policy(AutoAddPolicy())
+            setup_host_key_validation(ssh_client, self.spec, self.logger)
             self.logger.info(f"Connecting to {client_kwargs['hostname']}")
 
             # Set additional timeout options to match the standard timeout
