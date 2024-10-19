@@ -317,7 +317,20 @@ class SFTPTransfer(RemoteTransferHandler):
                 f"[{self.spec['hostname']}] Creating destination directory:"
                 f" {destination_directory}"
             )
-            self.sftp_client.mkdir(destination_directory)
+
+            # We need to check recursively if the destination directory is nested
+            current_dir = ""
+            for dir_part in destination_directory.split("/"):
+                if not dir_part:
+                    continue
+                current_dir += f"/{dir_part}"
+                try:
+                    self.sftp_client.stat(current_dir)
+                except OSError:
+                    self.logger.info(
+                        f"[{self.spec['hostname']}] Destination directory {current_dir} does not exist. Creating it."
+                    )
+                    self.sftp_client.mkdir(current_dir)
 
         # Transfer the files
         result = 0

@@ -394,7 +394,6 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     )
 
     # Now run again, but ask for the dir to be created
-
     sftp_task_definition_copy["destination"][0]["createDirectoryIfNotExists"] = True
 
     transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
@@ -406,6 +405,24 @@ def test_sftp_basic(root_dir, setup_sftp_keys):
     assert os.path.exists(
         f"{root_dir}/testFiles/sftp_2/dest/{random_number}/test.taskhandler.txt"
     )
+
+    # Now run again, but set the destination to a nested directory that doesn't exist yet
+    sftp_task_definition_copy["destination"][0][
+        "directory"
+    ] = "/home/application/testFiles/dest/nested/level1/level2"
+    transfer_obj = transfer.Transfer(None, "sftp-basic", sftp_task_definition_copy)
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+
+    # Check the destination file exists
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_2/dest/nested/level1/level2/test.taskhandler.txt"
+    )
+
+    sftp_task_definition_copy["destination"][0][
+        "directory"
+    ] = f"/home/application/testFiles/dest/{random_number}"
 
     # Now run again, but set supportsPosixRename to false in the protocol definition
     sftp_task_definition_copy["destination"][0]["protocol"][
