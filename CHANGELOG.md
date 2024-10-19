@@ -4,6 +4,8 @@
 
 - Fix issue where different protocols where not being detected properly, and proxy had to be explicitly defined when it was unnecessary
 - When creating a destination directory with SFTP, it will now check whether lower level directories exist, and create them if not
+- Always check for a directory before trying to delete it and thowing an exception if it doesn't exist.
+- Moved exception printing for transfers to earlier in th code to ensure log messages aren't confusing.
 
 # No release
 
