@@ -1,5 +1,12 @@
 # Changelog
 
+# v24.44.0
+
+- Try to fix issue where SFTP connections were not being closed properly
+- Force setting timeout for SFTP transport after connection is established
+- Add extra log to SFTP transfers
+- Change sleep log message to show how long it's actually sleeping for
+
 # v24.42.0
 
 - Fix issue where different protocols where not being detected properly, and proxy had to be explicitly defined when it was unnecessary

@@ -33,6 +33,7 @@ class SFTPTransfer(RemoteTransferHandler):
 
     FILE_NAME_DELIMITER = "|||"
 
+    ssh_client: SSHClient | None = None
     sftp_client: SFTPClient | None = None
     log_watch_start_row = 0
 
@@ -64,10 +65,15 @@ class SFTPTransfer(RemoteTransferHandler):
             hostname (str): The hostname to connect to.
             sftp_client (SFTPClient, optional): An existing SFTPClient to use. Defaults to None.
         """
+        self.logger.info(f"[{hostname}] Connecting to {hostname}")
+
         if self.sftp_client and isinstance(self.sftp_client, SFTPClient):
             channel = self.sftp_client.get_channel()
             if channel is not None and isinstance(channel, Channel) and channel.active:
+                self.logger.info("[{hostname}] SFTP connection already active")
                 return
+
+        self.logger.info("Creating new SFTP connection")
 
         client_kwargs = {
             "hostname": hostname,
@@ -118,21 +124,19 @@ class SFTPTransfer(RemoteTransferHandler):
             & retry_if_exception(Exception)
         ),
     )
-    def connect_with_retry(self, client_kwargs: dict) -> SSHClient:
+    def connect_with_retry(self, client_kwargs: dict) -> None:
         """Connect to the remote host with retry.
 
         Args:
             client_kwargs (dict): The kwargs to use for the SSH client.
 
-        Returns:
-            SSHClient: The SSH client.
         """
         try:
-            ssh_client = SSHClient()
-            ssh_client.set_log_channel(
+            self.ssh_client = SSHClient()
+            self.ssh_client.set_log_channel(
                 f"{__name__}.{ self.spec['task_id']}.paramiko.transport"
             )
-            setup_host_key_validation(ssh_client, self.spec, self.logger)
+            setup_host_key_validation(self.ssh_client, self.spec, self.logger)
             self.logger.info(f"Connecting to {client_kwargs['hostname']}")
 
             # Set additional timeout options to match the standard timeout
@@ -140,19 +144,20 @@ class SFTPTransfer(RemoteTransferHandler):
             client_kwargs["auth_timeout"] = client_kwargs["timeout"]
             client_kwargs["channel_timeout"] = client_kwargs["timeout"]
 
-            ssh_client.connect(**client_kwargs)
-            self.sftp_client = ssh_client.open_sftp()
+            self.ssh_client.connect(**client_kwargs)
+
+            session = SFTPClient.from_transport(self.ssh_client.get_transport())  # type: ignore[arg-type]
+            session.get_channel().settimeout(client_kwargs["timeout"])  # type: ignore[union-attr]
+            self.sftp_client = session
 
             # Check if OTF_PARAMIKO_ULTRA_DEBUG is set
             if os.environ.get("OTF_PARAMIKO_ULTRA_DEBUG", None) == "1":
                 self.logger.info("Enabling Paramiko ultra debug")
-                self.sftp_client.ultra_debug = True
+                self.sftp_client.ultra_debug = True  # type: ignore[union-attr]
 
         except Exception as ex:
             self.logger.error(f"Unable to connect to {client_kwargs['hostname']}: {ex}")
             raise ex
-
-        return ssh_client
 
     def tidy(self) -> None:
         """Tidy up the SFTP connection.
@@ -181,6 +186,10 @@ class SFTPTransfer(RemoteTransferHandler):
 
             self.sftp_client.close()
             self.sftp_client = None
+
+        if self.ssh_client:
+            self.logger.info(f"[{self.spec['hostname']}] Closing SSH connection")
+            self.ssh_client.close()
 
     def list_files(
         self, directory: str | None = None, file_pattern: str | None = None
@@ -232,6 +241,10 @@ class SFTPTransfer(RemoteTransferHandler):
                     "size": file_attr.st_size,
                     "modified_time": file_attr.st_mtime,
                 }
+
+        self.logger.info(
+            f"Found {len(remote_files)} files in {directory} that match {file_pattern}"
+        )
 
         return remote_files
 
