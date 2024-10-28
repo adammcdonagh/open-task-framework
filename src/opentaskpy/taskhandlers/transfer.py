@@ -246,7 +246,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     actual_sleep_seconds = sleep_seconds
 
                 self.logger.info(
-                    f"No entry found in log. Sleeping for {sleep_seconds} secs."
+                    f"No entry found in log. Sleeping for {actual_sleep_seconds} secs."
                     f" {remaining_seconds} seconds remain"
                 )
                 time.sleep(actual_sleep_seconds)
