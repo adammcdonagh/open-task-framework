@@ -43,3 +43,7 @@ jobs:
           . venv/bin/activate
           pip install -U .
           python -m pytest
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.5.0
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

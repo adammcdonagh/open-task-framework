@@ -1,0 +1,19 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "172.16.0.21",
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": "{{ YYYY }}.*\\.txt",
+    "fileWatch": {
+      "timeout": 60
+    },
+    "protocol": {
+      "name": "sftp",
+      "port": 22,
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  },
+  "destination": []
+}
