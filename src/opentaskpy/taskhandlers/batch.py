@@ -348,12 +348,14 @@ class Batch(TaskHandler):
                 batch_task["logged_status"] = logged
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done
-            running_tasks = [
+            remaining_tasks = [
                 task
                 for task in self.task_order_tree.values()
-                if task["status"] == "RUNNING"
+                if task["status"] == "RUNNING" or task["status"] == "NOT_STARTED"
             ]
-            if len(running_tasks) == 0:
+            self.logger.debug(f"Remaining tasks: {remaining_tasks}")
+            if len(remaining_tasks) == 0:
+                self.logger.debug("No remaining tasks, breaking out of loop")
                 break
 
             # Sleep 5 seconds before checking again
