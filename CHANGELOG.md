@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.44.1
+
+- Fix batch logic to ensure that all tasks run before exiting
+
 # v24.44.0
 
 - Try to fix issue where SFTP connections were not being closed properly
