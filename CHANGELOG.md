@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.44.2
+
+- Make SFTP timeout configurable within protocol definition
+
 # v24.44.1
 
 - Fix batch logic to ensure that all tasks run before exiting

@@ -79,7 +79,7 @@ class SFTPTransfer(RemoteTransferHandler):
             "hostname": hostname,
             "port": (self.spec["protocol"].get("port", 22)),
             "username": self.spec["protocol"]["credentials"]["username"],
-            "timeout": 3,
+            "timeout": (self.spec["protocol"].get("timeout", 3)),
             "allow_agent": False,
         }
 
