@@ -16,6 +16,9 @@
     "knownHostsFile": {
       "type": "string"
     },
+    "timeout": {
+      "type": "integer"
+    },
     "supportsPosixRename": {
       "type": "boolean",
       "default": true

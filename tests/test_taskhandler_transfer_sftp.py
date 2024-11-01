@@ -25,13 +25,21 @@ sftp_task_definition = {
         "hostname": "172.16.0.21",
         "directory": "/home/application/testFiles/src",
         "fileRegex": ".*taskhandler.*\\.txt",
-        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        "protocol": {
+            "name": "sftp",
+            "credentials": {"username": "application"},
+            "timeout": 20,
+        },
     },
     "destination": [
         {
             "hostname": "172.16.0.22",
             "directory": "/home/application/testFiles/dest",
-            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+            "protocol": {
+                "name": "sftp",
+                "credentials": {"username": "application"},
+                "timeout": 20,
+            },
         },
     ],
 }
