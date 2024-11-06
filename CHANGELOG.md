@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.45.1
+
+- Add additional delta_hours helper function to config loader
+
 # v24.45.0
 
 - Add further exception handling for deleting .gnupg directories after handling file decryption

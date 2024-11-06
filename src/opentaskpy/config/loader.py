@@ -38,6 +38,7 @@ class ConfigLoader:
         jinja2.make_logging_undefined(logger=self.logger, base=jinja2.Undefined)
         self.template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
         self.template_env.filters["delta_days"] = self.delta_days
+        self.template_env.filters["delta_hours"] = self.delta_hours
 
         self._load_global_variables()
 
@@ -79,6 +80,18 @@ class ConfigLoader:
             datetime.datetime: New datetime object with the delta applied
         """
         return value + datetime.timedelta(days)
+
+    def delta_hours(self, value: datetime.datetime, hours: int) -> datetime.datetime:
+        """Returns a new datetime object + or - the number of delta hours.
+
+        Args:
+            value (datetime.datetime): Starting datetime object
+            hours (int): Hours to increment or decrement the value
+
+        Returns:
+            datetime.datetime: New datetime object with the delta applied
+        """
+        return value + datetime.timedelta(hours=hours)
 
     def template_lookup(self, plugin: str, **kwargs) -> str:  # type: ignore[no-untyped-def]
         """Lookup function used by Jinja.

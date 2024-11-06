@@ -503,6 +503,7 @@ def test_default_date_variable_resolution(tmpdir):
         "PREV_UTC_DD": "{{ (utc_now()|delta_days(-1)).strftime('%d') }}",
         "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
         "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
+        "PREV_1H_HH": "{{ (now()|delta_hours(-1)).strftime('%H') }}",
     }
 
     # Create a JSON file with some test variables in it
@@ -534,6 +535,12 @@ def test_default_date_variable_resolution(tmpdir):
     assert config_loader.get_global_variables()["PREV_YYYY"] == yesterday.strftime("%Y")
     assert config_loader.get_global_variables()["PREV_MM"] == yesterday.strftime("%m")
     assert config_loader.get_global_variables()["PREV_DD"] == yesterday.strftime("%d")
+
+    # Get datetime for 1 hour ago
+    previous_hour = datetime.now() - timedelta(hours=1)
+    assert config_loader.get_global_variables()["PREV_1H_HH"] == previous_hour.strftime(
+        "%H"
+    )
 
     # Play around with the current time. Set it to a GMT time before the clocks change
     # Change the time to before BST starts
