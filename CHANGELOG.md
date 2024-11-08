@@ -1,5 +1,13 @@
 # Changelog
 
+# v24.45.1
+
+- Add additional delta_hours helper function to config loader
+
+# v24.45.0
+
+- Add further exception handling for deleting .gnupg directories after handling file decryption
+
 # v24.44.2
 
 - Make SFTP timeout configurable within protocol definition
