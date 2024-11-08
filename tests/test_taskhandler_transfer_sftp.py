@@ -159,6 +159,27 @@ sftp_pca_move_task_definition_2 = {
     ],
 }
 
+sftp_pca_move_task_definition_3 = {
+    "type": "transfer",
+    "source": {
+        "hostname": "172.16.0.21",
+        "directory": "/home/application/testFiles/src",
+        "fileRegex": "pca_move_nested_3\\.txt",
+        "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        "postCopyAction": {
+            "action": "move",
+            "destination": "/home/application/testFiles/src/nested/",
+        },
+    },
+    "destination": [
+        {
+            "hostname": "172.16.0.22",
+            "directory": "/home/application/testFiles/dest",
+            "protocol": {"name": "sftp", "credentials": {"username": "application"}},
+        },
+    ],
+}
+
 sftp_pca_delete_task_definition = {
     "type": "transfer",
     "source": {
@@ -1447,3 +1468,36 @@ def test_sftp_filewatch_counts_error(root_dir, setup_sftp_keys):
     # Run the transfer and expect a RemoteFileNotFoundError exception
     with pytest.raises(exceptions.RemoteFileNotFoundError):
         transfer_obj.run()
+
+
+def test_pca_move_nested(root_dir, setup_sftp_keys):
+    # Empty the PCA archive directory
+    for file in os.listdir(f"{root_dir}/testFiles/sftp_1/archive"):
+        os.remove(f"{root_dir}/testFiles/sftp_1/archive/{file}")
+
+    # Create the test file
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/sftp_1/src/pca_move_nested_3.txt": {
+                    "content": "test1234"
+                }
+            }
+        ]
+    )
+    # Create a transfer object
+    transfer_obj = transfer.Transfer(
+        None, "scp-pca-move-3", sftp_pca_move_task_definition_3
+    )
+
+    # Run the transfer and expect a true status
+    assert transfer_obj.run()
+    # Check the destination file exists
+    assert os.path.exists(f"{root_dir}/testFiles/sftp_2/dest/pca_move_nested_3.txt")
+    # Check the source file no longer exists
+    assert not os.path.exists(f"{root_dir}/testFiles/sftp_1/src/pca_move_nested_3.txt")
+
+    # Check the source file has been created in nested folder
+    assert os.path.exists(
+        f"{root_dir}/testFiles/sftp_1/src/nested/pca_move_nested_3.txt"
+    )
