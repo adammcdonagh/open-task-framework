@@ -1,6 +1,6 @@
 # Changelog
 
-# v24.45.2
+# v24.46.0
 
 - Added support for PostCopyAction dir auto-creation
 
