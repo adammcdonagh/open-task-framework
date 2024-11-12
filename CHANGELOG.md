@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.46.0
+
+- Added support for PostCopyAction dir auto-creation
+
 # v24.45.1
 
 - Add additional delta_hours helper function to config loader

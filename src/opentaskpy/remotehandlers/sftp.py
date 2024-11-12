@@ -482,23 +482,34 @@ class SFTPTransfer(RemoteTransferHandler):
             # Use the SFTP client, and check that the destination directory exists
             move_dir = os.path.dirname(self.spec["postCopyAction"]["destination"])
 
-            try:
-                stat_result = self.sftp_client.stat(move_dir)
-                # If it exists, then we need to ensure its a directory and not just a file
-                if not stat.S_ISDIR(stat_result.st_mode):  # type: ignore[arg-type]
+            current_dir = ""
+            # If it exists, then we need to ensure its a directory and not just a file
+            for dir_part in move_dir.split("/"):
+                if not dir_part:
+                    continue
+                current_dir += f"/{dir_part}"
+                try:
+                    self.sftp_client.stat(current_dir)
+                except FileNotFoundError:
+                    self.sftp_client.mkdir(current_dir)
+                    self.logger.error(f"Creating directory {current_dir}")
+
+                try:
+                    file_attr = self.sftp_client.stat(current_dir)
+                    if stat.S_ISREG(file_attr.st_mode):  # type: ignore[arg-type]
+                        raise OSError(f"A file with name {current_dir} already exists.")
+                    if stat.S_ISDIR(file_attr.st_mode):  # type: ignore[arg-type]
+                        pass
+                    else:
+                        raise OSError("Found unrecognized file in postcopy directory")
+
+                except OSError as os_e:
                     self.logger.error(
-                        f"[{self.spec['hostname']}] Destination directory {move_dir} is"
-                        " not a directory on source host"
+                        f"[{self.spec['hostname']}] Failed attempted creation of Destination directory {move_dir} FAILED. {os_e}"
                     )
                     return 1
-            except OSError:
-                self.logger.error(
-                    f"[{self.spec['hostname']}] Destination directory {move_dir} does"
-                    " not exist on source host"
-                )
-                return 1
 
-                # Loop through the files and move them
+            # Loop through the files and move them
 
             for file in files:
                 try:
