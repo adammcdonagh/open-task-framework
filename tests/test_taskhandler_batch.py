@@ -210,10 +210,14 @@ fail_batch_definition_dependencies = {
     "tasks": [
         {
             "order_id": 1,
+            "task_id": "sleep-5",
+        },
+        {
+            "order_id": 2,
             "task_id": "filewatch-5-error-sftp",
         },
-        {"order_id": 2, "task_id": "filewatch-5-error-sftp", "dependencies": [1]},
-        {"order_id": 3, "task_id": "filewatch-5-error-sftp", "dependencies": [2]},
+        {"order_id": 3, "task_id": "filewatch-5-error-sftp", "dependencies": [1, 2]},
+        {"order_id": 4, "task_id": "filewatch-5-error-sftp", "dependencies": [3]},
     ],
 }
 

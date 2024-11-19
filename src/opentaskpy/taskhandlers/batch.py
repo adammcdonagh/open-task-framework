@@ -194,6 +194,38 @@ class Batch(TaskHandler):
         """
         return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
+    def check_dependencies(
+        self, order_id: int, batch_task: dict, check_only_failed: bool = False
+    ) -> bool:
+        """Check batch task dependencies.
+
+        Args:
+            order_id (int): Order id of task in batch
+            batch_task (dict): Batch task dictionary
+            check_only_failed (bool): Check for completed tasks if false (default), else failed if True
+
+        Returns:
+            bool: True if all batch task dependencies have completed (or failed if check_failed), False otherwise .
+        """
+        for dependency in batch_task["batch_task_spec"]["dependencies"]:
+            if (
+                self.task_order_tree[dependency]["status"] not in ["COMPLETED"]
+            ) and not check_only_failed:
+                self.logger.log(
+                    12,
+                    (
+                        "Skipping task"
+                        f" {order_id} ({batch_task['task_id']}) as"
+                        f" its dependency has not completed"
+                    ),
+                )
+                return False
+            if (
+                self.task_order_tree[dependency]["status"] in ["FAILED", "TIMED_OUT"]
+            ) and check_only_failed:
+                return False
+        return True
+
     def run(self, kill_event: threading.Event | None = None) -> bool:  # noqa: C901
         """Run the batch.
 
@@ -211,7 +243,6 @@ class Batch(TaskHandler):
 
         ex = None
         while True:
-            dependency_failed = False
             # Loop through every task in the tree
             for order_id, batch_task in self.task_order_tree.items():
                 task = batch_task["task"]
@@ -228,42 +259,11 @@ class Batch(TaskHandler):
                 # Check if there are dependencies for this task that have not yet completed, if so then we skip it
                 # Check if there are failed dependencies, if so set flag and break out of loop
                 if "dependencies" in batch_task["batch_task_spec"]:
-                    all_dependencies_complete = True
-                    some_dependencies_failed = False
-                    for dependency in batch_task["batch_task_spec"]["dependencies"]:
-                        if self.task_order_tree[dependency]["status"] not in [
-                            "COMPLETED",
-                            "FAILED",
-                        ]:
-                            self.logger.log(
-                                12,
-                                (
-                                    "Skipping task"
-                                    f" {order_id} ({batch_task['task_id']}) as"
-                                    f" dependency {dependency} has not completed"
-                                ),
-                            )
-                            all_dependencies_complete = False
-                            continue
-                        if (
-                            self.task_order_tree[dependency]["status"] in ["FAILED"]
-                            and not self.task_order_tree[dependency]["continue_on_fail"]
-                        ):
-                            some_dependencies_failed = True
-
-                    if some_dependencies_failed:
-                        self.logger.error(
-                            f"Task {order_id} ({batch_task['task_id']}) will not run due to a failed dependency"
-                        )
-                        dependency_failed = True
-                        break
-
+                    all_dependencies_complete = self.check_dependencies(
+                        order_id, batch_task
+                    )
                     if not all_dependencies_complete:
                         continue
-                    self.logger.info(
-                        "All dependencies for task"
-                        f" {order_id} ({batch_task['task_id']}) have completed"
-                    )
 
                 # Check if the task has already been triggered
                 if batch_task["status"] == "NOT_STARTED":
@@ -365,20 +365,27 @@ class Batch(TaskHandler):
                     logged = True
 
                 batch_task["logged_status"] = logged
-
-            if dependency_failed:
-                self.logger.error("Breaking out of loop due to a failed dependency.")
-                break
+                batch_task["logged_status"] = logged
+                batch_task["logged_status"] = logged
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done
-            remaining_tasks = [
+            running_tasks = [
                 task
                 for task in self.task_order_tree.values()
-                if task["status"] in ["RUNNING", "NOT_STARTED"]
+                if task["status"] in ["RUNNING"]
             ]
-            self.logger.debug(f"Remaining tasks: {remaining_tasks}")
-            if len(remaining_tasks) == 0:
-                self.logger.debug("No remaining tasks, breaking out of loop")
+            self.logger.debug(f"Running tasks: {running_tasks}")
+            if len(running_tasks) == 0:
+                failed_deps = [
+                    task
+                    for task in self.task_order_tree.values()
+                    if task["status"] in ["NOT_STARTED"]
+                    and not self.check_dependencies(0, task, True)
+                ]
+                if len(failed_deps) > 0:
+                    self.logger.info(
+                        f"No remaining runnable tasks, tasks with failed dependencies: {failed_deps}"
+                    )
                 break
 
             # Sleep 5 seconds before checking again
