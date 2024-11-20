@@ -202,10 +202,10 @@ class Batch(TaskHandler):
         Args:
             order_id (int): Order id of task in batch
             batch_task (dict): Batch task dictionary
-            check_only_failed (bool): Check for completed tasks if false (default), else failed if True
+            check_only_failed (bool): Check for completed tasks if false (default), else failed ones
 
         Returns:
-            bool: True if all batch task dependencies have completed (or failed if check_failed), False otherwise .
+            bool: True if all batch task dependencies are not in COMPLETED, FAILED or TIMED_OUT state (therefore still Running), False otherwise .
         """
         for dependency in batch_task["batch_task_spec"]["dependencies"]:
             if (
@@ -224,6 +224,9 @@ class Batch(TaskHandler):
                 self.task_order_tree[dependency]["status"] in ["FAILED", "TIMED_OUT"]
             ) and check_only_failed:
                 return False
+        self.logger.info(
+            f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
+        )
         return True
 
     def run(self, kill_event: threading.Event | None = None) -> bool:  # noqa: C901
@@ -364,8 +367,6 @@ class Batch(TaskHandler):
                     batch_task["result"] = False
                     logged = True
 
-                batch_task["logged_status"] = logged
-                batch_task["logged_status"] = logged
                 batch_task["logged_status"] = logged
 
             # Check if there are any tasks that are still in RUNNING state, if not then we are done

@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.47.0
+
+- Refactored dependency checker method to support Running/Failed state
+
 # v24.46.0
 
 - Added support for PostCopyAction dir auto-creation
