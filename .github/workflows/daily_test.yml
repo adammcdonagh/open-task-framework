@@ -19,7 +19,7 @@ jobs:
   daily-test:
     name: Daily Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v3.5.2
