@@ -222,6 +222,7 @@ fail_batch_definition_dependencies = {
         },
         {"order_id": 4, "task_id": "filewatch-5-error-sftp", "dependencies": [1, 2]},
         {"order_id": 5, "task_id": "filewatch-5-error-sftp", "dependencies": [3]},
+        {"order_id": 6, "task_id": "filewatch-5-error-sftp", "dependencies": [4]},
     ],
 }
 
