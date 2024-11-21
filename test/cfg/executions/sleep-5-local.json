@@ -1,0 +1,8 @@
+{
+  "type": "execution",
+  "directory": "/tmp",
+  "command": "sleep 5",
+  "protocol": {
+    "name": "local"
+  }
+}

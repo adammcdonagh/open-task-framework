@@ -205,6 +205,27 @@ fail_batch_definition = {
     ],
 }
 
+fail_batch_definition_dependencies = {
+    "type": "batch",
+    "tasks": [
+        {
+            "order_id": 1,
+            "task_id": "sleep-5-local",
+        },
+        {
+            "order_id": 2,
+            "task_id": "exit-1-local",
+        },
+        {
+            "order_id": 3,
+            "task_id": "sleep-5-local",
+        },
+        {"order_id": 4, "task_id": "exit-1-local", "dependencies": [1, 2]},
+        {"order_id": 5, "task_id": "exit-1-local", "dependencies": [3]},
+        {"order_id": 6, "task_id": "exit-1-local", "dependencies": [4]},
+    ],
+}
+
 # Create a variable with a random number
 RANDOM = random.randint(10000, 99999)
 
@@ -569,3 +590,16 @@ def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir, clear_log
 
     # The successful task should have a successful
     assert os.path.exists(log_file_name_scp_task.replace("_running", ""))
+
+
+def test_batch_task_id_failed_dependencies(root_dir, env_vars, clear_logs):
+
+    # We need a config loader object, so that the batch class can load in the configs for
+    # the sub tasks
+    config_loader = ConfigLoader("test/cfg")
+    # Expect a FileNotFoundError as the task_id is non-existent
+    batchObj = batch.Batch(
+        None, f"fail-{RANDOM}", fail_batch_definition_dependencies, config_loader
+    )
+
+    assert not batchObj.run()

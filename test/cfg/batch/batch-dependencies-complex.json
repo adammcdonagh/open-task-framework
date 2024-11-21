@@ -1,0 +1,39 @@
+{
+  "type": "batch",
+  "tasks": [
+    {
+      "order_id": 1,
+      "task_id": "sleep-5-local",
+      "timeout": 60
+    },
+    {
+      "order_id": 2,
+      "task_id": "sleep-7-local",
+      "timeout": 60,
+      "dependencies": [1]
+    },
+    {
+      "order_id": 3,
+      "task_id": "sleep-5-local",
+      "timeout": 60,
+      "dependencies": [2]
+    },
+    {
+      "order_id": 4,
+      "task_id": "sleep-5-local",
+      "timeout": 60
+    },
+    {
+      "order_id": 5,
+      "task_id": "sleep-7-local",
+      "timeout": 60,
+      "dependencies": [4]
+    },
+    {
+      "order_id": 6,
+      "task_id": "sleep-5-local",
+      "timeout": 60,
+      "dependencies": [5]
+    }
+  ]
+}

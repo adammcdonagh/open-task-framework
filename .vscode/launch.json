@@ -20,7 +20,7 @@
       "program": "${file}",
       "preLaunchTask": "Build Test containers",
       "console": "integratedTerminal",
-      "args": ["-t", "scp-basic", "-v", "2", "-c", "test/cfg"],
+      "args": ["-t", "test-batch", "-v", "2", "-c", "test/cfg"],
       "justMyCode": false
     },
     {
@@ -32,6 +32,35 @@
       "console": "integratedTerminal",
       "args": ["-t", "scp-basic", "-c", "test/cfg", "-v3"],
       "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - Batch - Local Dependencies",
+      "type": "debugpy",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": ["-t", "batch-dependencies-complex", "-c", "test/cfg", "-v3"],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Transfer - Batch - Local Dependencies - Fail",
+      "type": "debugpy",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-dependencies-complex-fail",
+        "-c",
+        "test/cfg",
+        "-v3"
+      ],
+      "justMyCode": false,
+      "env": {
+        "OTF_NO_LOG": "1"
+      }
     },
     {
       "name": "Python: Transfer - SFTP Basic",
@@ -83,7 +112,7 @@
       "preLaunchTask": "Build Test containers",
       "program": "src/opentaskpy/cli/task_run.py",
       "console": "integratedTerminal",
-      "args": ["-t", "batch-15-sftp", "-c", "test/cfg", "-v3"],
+      "args": ["-t", "test-batch", "-c", "test/cfg", "-v3"],
       "justMyCode": false
     },
     {

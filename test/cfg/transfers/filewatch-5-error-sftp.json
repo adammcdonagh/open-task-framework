@@ -1,0 +1,17 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "172.16.0.21",
+    "directory": "/tmp/testFiles/src",
+    "fileRegex": "non-existent-file-005-1234\\.txt",
+    "fileWatch": {
+      "timeout": 5
+    },
+    "protocol": {
+      "name": "sftp",
+      "credentials": {
+        "username": "{{ SSH_USERNAME }}"
+      }
+    }
+  }
+}

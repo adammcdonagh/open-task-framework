@@ -1,0 +1,21 @@
+{
+  "type": "batch",
+  "tasks": [
+    {
+      "order_id": 17,
+      "task_id": "sleep-5",
+      "timeout": 7200
+    },
+    {
+      "order_id": 19,
+      "task_id": "sleep-5",
+      "timeout": 7200
+    },
+    {
+      "order_id": 20,
+      "task_id": "local-basic",
+      "timeout": 900,
+      "dependencies": [19]
+    }
+  ]
+}
