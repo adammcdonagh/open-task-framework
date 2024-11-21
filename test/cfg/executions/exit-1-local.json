@@ -1,0 +1,8 @@
+{
+  "type": "execution",
+  "directory": "/tmp",
+  "command": "exit 1",
+  "protocol": {
+    "name": "local"
+  }
+}
