@@ -211,12 +211,11 @@ class Batch(TaskHandler):
             if (
                 self.task_order_tree[dependency]["status"] not in ["COMPLETED"]
             ) and not check_only_failed:
-                self.logger.log(
-                    12,
+                self.logger.info(
                     (
                         "Skipping task"
                         f" {order_id} ({batch_task['task_id']}) as"
-                        f" its dependency has not completed"
+                        f" its dependency {'has failed' if self.task_order_tree[dependency]['status'] == 'FAILED' else 'has not completed'}"
                     ),
                 )
                 return False
@@ -224,9 +223,14 @@ class Batch(TaskHandler):
                 self.task_order_tree[dependency]["status"] in ["FAILED", "TIMED_OUT"]
             ) and check_only_failed:
                 return False
-        self.logger.info(
-            f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
-        )
+        if not check_only_failed:
+            self.logger.info(
+                f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
+            )
+        else:
+            self.logger.info(
+                f"All dependencies for task {order_id} ({batch_task['task_id']}) have failed, or have failed dependencies."
+            )
         return True
 
     def run(self, kill_event: threading.Event | None = None) -> bool:  # noqa: C901
@@ -337,8 +341,7 @@ class Batch(TaskHandler):
                         )
                         logged = True
                     else:
-                        self.logger.log(
-                            12,
+                        self.logger.info(
                             f"Task {order_id} ({batch_task['task_id']}) has completed",
                         )
 
@@ -350,8 +353,8 @@ class Batch(TaskHandler):
                         )
                         logged = True
                     else:
-                        self.logger.log(
-                            12, f"Task {order_id} ({batch_task['task_id']}) has failed"
+                        self.logger.info(
+                            f"Task {order_id} ({batch_task['task_id']}) has failed"
                         )
 
                 # Handle instances where we timed out or failed, and we should continue on fail
@@ -381,7 +384,9 @@ class Batch(TaskHandler):
                     task
                     for task in self.task_order_tree.values()
                     if task["status"] in ["NOT_STARTED"]
-                    and not self.check_dependencies(0, task, True)
+                    and not self.check_dependencies(
+                        task["batch_task_spec"]["order_id"], task, True
+                    )
                 ]
                 if len(failed_deps) > 0:
                     self.logger.info(
