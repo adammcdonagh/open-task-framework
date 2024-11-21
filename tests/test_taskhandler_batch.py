@@ -210,19 +210,19 @@ fail_batch_definition_dependencies = {
     "tasks": [
         {
             "order_id": 1,
-            "task_id": "sleep-5",
+            "task_id": "sleep-5-local",
         },
         {
             "order_id": 2,
-            "task_id": "filewatch-5-error-sftp",
+            "task_id": "exit-1-local",
         },
         {
             "order_id": 3,
-            "task_id": "sleep-5",
+            "task_id": "sleep-5-local",
         },
-        {"order_id": 4, "task_id": "filewatch-5-error-sftp", "dependencies": [1, 2]},
-        {"order_id": 5, "task_id": "filewatch-5-error-sftp", "dependencies": [3]},
-        {"order_id": 6, "task_id": "filewatch-5-error-sftp", "dependencies": [4]},
+        {"order_id": 4, "task_id": "exit-1-local", "dependencies": [1, 2]},
+        {"order_id": 5, "task_id": "exit-1-local", "dependencies": [3]},
+        {"order_id": 6, "task_id": "exit-1-local", "dependencies": [4]},
     ],
 }
 
@@ -592,9 +592,7 @@ def test_batch_continue_on_failure(setup_ssh_keys, env_vars, root_dir, clear_log
     assert os.path.exists(log_file_name_scp_task.replace("_running", ""))
 
 
-def test_batch_task_id_failed_dependencies(
-    root_dir, setup_ssh_keys, env_vars, clear_logs
-):
+def test_batch_task_id_failed_dependencies(root_dir, env_vars, clear_logs):
 
     # We need a config loader object, so that the batch class can load in the configs for
     # the sub tasks
