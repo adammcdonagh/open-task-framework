@@ -1,0 +1,25 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "172.16.0.22",
+    "directory": "/home/application/testFiles/dest",
+    "fileRegex": "file-encrypt1\\.txt.gpg",
+    "protocol": { "name": "sftp", "credentials": { "username": "application" } }
+  },
+  "destination": [
+    {
+      "hostname": "172.16.0.21",
+      "directory": "/home/application/testFiles/dest",
+      "protocol": {
+        "name": "sftp",
+        "credentials": { "username": "application" },
+        "supportsPosixRename": false
+      },
+      "encryption": { "decrypt": true, "private_key": "{{ PRIVATE_KEY1 }}" },
+      "rename": {
+        "pattern": "^file-encrypt1\\.txt.gpg$",
+        "sub": "file-encrypt1-decrypted.txt"
+      }
+    }
+  ]
+}

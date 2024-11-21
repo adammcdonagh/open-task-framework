@@ -26,5 +26,9 @@
   "testLookup": "{{ lookup('file', path='/tmp/variable_lookup.txt') }}",
   "testLookup2": "{{ lookup('http_json', url='https://jsonplaceholder.typicode.com/posts/1', jsonpath='$.title') }}",
   "global_protocol_vars": {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"},
-  "SSH_VARS": {"name": "ssh", "credentials": {"username": "someuser"}}
+  "SSH_VARS": {"name": "ssh", "credentials": {"username": "someuser"}},
+  "PUBLIC_KEY1": "{{ lookup('file', path='/tmp/public_key_1.txt') }}",
+  "PUBLIC_KEY2": "{{ lookup('file', path='/tmp/public_key_2.txt') }}",
+  "PRIVATE_KEY1": "{{ lookup('file', path='/tmp/private_key_1.txt') }}",
+  "PRIVATE_KEY2": "{{ lookup('file', path='/tmp/private_key_2.txt') }}"
 }

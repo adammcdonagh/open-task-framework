@@ -1,5 +1,6 @@
 # pylint: skip-file
 import pytest
+from pytest_shell import fs
 
 
 @pytest.fixture(scope="session")
@@ -262,3 +263,21 @@ ZyUe4wdfrT2aOrSwrKL8mjEVM2MGkvkCYWo0C67FRzBEyo07OJyFbduc4s1c0wZG
 5FJn9I4DYA==
 =cmHi
 -----END PGP PRIVATE KEY BLOCK-----"""
+
+
+@pytest.fixture(scope="session")
+def store_pgp_keys(public_key, public_key_2, private_key, private_key_2) -> bool:
+    pub1 = "\\\\n".join(public_key.splitlines())
+    pub2 = "\\\\n".join(public_key_2.splitlines())
+    prv1 = "\\\\n".join(private_key.splitlines())
+    prv2 = "\\\\n".join(private_key_2.splitlines())
+
+    fs.create_files(
+        [
+            {"/tmp/public_key_1.txt": {"content": pub1}},
+            {"/tmp/public_key_2.txt": {"content": pub2}},
+            {"/tmp/private_key_1.txt": {"content": prv1}},
+            {"/tmp/private_key_2.txt": {"content": prv2}},
+        ]
+    )
+    return True
