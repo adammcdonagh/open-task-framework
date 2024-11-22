@@ -27,7 +27,7 @@ def env_vars() -> None:
             {"/tmp/variable_lookup.txt": {"content": "test1234"}},
             {"/tmp/public_key_1.txt": {"content": "test1234"}},
             {"/tmp/public_key_2.txt": {"content": "test1234"}},
-            {"/tmp/public_key_1.txt": {"content": "test1234"}},
+            {"/tmp/private_key_1.txt": {"content": "test1234"}},
             {"/tmp/private_key_2.txt": {"content": "test1234"}},
         ]
     )
