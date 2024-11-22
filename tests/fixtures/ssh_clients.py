@@ -22,7 +22,15 @@ def env_vars() -> None:
         del os.environ["OTF_NO_LOG"]
 
     # We're using the proper config file for this, so we need to make sure something exist in /tmp/variable_lookup.txt
-    fs.create_files([{"/tmp/variable_lookup.txt": {"content": "test1234"}}])
+    fs.create_files(
+        [
+            {"/tmp/variable_lookup.txt": {"content": "test1234"}},
+            {"/tmp/public_key_1.txt": {"content": "test1234"}},
+            {"/tmp/public_key_2.txt": {"content": "test1234"}},
+            {"/tmp/private_key_1.txt": {"content": "test1234"}},
+            {"/tmp/private_key_2.txt": {"content": "test1234"}},
+        ]
+    )
 
 
 @pytest.fixture(scope="session")

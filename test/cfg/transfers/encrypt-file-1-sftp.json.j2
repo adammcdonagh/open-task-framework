@@ -1,0 +1,20 @@
+{
+  "type": "transfer",
+  "source": {
+    "hostname": "172.16.0.21",
+    "directory": "/home/application/testFiles/src",
+    "fileRegex": "file-encrypt1\\.txt",
+    "protocol": { "name": "sftp", "credentials": { "username": "application" } }
+  },
+  "destination": [
+    {
+      "hostname": "172.16.0.22",
+      "directory": "/home/application/testFiles/dest",
+      "protocol": {
+        "name": "sftp",
+        "credentials": { "username": "application" }
+      },
+      "encryption": { "encrypt": true, "public_key": "{{ PUBLIC_KEY1 }}" }
+    }
+  ]
+}
