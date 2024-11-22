@@ -1,4 +1,6 @@
 # pylint: skip-file
+import os
+
 import pytest
 from pytest_shell import fs
 
@@ -265,12 +267,22 @@ ZyUe4wdfrT2aOrSwrKL8mjEVM2MGkvkCYWo0C67FRzBEyo07OJyFbduc4s1c0wZG
 -----END PGP PRIVATE KEY BLOCK-----"""
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def store_pgp_keys(public_key, public_key_2, private_key, private_key_2) -> bool:
     pub1 = "\\\\n".join(public_key.splitlines())
     pub2 = "\\\\n".join(public_key_2.splitlines())
     prv1 = "\\\\n".join(private_key.splitlines())
     prv2 = "\\\\n".join(private_key_2.splitlines())
+
+    # Remove all the files and the recreate them
+    if os.path.exists("/tmp/public_key_1.txt"):
+        os.remove("/tmp/public_key_1.txt")
+    if os.path.exists("/tmp/public_key_2.txt"):
+        os.remove("/tmp/public_key_2.txt")
+    if os.path.exists("/tmp/private_key_1.txt"):
+        os.remove("/tmp/private_key_1.txt")
+    if os.path.exists("/tmp/private_key_2.txt"):
+        os.remove("/tmp/private_key_2.txt")
 
     fs.create_files(
         [
