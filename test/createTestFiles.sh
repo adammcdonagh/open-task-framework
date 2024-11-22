@@ -2,6 +2,10 @@
 
 # Create dummy variable for lookup command
 echo "file_variable" > /tmp/variable_lookup.txt
+echo "" > /tmp/private_key_1.txt
+echo "" > /tmp/private_key_2.txt
+echo "" > /tmp/public_key_1.txt
+echo "" > /tmp/public_key_2.txt
 
 # Get current script directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
