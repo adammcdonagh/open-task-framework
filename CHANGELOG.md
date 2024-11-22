@@ -1,5 +1,9 @@
 # Changelog
 
+# v24.47.1
+
+- Add missing try/catch to decryption code when trying to delete gnupg directory
+
 # v24.47.0
 
 - Refactored dependency checker method to support Running/Failed state
