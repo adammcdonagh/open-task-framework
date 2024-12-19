@@ -194,43 +194,54 @@ class Batch(TaskHandler):
         """
         return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
-    def check_dependencies(
-        self, order_id: int, batch_task: dict, check_only_failed: bool = False
+    def check_all_dependency_statuses(self, batch_task: dict, statuses: list) -> bool:
+        """Check that all batch task dependencies are in a set of states.
+
+        Args:
+            batch_task (dict): Batch task dictionary
+            statuses (list): Statuses expected for all dependencies
+
+        Returns:
+            bool: True if all batch task dependencies are in the valid states, False otherwise (including no dependency jobs).
+        """
+        if "dependencies" in batch_task["batch_task_spec"]:
+            number_of_deps = len(batch_task["batch_task_spec"]["dependencies"])
+            number_of_valid = 0
+            for dependency in batch_task["batch_task_spec"]["dependencies"]:
+                if self.task_order_tree[dependency]["status"] in statuses:
+                    number_of_valid += 1
+            return number_of_valid == number_of_deps
+        return False
+
+    def check_not_dependency_statuses(
+        self, order_id: int, batch_task: dict, statuses: list
     ) -> bool:
-        """Check batch task dependencies.
+        """Check that a batch task dependency is not in a set of statuses.
 
         Args:
             order_id (int): Order id of task in batch
             batch_task (dict): Batch task dictionary
-            check_only_failed (bool): Check for completed tasks if false (default), else failed ones
+            statuses (list): Statuses not expected for any of the dependencies
 
         Returns:
-            bool: True if all batch task dependencies are not in COMPLETED, FAILED or TIMED_OUT state (therefore still Running), False otherwise .
+            bool: True if all batch task dependencies are not in the given state, False otherwise if at least one is (including no dependency jobs).
         """
-        for dependency in batch_task["batch_task_spec"]["dependencies"]:
-            if (
-                self.task_order_tree[dependency]["status"] not in ["COMPLETED"]
-            ) and not check_only_failed:
+        if "dependencies" in batch_task["batch_task_spec"]:
+            for dependency in batch_task["batch_task_spec"]["dependencies"]:
+                if self.task_order_tree[dependency]["status"] not in statuses:
+                    self.logger.log(
+                        12,
+                        (
+                            "Skipping task"
+                            f" {order_id} ({batch_task['task_id']}) as"
+                            f" dependency {dependency} has not completed"
+                        ),
+                    )
+                    return False
                 self.logger.info(
-                    (
-                        "Skipping task"
-                        f" {order_id} ({batch_task['task_id']}) as"
-                        f" its dependency {'has failed' if self.task_order_tree[dependency]['status'] == 'FAILED' else 'has not completed'}"
-                    ),
+                    "All dependencies for task"
+                    f" {order_id} ({batch_task['task_id']}) have completed"
                 )
-                return False
-            if (
-                self.task_order_tree[dependency]["status"] in ["FAILED", "TIMED_OUT"]
-            ) and check_only_failed:
-                return False
-        if not check_only_failed:
-            self.logger.info(
-                f"All dependencies for task {order_id} ({batch_task['task_id']}) have completed"
-            )
-        else:
-            self.logger.info(
-                f"All dependencies for task {order_id} ({batch_task['task_id']}) have failed, or have failed dependencies."
-            )
         return True
 
     def run(self, kill_event: threading.Event | None = None) -> bool:  # noqa: C901
@@ -264,13 +275,10 @@ class Batch(TaskHandler):
                 )
 
                 # Check if there are dependencies for this task that have not yet completed, if so then we skip it
-                # Check if there are failed dependencies, if so set flag and break out of loop
-                if "dependencies" in batch_task["batch_task_spec"]:
-                    all_dependencies_complete = self.check_dependencies(
-                        order_id, batch_task
-                    )
-                    if not all_dependencies_complete:
-                        continue
+                if not self.check_not_dependency_statuses(
+                    order_id, batch_task, ["COMPLETED"]
+                ):
+                    continue
 
                 # Check if the task has already been triggered
                 if batch_task["status"] == "NOT_STARTED":
@@ -379,19 +387,18 @@ class Batch(TaskHandler):
                 if task["status"] in ["RUNNING"]
             ]
             self.logger.debug(f"Running tasks: {running_tasks}")
-            if len(running_tasks) == 0:
-                failed_deps = [
-                    task
-                    for task in self.task_order_tree.values()
-                    if task["status"] in ["NOT_STARTED"]
-                    and not self.check_dependencies(
-                        task["batch_task_spec"]["order_id"], task, True
-                    )
-                ]
-                if len(failed_deps) > 0:
-                    self.logger.info(
-                        f"No remaining runnable tasks, tasks with failed dependencies: {failed_deps}"
-                    )
+
+            runnable_tasks = [
+                task
+                for task in self.task_order_tree.values()
+                if task["status"] in ["NOT_STARTED"]
+                and self.check_all_dependency_statuses(task, ["COMPLETED"])
+            ]
+
+            if len(running_tasks) == 0 and len(runnable_tasks) == 0:
+                self.logger.info(
+                    "No remaining running or runnable tasks. Breaking execution"
+                )
                 break
 
             # Sleep 5 seconds before checking again
