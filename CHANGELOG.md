@@ -1,5 +1,11 @@
 # Changelog
 
+# v24.51.0
+
+- Fixing dependency checker in batches
+- Including Runnable task checker before breaking execution loop
+- Improved code readability
+
 # v24.47.1
 
 - Add missing try/catch to decryption code when trying to delete gnupg directory

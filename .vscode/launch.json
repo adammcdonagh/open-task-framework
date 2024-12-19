@@ -262,6 +262,25 @@
       "justMyCode": false
     },
     {
+      "name": "Python: Batch - Parallel - Dependencies",
+      "type": "debugpy",
+      "request": "launch",
+      "preLaunchTask": "Build Test containers",
+      "program": "src/opentaskpy/cli/task_run.py",
+      "console": "integratedTerminal",
+      "args": [
+        "-t",
+        "batch-parallel-dependencies",
+        "-v",
+        "1",
+        "-c",
+        "test/cfg",
+        "-r",
+        "job-par-dep"
+      ],
+      "justMyCode": false
+    },
+    {
       "name": "Python: Batch - Continue on fail",
       "type": "debugpy",
       "request": "launch",
