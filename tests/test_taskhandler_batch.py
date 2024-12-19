@@ -603,3 +603,14 @@ def test_batch_task_id_failed_dependencies(root_dir, env_vars, clear_logs):
     )
 
     assert not batchObj.run()
+
+
+def test_batch_check_all_dependencies_fail():
+    batch_task = {
+        "task_id": "test-batch-deps-checker",
+        "batch_task_spec": {"order_id": 1, "task_id": "sleep-5-local"},
+        "task": {"type": "execution", "directory": "/tmp", "command": "sleep 5"},
+    }
+    assert not batch.Batch.check_all_dependency_statuses(
+        None, batch_task, ["COMPLETED"]
+    )

@@ -1,0 +1,115 @@
+{
+  "type": "batch",
+  "tasks": [
+    {
+      "order_id": 1,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 2,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [1]
+    },
+    {
+      "order_id": 3,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 4,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [3]
+    },
+    {
+      "order_id": 5,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 6,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [5]
+    },
+    {
+      "order_id": 7,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 8,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [7]
+    },
+    {
+      "order_id": 9,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 10,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [9]
+    },
+    {
+      "order_id": 11,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 12,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [11]
+    },
+    {
+      "order_id": 13,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 14,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [13]
+    },
+    {
+      "order_id": 15,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 16,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [15]
+    },
+    {
+      "order_id": 17,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 18,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [17]
+    },
+    {
+      "order_id": 19,
+      "task_id": "sleep-7-local",
+      "timeout": 7200
+    },
+    {
+      "order_id": 20,
+      "task_id": "sleep-5",
+      "timeout": 900,
+      "dependencies": [19]
+    }
+  ]
+}
