@@ -773,7 +773,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
         if path.exists(f"{tmpdir}/.gnupg"):
             try:
-                shutil.rmtree(f"{tmpdir}/.gnupg")
+                shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
             except FileNotFoundError as e:
                 self.logger.warning(
                     f".gnupg deletion failed - FileNotFound but continuing: {e}"
@@ -840,7 +840,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
                     if path.exists(f"{tmpdir}/.gnupg"):
                         try:
-                            shutil.rmtree(f"{tmpdir}/.gnupg")
+                            shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
                         except FileNotFoundError as e:
                             self.logger.warning(
                                 f".gnupg deletion failed - FileNotFound but continuing: {e}"
@@ -856,7 +856,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # Check if the directory exists first
         if path.exists(f"{tmpdir}/.gnupg"):
             try:
-                shutil.rmtree(f"{tmpdir}/.gnupg")
+                shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
             except FileNotFoundError as e:
                 self.logger.warning(
                     f".gnupg deletion failed - FileNotFound but continuing: {e}"
