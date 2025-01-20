@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.3.0
+
+- Add ignore_errors=True to problematic .gnupg removal
+
 # v24.51.0
 
 - Fixing dependency checker in batches
