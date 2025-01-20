@@ -404,19 +404,21 @@ class SSHTransfer(RemoteTransferHandler):
         destination_directory = self.get_staging_directory(remote_spec)
 
         # Check that the SFTP client is connected and active
-        dest_sftp_client = dest_remote_handler.ssh_client.open_sftp()
+        if dest_remote_handler:
+            dest_sftp_client = dest_remote_handler.ssh_client.open_sftp()
 
         # Create/validate staging directory exists on destination
         # Use SFTP connection to check if the directory exists
-        try:
-            dest_sftp_client.stat(destination_directory)
-        except FileNotFoundError:
-            # Create the directory
-            self.logger.info(
-                f"[{dest_remote_handler.spec['hostname']}] Creating destination"
-                f" directory {destination_directory}"
-            )
-            mkdir_p(dest_sftp_client, destination_directory)
+        if dest_remote_handler:
+            try:
+                dest_sftp_client.stat(destination_directory)
+            except FileNotFoundError:
+                # Create the directory
+                self.logger.info(
+                    f"[{dest_remote_handler.spec['hostname']}] Creating destination"
+                    f" directory {destination_directory}"
+                )
+                mkdir_p(dest_sftp_client, destination_directory)
 
         # Sanitise arguments
         files = [quote(file) for file in files]
