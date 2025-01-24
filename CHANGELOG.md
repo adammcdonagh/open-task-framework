@@ -1,5 +1,10 @@
 # Changelog
 
+#v25.3.1
+
+- Adjust email_destination TaskHandler to allow use of TLS/credentials to be optional, and set default port to 587
+- Adjust email_destination protocol schema to ensure that smtp_server and sender are set
+
 # v25.3.0
 
 - Add ignore_errors=True to problematic .gnupg removal

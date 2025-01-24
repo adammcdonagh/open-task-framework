@@ -116,22 +116,34 @@ class EmailTransfer(RemoteTransferHandler):
 
             msg["From"] = self.protocol_vars["sender"]
 
+            # Set connection port, default to 587
+            smtp_port = 587
+            if "smtp_port" in self.protocol_vars:
+                smtp_port = self.protocol_vars["smtp_port"]
+
+            # Determine whether to use startTLS on connection
+            use_tls = True
+            if "use_tls" in self.protocol_vars and not self.protocol_vars["use_tls"]:
+                use_tls = False
+
             # Send the email using a provided SMTP server
             try:
                 self.logger.debug(f"Sending email to {email_address}")
                 smtp = smtplib.SMTP(
                     self.protocol_vars["smtp_server"],
-                    port=self.protocol_vars["smtp_port"],
+                    port=smtp_port,
                 )
                 if self.logger.getEffectiveLevel() <= DEBUG:
                     smtp.set_debuglevel(1)
-                smtp.starttls()
+                if use_tls:
+                    smtp.starttls()
 
-                # Authenticate
-                smtp.login(
-                    self.protocol_vars["credentials"]["username"],
-                    self.protocol_vars["credentials"]["password"],
-                )
+                # Authenticate (if credentials specified)
+                if "credentials" in self.protocol_vars:
+                    smtp.login(
+                        self.protocol_vars["credentials"]["username"],
+                        self.protocol_vars["credentials"]["password"],
+                    )
 
                 smtp.sendmail(
                     self.protocol_vars["sender"], email_address, msg.as_string()

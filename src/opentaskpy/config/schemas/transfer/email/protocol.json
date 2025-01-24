@@ -15,6 +15,9 @@
     "smtp_server": {
       "type": "string"
     },
+    "use_tls": {
+      "type": "boolean"
+    },
     "sender": {
       "type": "string",
       "pattern": "^(.*?\\s+<)?[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,6}(>?)$"
@@ -33,6 +36,6 @@
       "additionalProperties": false
     }
   },
-  "required": ["name"],
+  "required": ["name", "smtp_server", "sender"],
   "additionalProperties": false
 }

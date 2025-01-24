@@ -6,7 +6,11 @@ from opentaskpy.config.schemas import validate_transfer_json
 
 @pytest.fixture(scope="function")
 def valid_protocol_definition():
-    return {"name": "email"}
+    return {
+        "name": "email",
+        "smtp_server": "smtp.gmail.com",
+        "sender": "Test Sender <test@example.com>",
+    }
 
 
 @pytest.fixture(scope="function")
