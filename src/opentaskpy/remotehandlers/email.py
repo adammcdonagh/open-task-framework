@@ -125,13 +125,15 @@ class EmailTransfer(RemoteTransferHandler):
                 )
                 if self.logger.getEffectiveLevel() <= DEBUG:
                     smtp.set_debuglevel(1)
-                smtp.starttls()
+                if self.protocol_vars["start_tls"]:
+                    smtp.starttls()
 
-                # Authenticate
-                smtp.login(
-                    self.protocol_vars["credentials"]["username"],
-                    self.protocol_vars["credentials"]["password"],
-                )
+                # Authenticate (if credentials specified)
+                if self.protocol_vars["credentials"]:
+                    smtp.login(
+                        self.protocol_vars["credentials"]["username"],
+                        self.protocol_vars["credentials"]["password"],
+                    )
 
                 smtp.sendmail(
                     self.protocol_vars["sender"], email_address, msg.as_string()
