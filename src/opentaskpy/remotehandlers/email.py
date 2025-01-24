@@ -139,7 +139,7 @@ class EmailTransfer(RemoteTransferHandler):
                     smtp.starttls()
 
                 # Authenticate (if credentials specified)
-                if self.protocol_vars["credentials"]:
+                if "credentials" in self.protocol_vars:
                     smtp.login(
                         self.protocol_vars["credentials"]["username"],
                         self.protocol_vars["credentials"]["password"],
