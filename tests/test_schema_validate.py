@@ -16,7 +16,11 @@ def valid_protocol_definition():
 
 @pytest.fixture(scope="function")
 def valid_protocol_definition_2():
-    return {"name": "email"}
+    return {
+        "name": "email",
+        "smtp_server": "smtp.gmail.com",
+        "sender": "Test Sender <test@example.com>",
+    }
 
 
 @pytest.fixture(scope="function")
