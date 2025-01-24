@@ -10,15 +10,13 @@
     "smtp_port": {
       "type": "number",
       "minimum": 1,
-      "maximum": 65535,
-      "default": 25
+      "maximum": 65535
     },
     "smtp_server": {
       "type": "string"
     },
-    "start_tls": {
-      "type": "boolean",
-      "default": true
+    "use_tls": {
+      "type": "boolean"
     },
     "sender": {
       "type": "string",
