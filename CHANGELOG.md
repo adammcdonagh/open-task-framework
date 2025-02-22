@@ -1,6 +1,10 @@
 # Changelog
 
-#v25.3.1
+# No version change
+
+- Added new devcontainer for working with the OTF Addons in a single dev environment
+
+# v25.3.1
 
 - Adjust email_destination TaskHandler to allow use of TLS/credentials to be optional, and set default port to 587
 - Adjust email_destination protocol schema to ensure that smtp_server and sender are set
