@@ -3,15 +3,7 @@
 {
   "name": "Python 3 - OTF Addons",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "..",
-    "args": {
-      "VARIANT": "3.11",
-      // Options
-      "INSTALL_NODE": "false"
-    }
-  },
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },

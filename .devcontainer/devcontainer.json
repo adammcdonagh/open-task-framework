@@ -60,7 +60,6 @@
         "python.testing.pytestEnabled": true,
         "editor.formatOnType": true,
         "ruff.lint.enable": true,
-        "ruff.lint.run": "onType",
         "mypy.enabled": true,
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
@@ -78,8 +77,4 @@
       }
     }
   }
-  // Configure tool-specific properties.
-  // "customizations": {},
-  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root"
 }
