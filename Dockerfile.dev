@@ -4,7 +4,7 @@ WORKDIR /app
 USER root
 COPY . /app/src
 RUN cd /app/src && pip install --no-cache-dir --root /app/packages . && \
-    cp /app/src/tests/test_encryption.py /app/test_encryption.py && \
+    cp /app/src/tests/_test_encryption.py /app/_test_encryption.py && \
     rm -rf /app/src && \
     # Remove all __pycache__ directories from /usr/local/lib
     find /usr/local/lib -name __pycache__ -exec rm -rf {} +

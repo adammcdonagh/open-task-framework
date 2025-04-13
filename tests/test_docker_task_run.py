@@ -88,6 +88,9 @@ def docker_build_dev_image(tidy_images, image_name_dev, root_dir):
         command_args,
         capture_output=True,
     )
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
+
     assert result.returncode == 0
 
 
@@ -110,6 +113,10 @@ def docker_build_image(tidy_images, image_name, root_dir):
         command_args,
         capture_output=True,
     )
+
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
+
     assert result.returncode == 0
 
 
@@ -222,6 +229,32 @@ def test_docker_run(
         "-c",
         "/test/cfg",
     ]
+
+    result = subprocess.run(
+        command_args,
+        capture_output=True,
+    )
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
+
+    assert result.returncode == 0
+
+
+def test_standard_docker_image_encryption(docker_build_dev_image, image_name_dev):
+    # Run the container overriding the entrypoint to run the test script
+    logging.info("Running docker container")
+    command_args = [
+        "docker",
+        "run",
+        "--rm",
+        "--user",
+        f"{user_id}:{group_id}",
+        "--entrypoint",
+        "python",
+        image_name_dev,
+        "/app/_test_encryption.py",
+    ]
+    logging.info(" ".join(command_args))
 
     result = subprocess.run(
         command_args,
