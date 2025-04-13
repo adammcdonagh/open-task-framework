@@ -65,7 +65,7 @@ To run via docker, use the `Dockerfile` to create your own base image using just
 
 ```shell
 docker build -t opentaskpy -f Dockerfile . # Build the image
-docker run --rm --volume /opt/otf/cfg:/cfg --volume /var/log/otf:/logs--volume /home/<USER>/.ssh/id_rsa:/id_rsa -e OTF_SSH_KEY=/id_rsa -e OTF_LOG_DIRECTORY=/logs task-run -t <TASK NAME> -c /cfg # Run a task
+docker run --rm --volume /opt/otf/cfg:/cfg --volume /var/log/otf:/logs --volume /home/<USER>/.ssh/id_rsa:/id_rsa -e OTF_SSH_KEY=/id_rsa -e OTF_LOG_DIRECTORY=/logs task-run -t <TASK NAME> -c /cfg # Run a task
 ```
 
 The default `opentaskpy` library is only really designed to use SSH for executions and file transfers. To do this, you need to make sure that the host/container that is running the `task-run` script has a private RSA key, that is trusted on all remote hosts that you're running against.
@@ -76,7 +76,7 @@ An environment variable `OTF_SSH_KEY` can be used to define a default SSH key to
 
 An alternative docker image is included (`Dockerfile.dev`), which is optimised for size, based on the Python Alpine image, with nothing installed other than what is required to run OTF. You can pass additional packages to the image using the `EXTRA_PACKAGES` build argument, e.g. `docker build --build-arg EXTRA_PACKAGES="aws-cli openssh curl" -f Dockerfile.dev .`
 
-In order for the `gnupg` Python package to work, it requires gpupg to be installed on the host system. The gnupg package is a little hard to test, so a helper script is included in the `tests` directory which can be run from inside the container to validate that encryption will work. This can be tested as follows:
+In order for the `gnupg` Python package to work, it requires gpg to be installed on the host system. The gpg package is a little hard to test, so a helper script is included in the `tests` directory which can be run from inside the container to validate that encryption will work. This can be tested as follows:
 
 ```shell
 docker run --entrypoint "python" <IMAGEID> /app/_test_encryption.py
