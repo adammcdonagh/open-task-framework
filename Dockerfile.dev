@@ -17,9 +17,7 @@ ARG EXTRA_PACKAGES=""
 WORKDIR /app
 RUN apk add --no-cache gpg gpg-agent ${EXTRA_PACKAGES} && \
     rm -rf /var/cache/apk/* && \
-    mkdir logs config && \
-    chown 1000:1000 logs config && \
-    chmod 755 logs config
+    mkdir logs config
 COPY --from=builder /app/_test_encryption.py /app/_test_encryption.py
 COPY --from=builder /app/packages /
 
