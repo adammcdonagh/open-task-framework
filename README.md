@@ -61,7 +61,7 @@ pip install opentaskpy
 
 The `task-run` script will be added to your PATH, and you can invoke it directly.
 
-To run via docker, use the `Dockerfile` to create your own base image using just the standard opentaskpy library. However if you want to install addons, you'll need to customise this, to install the additional packages first, before bundling it as a Docker image.
+To run via docker, use the `Dockerfile` to create your own base image using just the standard opentaskpy library. However if you want to install addons, you'll need to customise this, to install the additional packages first, before bundling it as a Docker image. You will also need to customise it if you want to use encryption, as gnupg is not installed in the default Python containers.
 
 ```shell
 docker build -t opentaskpy -f Dockerfile . # Build the image
