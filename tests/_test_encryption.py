@@ -25,8 +25,7 @@ def test_encryption():
     assert len(private_keys) == 1
 
     # Encrypt a file
-    # Creare a random file
-    with open(f"{TMPDIR}/test.encryption.txt", "wb") as f:
+    # Create a random file
         f.write(b"test1234")
 
     status = gpg.encrypt_file(
