@@ -16,6 +16,10 @@
     "knownHostsFile": {
       "type": "string"
     },
+    "retry": {
+      "type": "boolean",
+      "default": true
+    },
     "timeout": {
       "type": "integer"
     },

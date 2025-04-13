@@ -1,8 +1,10 @@
 # Changelog
 
-# No version change
+# v25.14.0
 
 - Added new devcontainer for working with the OTF Addons in a single dev environment
+- Add retry boolean to SFTP protocol definition. Allows bypassing exponential backoff, with no retrying
+- Better simulate SFTP timeout test by adding a firewall rule to drop packets on port 1234
 
 # v25.3.1
 

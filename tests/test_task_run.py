@@ -292,16 +292,7 @@ class thread_with_exception(threading.Thread):
         self.name = name
 
     def run(self):
-
-        import socket
-
-        # Create a TCP/IP socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Bind the socket to the address
-        server_address = ("localhost", 1234)
-        sock.bind(server_address)
-        # Listen for incoming connections
-        sock.listen(1)
+        pass
 
     def get_id(self):
 
@@ -324,16 +315,60 @@ class thread_with_exception(threading.Thread):
 
 def test_binary_sftp_timeout(env_vars, setup_ssh_keys, root_dir):
 
-    # Start a new thread, listening in port 1234 that does nothing listen on the port and accept connections
-    # This will cause the sftp connection to timeout
-    t = thread_with_exception("Dummy socket")
-    t.start()
+    # Add an iptables rule to drop packets on port 1234
+    drop_command = [
+        "iptables",
+        "-A",
+        "INPUT",
+        "-p",
+        "tcp",
+        "--dport",
+        "1234",
+        "-j",
+        "DROP",
+    ]
+    rule_add = subprocess.run(
+        drop_command,
+        capture_output=True,
+        preexec_fn=os.setsid,
+    )
 
-    # Use the "binary" to trigger the job with command line arguments
-    assert run_task_run("sftp-timeout")["returncode"] == 1
+    if rule_add.returncode != 0:
+        # Try with sudo if direct command failed
+        rule_add = subprocess.run(
+            ["sudo"] + drop_command,
+            capture_output=True,
+            preexec_fn=os.setsid,
+        )
 
-    # Kill the thread
-    t.raise_exception()
+    try:
+        # Use the "binary" to trigger the job with command line arguments
+        assert run_task_run("sftp-timeout")["returncode"] == 1
+    finally:
+        remove_rule_command = [
+            "iptables",
+            "-D",
+            "INPUT",
+            "-p",
+            "tcp",
+            "--dport",
+            "1234",
+            "-j",
+            "DROP",
+        ]
+        # Remove the iptables rule
+        rule_delete_returncode = subprocess.run(
+            remove_rule_command,
+            capture_output=True,
+            preexec_fn=os.setsid,
+        )
+        if rule_delete_returncode.returncode != 0:
+            # Try with sudo if direct command failed
+            rule_delete_returncode = subprocess.run(
+                ["sudo"] + remove_rule_command,
+                capture_output=True,
+                preexec_fn=os.setsid,
+            )
 
     # Check the logs directory for the most recent log files in the sftp-timeout sub
     # directory, there should be 2, both with _failed.log at the end of the filename
