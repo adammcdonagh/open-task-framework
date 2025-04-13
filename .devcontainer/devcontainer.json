@@ -42,7 +42,7 @@
         "pylint.path": ["python", "-m", "pylint"],
         "pylint.lintOnChange": true,
         "python.testing.unittestEnabled": false,
-        "python.testing.pytestArgs": ["-s", "."],
+        "python.testing.pytestArgs": ["-s", "--durations=0", "."],
         "python.analysis.typeCheckingMode": "off",
         "files.associations": {
           "*.json": "jsonc"
