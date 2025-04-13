@@ -26,6 +26,7 @@ def test_encryption():
 
     # Encrypt a file
     # Create a random file
+    with open(f"{TMPDIR}/test.encryption.txt", "wb") as f:
         f.write(b"test1234")
 
     status = gpg.encrypt_file(
