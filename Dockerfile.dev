@@ -1,8 +1,26 @@
-FROM python:3.11
-# Copy the source files from the host to the container
-COPY . /app
-RUN mkdir /logs && ln -s /logs /app/logs
-# Set the working directory to the app directory
+FROM python:3.13-alpine AS builder
 WORKDIR /app
-RUN pip install .
-ENV OTF_LOG_DIRECTORY=/logs
+
+USER root
+COPY . /app/src
+RUN cd /app/src && pip install --no-cache-dir --root /app/packages . && \
+    cp /app/src/tests/test_encryption.py /app/test_encryption.py && \
+    rm -rf /app/src && \
+    # Remove all __pycache__ directories from /usr/local/lib
+    find /usr/local/lib -name __pycache__ -exec rm -rf {} +
+
+FROM python:3.13-alpine
+
+# Define build arguments
+ARG EXTRA_PACKAGES=""
+
+WORKDIR /app
+RUN apk add --no-cache gpg gpg-agent ${EXTRA_PACKAGES} && \
+    rm -rf /var/cache/apk/* && \
+    mkdir logs config && \
+    chown 1000:1000 logs config && \
+    chmod 755 logs config
+COPY --from=builder /app/_test_encryption.py /app/_test_encryption.py
+COPY --from=builder /app/packages /
+
+ENTRYPOINT [ "task-run" ]

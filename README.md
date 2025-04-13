@@ -8,6 +8,7 @@
 <h1>Open Task Framework (opentaskpy)</h1>
 
 - [Installation](#installation)
+  - [Docker Images](#docker-images)
   - [Example Deployment](#example-deployment)
 - [Configuration](#configuration)
   - [Command Line Arguments](#command-line-arguments)
@@ -70,6 +71,16 @@ docker run --rm --volume /opt/otf/cfg:/cfg --volume /var/log/otf:/logs--volume /
 The default `opentaskpy` library is only really designed to use SSH for executions and file transfers. To do this, you need to make sure that the host/container that is running the `task-run` script has a private RSA key, that is trusted on all remote hosts that you're running against.
 
 An environment variable `OTF_SSH_KEY` can be used to define a default SSH key to use for all SSH connectivity. This can be overridden at the transfer/execution level by specifying a `keyFile` in the `credentials` section of the protocol definition.
+
+### Docker Images
+
+An alternative docker image is included (`Dockerfile.dev`), which is optimised for size, based on the Python Alpine image, with nothing installed other than what is required to run OTF. You can pass additional packages to the image using the `EXTRA_PACKAGES` build argument, e.g. `docker build --build-arg EXTRA_PACKAGES="aws-cli openssh curl" -f Dockerfile.dev .`
+
+In order for the `gnupg` Python package to work, it requires gpupg to be installed on the host system. The gnupg package is a little hard to test, so a helper script is included in the `tests` directory which can be run from inside the container to validate that encryption will work. This can be tested as follows:
+
+```shell
+docker run --entrypoint "python" <IMAGEID> /app/_test_encryption.py
+```
 
 ## Example Deployment
 
