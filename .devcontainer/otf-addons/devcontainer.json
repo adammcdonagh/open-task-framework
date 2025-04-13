@@ -51,7 +51,6 @@
         "python.testing.pytestEnabled": true,
         "editor.formatOnType": true,
         "ruff.lint.enable": true,
-        "ruff.lint.run": "onType",
         "mypy.enabled": true,
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
