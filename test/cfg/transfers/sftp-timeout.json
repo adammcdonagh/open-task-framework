@@ -7,6 +7,8 @@
     "protocol": {
       "name": "sftp",
       "port": 1234,
+      "timeout": 5,
+      "retry": false,
       "credentials": {
         "username": "{{ SSH_USERNAME }}"
       }

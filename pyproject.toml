@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "v25.3.1"
+version = "v25.15.0"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
-license = { text = "GPLv3" }
+license-files = [ "LICENSE" ]
+
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: POSIX",
 ]
 keywords = [
@@ -42,7 +42,7 @@ requires-python = ">=3.11"
 dev = [
     "types-requests >=2.28",
     "types-paramiko >=3.0",
-    "black == 24.10.0",
+    "black == 25.1.0",
     "isort",
     "pytest",
     "bumpver",
@@ -71,7 +71,7 @@ otf-batch-validator = "opentaskpy.cli.batch_validator:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v25.3.1"
+current_version = "v25.15.0"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true

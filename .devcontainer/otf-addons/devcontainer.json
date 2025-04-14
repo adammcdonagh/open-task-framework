@@ -1,17 +1,9 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-in-docker
 {
-  "name": "Default Python 3.11",
+  "name": "Python 3 - OTF Addons",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "..",
-    "args": {
-      "VARIANT": "3.11",
-      // Options
-      "INSTALL_NODE": "false"
-    }
-  },
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
@@ -22,7 +14,6 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "GitHub.copilot",
         "ms-python.vscode-pylance",
         "ms-python.python",
         "esbenp.vscode-prettier",
@@ -42,7 +33,7 @@
         "pylint.path": ["python", "-m", "pylint"],
         "pylint.lintOnChange": true,
         "python.testing.unittestEnabled": false,
-        "python.testing.pytestArgs": ["-s", "--durations=0", "."],
+        "python.testing.pytestArgs": ["-s", "."],
         "python.analysis.typeCheckingMode": "off",
         "files.associations": {
           "*.json": "jsonc"
@@ -72,6 +63,15 @@
           "permissions": "write-all"
         },
         "adammcdonagh/otf-addons-o365": {
+          "permissions": "write-all"
+        },
+        "adammcdonagh/otf-addons-winrm": {
+          "permissions": "write-all"
+        },
+        "adammcdonagh/otf-addons-vault": {
+          "permissions": "write-all"
+        },
+        "adammcdonagh/otf-addons-gcp": {
           "permissions": "write-all"
         }
       }

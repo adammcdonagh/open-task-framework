@@ -77,9 +77,9 @@ class SFTPTransfer(RemoteTransferHandler):
 
         client_kwargs = {
             "hostname": hostname,
-            "port": (self.spec["protocol"].get("port", 22)),
+            "port": self.spec["protocol"].get("port", 22),
             "username": self.spec["protocol"]["credentials"]["username"],
-            "timeout": (self.spec["protocol"].get("timeout", 3)),
+            "timeout": self.spec["protocol"].get("timeout", 3),
             "allow_agent": False,
         }
 
@@ -119,7 +119,7 @@ class SFTPTransfer(RemoteTransferHandler):
         wait=wait_exponential(multiplier=2, min=5, max=60),
         retry=(
             retry_if_not_exception_message(
-                match=r".*(not found in known_hosts|Name or service not known).*"
+                match=r".*(not found in known_hosts|Name or service not known|Not retrying due to config).*"
             )
             & retry_if_exception(Exception)
         ),
@@ -156,8 +156,14 @@ class SFTPTransfer(RemoteTransferHandler):
                 self.sftp_client.ultra_debug = True  # type: ignore[union-attr]
 
         except Exception as ex:
+            if not self.spec["protocol"].get("retry", True):
+                # Raise a nested exception and state that we're not retrying, giving the original exception still
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    f"Unable to connect to {client_kwargs['hostname']}. Not retrying due to config: {ex}"
+                ) from ex
+
             self.logger.error(f"Unable to connect to {client_kwargs['hostname']}: {ex}")
-            raise ex
+            raise ex  # pylint: disable=broad-exception-raised
 
     def tidy(self) -> None:
         """Tidy up the SFTP connection.

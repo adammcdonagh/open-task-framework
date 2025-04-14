@@ -80,6 +80,8 @@ def docker_build_dev_image(tidy_images, image_name_dev, root_dir):
         "build",
         "-t",
         image_name_dev,
+        "--build-arg",
+        f"UID={user_id}",
         "-f",
         "Dockerfile.dev",
         f"{root_dir}/..",
@@ -88,6 +90,9 @@ def docker_build_dev_image(tidy_images, image_name_dev, root_dir):
         command_args,
         capture_output=True,
     )
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
+
     assert result.returncode == 0
 
 
@@ -110,6 +115,10 @@ def docker_build_image(tidy_images, image_name, root_dir):
         command_args,
         capture_output=True,
     )
+
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
+
     assert result.returncode == 0
 
 
@@ -169,7 +178,14 @@ def clear_logs(log_dir):
 def create_test_file(root_dir):
     # Create a test file
     fs.create_files(
-        [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
+        [
+            {f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}},
+            {
+                f"{root_dir}/testFiles/sftp_1/src/docker_basic_1234.txt": {
+                    "content": "test1234"
+                }
+            },
+        ]
     )
 
 
@@ -200,28 +216,49 @@ def test_docker_run(
         "--volume",
         f"{root_dir}:/test",
         "--volume",
+        f"{root_dir}/testFiles/sftp_1/src:/tmp/src",
+        "--volume",
+        f"{root_dir}/testFiles/sftp_2/dest:/tmp/dest",
+        "--volume",
         f"{log_dir}:/logs",
         "--volume",
         "/tmp/variable_lookup.txt:/tmp/variable_lookup.txt",
-        "--volume",
-        "/tmp/public_key_1.txt:/tmp/public_key_1.txt",
-        "--volume",
-        "/tmp/public_key_2.txt:/tmp/public_key_2.txt",
-        "--volume",
-        "/tmp/private_key_1.txt:/tmp/private_key_1.txt",
-        "--volume",
-        "/tmp/private_key_2.txt:/tmp/private_key_2.txt",
-        "-e",
-        "OTF_SSH_KEY=/test/testFiles/id_rsa",
+        "--env",
+        "OTF_LAZY_LOAD_VARIABLES=1",
         image_name_dev,
-        "task-run",
         "-t",
-        "scp-basic",
+        "local-basic",
         "-v",
         "2",
         "-c",
         "/test/cfg",
     ]
+
+    result = subprocess.run(
+        command_args,
+        capture_output=True,
+    )
+    logging.info(result.stdout.decode("utf-8"))
+    logging.info(result.stderr.decode("utf-8"))
+
+    assert result.returncode == 0
+
+
+def test_standard_docker_image_encryption(docker_build_dev_image, image_name_dev):
+    # Run the container overriding the entrypoint to run the test script
+    logging.info("Running docker container")
+    command_args = [
+        "docker",
+        "run",
+        "--rm",
+        "--user",
+        f"{user_id}:{group_id}",
+        "--entrypoint",
+        "python",
+        image_name_dev,
+        "/app/_test_encryption.py",
+    ]
+    logging.info(" ".join(command_args))
 
     result = subprocess.run(
         command_args,
@@ -246,7 +283,7 @@ def test_standard_docker_image(
 ):
     # Create a test file
     fs.create_files(
-        [{f"{root_dir}/testFiles/ssh_1/src/text.txt": {"content": "test1234"}}]
+        [{f"{root_dir}/testFiles/sftp_1/src/text.txt": {"content": "test1234"}}]
     )
 
     # This image pulls down whatever is on pypi, so we're not really testing the code here. Just that we can call a simple transfer.
@@ -266,21 +303,14 @@ def test_standard_docker_image(
         "--volume",
         "/tmp/variable_lookup.txt:/tmp/variable_lookup.txt",
         "--volume",
-        "/tmp/public_key_1.txt:/tmp/public_key_1.txt",
-        "--volume",
-        "/tmp/public_key_2.txt:/tmp/public_key_2.txt",
-        "--volume",
-        "/tmp/private_key_1.txt:/tmp/private_key_1.txt",
-        "--volume",
-        "/tmp/private_key_2.txt:/tmp/private_key_2.txt",
-        "--volume",
         f"{root_dir}/testLogs:/logs",
         "--env",
         "OTF_RUN_ID=docker_log_test",
+        "--env",
+        "OTF_LAZY_LOAD_VARIABLES=1",
         image_name,
-        "task-run",
         "-t",
-        "scp-basic",
+        "local-basic",
         "-v",
         "2",
         "-c",
@@ -293,7 +323,7 @@ def test_standard_docker_image(
         capture_output=True,
     )
     # We dont care whether this worked or not, we just want to check the logs
-    # Check that the log file exists containing scp-basic in the name in log_dir
+    # Check that the log file exists containing local-basic in the name in log_dir
     log_files = os.listdir(f"{log_dir}/docker_log_test")
     assert len(log_files) == 2
-    assert "scp-basic" in log_files[0]
+    assert "local-basic" in log_files[0]

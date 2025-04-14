@@ -285,7 +285,7 @@ local_file_watch_task_with_counts = {
     "source": {
         "directory": f"{local_test_dir}/src",
         "fileRegex": "counts_watch[0-9]\\.txt",
-        "fileWatch": {"timeout": 5},
+        "fileWatch": {"timeout": 1},
         "conditionals": {
             "count": {
                 "minCount": 2,
