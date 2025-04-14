@@ -1,4 +1,4 @@
-FROM python:3.13
+FROM python:3.13-alpine
 RUN pip install opentaskpy
 RUN mkdir /app /logs && ln -s /logs /app/logs
 WORKDIR /app
