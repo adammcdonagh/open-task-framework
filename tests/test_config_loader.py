@@ -777,6 +777,6 @@ def test_override_task_specific_attribute_execution(write_dummy_variables_file, 
     del os.environ["OTF_OVERRIDE_EXECUTION_DIRECTORY"]
     del os.environ["OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_ATTRIBUTE"]
 
-    # Check that the hostname has been overridden
+    # Check that the directory and some_attribute properties have been overridden
     assert task_definition["directory"] == "/tmp/testFiles/dest2"
     assert task_definition["protocol"]["some_attribute"] == "my_attribute"
