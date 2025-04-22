@@ -37,6 +37,28 @@ email_task_definition = {
     ],
 }
 
+email_dummy_source_task_definition = {
+    "type": "transfer",
+    "source": {
+        "protocol": {"name": "dummy"},
+    },
+    "destination": [
+        {
+            "recipients": ["test@example.com"],
+            "subject": "Test Email Subject DUMMY SOURCE",
+            "message": "This has not attachment, but a custom body",
+            "protocol": {
+                "name": "email",
+                "credentials": {
+                    "username": "{{ lookup('file', path='/tmp/smtp_username') }}",
+                    "password": "{{ lookup('file', path='/tmp/smtp_password') }}",
+                },
+                "sender": "Test Sender <test@example.com>",
+            },
+        },
+    ],
+}
+
 
 def test_remote_handler():
     # Validate that given a transfer with email protocol, that we get a remote handler of type EmailTransfer
@@ -149,3 +171,31 @@ def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
 
     # Check that files have been tidied up on the worker
     assert not os.path.exists(transfer_obj.local_staging_dir)
+
+    # Now test the dummy source
+    # Write the email_task_definition to a file which we will read in to resolve the templated values for username and password
+    task_definition_file = f"{root_dir}/cfg/transfers/email-transfer-dummy.json"
+    # Delete the file if it exists
+    if os.path.exists(task_definition_file):
+        os.remove(task_definition_file)
+
+    fs.create_files(
+        [
+            {
+                task_definition_file: {
+                    "content": json.dumps(email_dummy_source_task_definition)
+                }
+            }
+        ]
+    )
+
+    imported_task_def = config_loader.load_task_definition("email-transfer-dummy")
+    os.remove(task_definition_file)
+
+    transfer_obj = transfer.Transfer(
+        global_variables, "email-transfer-dummy", imported_task_def
+    )
+    transfer_obj._set_remote_handlers()
+
+    # Run the transfer
+    assert transfer_obj.run()

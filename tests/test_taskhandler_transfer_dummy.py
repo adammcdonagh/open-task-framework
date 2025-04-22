@@ -60,8 +60,8 @@ def test_dummy_transfer(tmpdir):
     dummy_transfer_obj = transfer.Transfer(
         None, "dummy-transfer", dummy_task_definition_copy
     )
-    with pytest.raises(FilesDoNotMeetConditionsError) as e:
-        dummy_transfer_obj.run()
+
+    dummy_transfer_obj.run()
 
     # Check the cache file exists on the filesystem
     assert os.path.exists(f"{tmpdir}/cacheable_variable.txt")

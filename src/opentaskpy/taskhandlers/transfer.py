@@ -116,6 +116,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # Remove local staging directory if it exists (and this isn't a local transfer)
         if (
             path.exists(self.local_staging_dir)
+            and self.source_file_spec["protocol"]["name"] != "dummy"
             and self.local_staging_dir != self.source_file_spec["directory"]
         ):
             self.logger.info(
@@ -363,7 +364,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         if "conditionals" in self.source_file_spec and remote_files:
             remote_files = self.check_conditionals(remote_files)
 
-        if not remote_files:
+        if not remote_files and self.source_file_spec["protocol"]["name"] != "dummy":
             if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,
@@ -637,6 +638,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
             if (
                 different_protocols
+                and self.source_file_spec["protocol"]["name"] != "dummy"
                 and self.local_staging_dir != self.source_file_spec["directory"]
             ):
                 self.logger.debug("Removing local staging directory")
