@@ -218,6 +218,9 @@ e.g. `OTF_OVERRIDE_TRANSFER_DESTINATION_0_PROTOCOL_CREDENTIALS_USERNAME`
 
 Again this will be logged to show you that the override is being applied.
 
+> [!TIP]
+> If you need to override an attribute that contains underscores, you can use the special case syntax `OTF_OVERRIDE_<TASK_TYPE>_<ATTRIBUTE>!!<ATTRIBUTE>` e.g. `OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_ATTRIBUTE`
+
 ## Lookup plugins
 
 Static variables are useful, however sometimes you need to look up something a bit more dynamic, or secret, that you don't want to hard code into the variables file.

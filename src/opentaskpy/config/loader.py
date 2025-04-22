@@ -198,12 +198,20 @@ class ConfigLoader:
         # e.g. OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME will override ["source"]["hostname"], we need to handle this
         # The format is OTF_OVERRIDE_<TASK_TYPE>_<ATTRIBUTE>_<ATTRIBUTE>_<ATTRIBUTE>
         # e.g. OTF_OVERRIDE_TRANSFER_SOURCE_HOSTNAME
+        # Some special cases need to be handled, e.g. OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_ATTRIBUTE
+        # This is where the attribute contains the delimiter itself, so a split by _ will not work
         for key, value in os.environ.items():
             if key.startswith("OTF_OVERRIDE_"):
-                # Split the key by _
-                split_key = key.split("_")
-                # Remove the first 3 elements
-                split_key = split_key[3:]
+                # Split the key by _ but handle !! special case first
+                if "!!" in key:
+                    # Split into parts before and after !!
+                    prefix, property_name = key.split("!!")
+                    # Split the prefix normally by _ and remove OTF_OVERRIDE_
+                    split_key = prefix.split("_")[3:] + [property_name]
+                else:
+                    # Original behavior
+                    split_key = key.split("_")[3:]
+
                 self._apply_env_var_overrides_to_task_definition(
                     task_definition, split_key, value
                 )
