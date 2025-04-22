@@ -116,6 +116,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # Remove local staging directory if it exists (and this isn't a local transfer)
         if (
             path.exists(self.local_staging_dir)
+            and self.source_file_spec["protocol"]["name"] != "dummy"
             and self.local_staging_dir != self.source_file_spec["directory"]
         ):
             self.logger.info(
