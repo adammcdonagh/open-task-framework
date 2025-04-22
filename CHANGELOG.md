@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.16.1
+
+- Add handling for overriding vars with underscores
+
 # v25.16.0
 
 - Fix schema for email destination task handler to include missing `message` attribute

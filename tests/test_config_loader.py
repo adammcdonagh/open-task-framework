@@ -744,3 +744,39 @@ def test_override_task_specific_attribute(write_dummy_variables_file, tmpdir):
         task_definition["destination"][0]["protocol"]["credentials"]["username"]
         == "my_username"
     )
+
+
+def test_override_task_specific_attribute_execution(write_dummy_variables_file, tmpdir):
+
+    execution_task_definition = {
+        "type": "execution",
+        "directory": "/tmp/testFiles/dest",
+        "command": "echo 'hello world'",
+        "protocol": {"name": "local", "some_attribute": "somethingrandom"},
+    }
+
+    # Write the task definition to a file
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/transfers/test-task-1.json": {
+                    "content": json.dumps(execution_task_definition)
+                }
+            }
+        ]
+    )
+
+    # Override things
+    os.environ["OTF_OVERRIDE_EXECUTION_DIRECTORY"] = "/tmp/testFiles/dest2"
+    os.environ["OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_ATTRIBUTE"] = "my_attribute"
+
+    # Load the task definition
+    config_loader = ConfigLoader(tmpdir)
+    task_definition = config_loader.load_task_definition("test-task-1")
+
+    del os.environ["OTF_OVERRIDE_EXECUTION_DIRECTORY"]
+    del os.environ["OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_ATTRIBUTE"]
+
+    # Check that the directory and some_attribute properties have been overridden
+    assert task_definition["directory"] == "/tmp/testFiles/dest2"
+    assert task_definition["protocol"]["some_attribute"] == "my_attribute"
