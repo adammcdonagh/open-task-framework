@@ -637,6 +637,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
             if (
                 different_protocols
+                and self.source_file_spec["protocol"]["name"] != "dummy"
                 and self.local_staging_dir != self.source_file_spec["directory"]
             ):
                 self.logger.debug("Removing local staging directory")
