@@ -63,10 +63,10 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: mypy
-        language: python
+        entry: "python"
+        language: system
         types: [python]
-        args: ["--version", "--config-file", "mypy.ini"]
+        args: ["-m", "mypy", "--config-file", "mypy.ini"]
         require_serial: true
         files: ^src/opentaskpy/.+\.py$
       - id: pylint
