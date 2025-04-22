@@ -363,7 +363,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         if "conditionals" in self.source_file_spec and remote_files:
             remote_files = self.check_conditionals(remote_files)
 
-        if not remote_files:
+        if not remote_files and self.source_file_spec["protocol"]["name"] != "dummy":
             if "error" in self.source_file_spec and not self.source_file_spec["error"]:
                 return self.return_result(
                     0,

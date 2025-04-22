@@ -1,5 +1,12 @@
 # Changelog
 
+# v25.16.0
+
+- Fix schema for email destination task handler to include missing `message` attribute
+- Remove requirement for `accessToken` in dummy handler
+- Prevent `transfer.py` throwing an error when `dummy` protocol is used as the source and no files are returned
+- Add test to test email destination task handler with a custom email body
+
 # v25.15.0
 
 - Added new devcontainer for working with the OTF Addons in a single dev environment
