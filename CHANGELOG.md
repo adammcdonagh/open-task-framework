@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.16.2
+
+- Support for HTML email body
+
 # v25.16.1
 
 - Add handling for overriding vars with underscores

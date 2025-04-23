@@ -46,7 +46,55 @@ email_dummy_source_task_definition = {
         {
             "recipients": ["test@example.com"],
             "subject": "Test Email Subject DUMMY SOURCE",
-            "message": "This has not attachment, but a custom body",
+            "message": "This has not an attachment, but a custom body",
+            "protocol": {
+                "name": "email",
+                "credentials": {
+                    "username": "{{ lookup('file', path='/tmp/smtp_username') }}",
+                    "password": "{{ lookup('file', path='/tmp/smtp_password') }}",
+                },
+                "sender": "Test Sender <test@example.com>",
+            },
+        },
+    ],
+}
+
+email_html_dummy_source_task_definition = {
+    "type": "transfer",
+    "source": {
+        "protocol": {"name": "dummy"},
+    },
+    "destination": [
+        {
+            "recipients": ["test@example.com"],
+            "subject": "Test Email Subject DUMMY SOURCE",
+            "messageContentType": "text/html",
+            "message": (
+                'This has not attachment, but a <b>custom body</b> with some <p style="color: red;">red text in a paragraph.</p>'
+            ),
+            "protocol": {
+                "name": "email",
+                "credentials": {
+                    "username": "{{ lookup('file', path='/tmp/smtp_username') }}",
+                    "password": "{{ lookup('file', path='/tmp/smtp_password') }}",
+                },
+                "sender": "Test Sender <test@example.com>",
+            },
+        },
+    ],
+}
+
+email_plain_dummy_source_task_definition = {
+    "type": "transfer",
+    "source": {
+        "protocol": {"name": "dummy"},
+    },
+    "destination": [
+        {
+            "recipients": ["test@example.com"],
+            "subject": "Test Email Subject DUMMY SOURCE",
+            "messageContentType": "text/plain",
+            "message": "This has not attachment, but a plain message",
             "protocol": {
                 "name": "email",
                 "credentials": {
@@ -194,6 +242,107 @@ def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
 
     transfer_obj = transfer.Transfer(
         global_variables, "email-transfer-dummy", imported_task_def
+    )
+    transfer_obj._set_remote_handlers()
+
+    # Run the transfer
+    assert transfer_obj.run()
+
+
+def test_email_content_type(env_vars, setup_ssh_keys, root_dir):
+
+    import logging
+
+    import opentaskpy.otflogging
+
+    logger = opentaskpy.otflogging.init_logging(
+        __name__,
+        "email-transfer-content-type",
+        level=logging.DEBUG,
+        override_root_logger=True,
+    )
+
+    # In GitHub Actions, the variables we need are in the environment
+    # Pull those and write them to the config files first
+    if os.getenv("GITHUB_ACTIONS"):
+        # Get SMTP_USERNAME and SMTP_PASSWORD from environment and write them to files under /tmp
+        fs.create_files(
+            [
+                {
+                    "/tmp/smtp_username": {
+                        "content": os.getenv("SMTP_USERNAME"),
+                    }
+                },
+                {
+                    "/tmp/smtp_password": {
+                        "content": os.getenv("SMTP_PASSWORD"),
+                    }
+                },
+            ]
+        )
+
+    # Now test the dummy source
+    # Write the email_task_definition to a file which we will read in to resolve the templated values for username and password
+    task_definition_file = f"{root_dir}/cfg/transfers/email-transfer-dummy-html.json"
+    # Delete the file if it exists
+    if os.path.exists(task_definition_file):
+        os.remove(task_definition_file)
+
+    fs.create_files(
+        [
+            {
+                task_definition_file: {
+                    "content": json.dumps(email_html_dummy_source_task_definition)
+                }
+            }
+        ]
+    )
+
+    config_loader = ConfigLoader("test/cfg")
+    global_variables = config_loader.get_global_variables()
+    global_variables["global_protocol_vars"] = [
+        {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"}
+    ]
+
+    imported_task_def = config_loader.load_task_definition("email-transfer-dummy-html")
+    os.remove(task_definition_file)
+
+    transfer_obj = transfer.Transfer(
+        global_variables, "email-transfer-dummy-html", imported_task_def
+    )
+    transfer_obj._set_remote_handlers()
+
+    # Run the transfer
+    assert transfer_obj.run()
+
+    # Now test the dummy source
+    # Write the email_task_definition to a file which we will read in to resolve the templated values for username and password
+    task_definition_file = f"{root_dir}/cfg/transfers/email-transfer-dummy-plain.json"
+    # Delete the file if it exists
+    if os.path.exists(task_definition_file):
+        os.remove(task_definition_file)
+
+    fs.create_files(
+        [
+            {
+                task_definition_file: {
+                    "content": json.dumps(email_plain_dummy_source_task_definition)
+                }
+            }
+        ]
+    )
+
+    config_loader = ConfigLoader("test/cfg")
+    global_variables = config_loader.get_global_variables()
+    global_variables["global_protocol_vars"] = [
+        {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"}
+    ]
+
+    imported_task_def = config_loader.load_task_definition("email-transfer-dummy-plain")
+    os.remove(task_definition_file)
+
+    transfer_obj = transfer.Transfer(
+        global_variables, "email-transfer-dummy-plain", imported_task_def
     )
     transfer_obj._set_remote_handlers()
 
