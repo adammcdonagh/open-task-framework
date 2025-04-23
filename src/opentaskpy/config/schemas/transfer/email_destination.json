@@ -13,6 +13,11 @@
     "subject": {
       "type": "string"
     },
+    "messageContentType": {
+      "type": "string",
+      "default": "text/html",
+      "enum": ["text/plain", "text/html"]
+    },
     "message": {
       "type": "string"
     },

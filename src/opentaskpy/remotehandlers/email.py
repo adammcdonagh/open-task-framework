@@ -102,14 +102,19 @@ class EmailTransfer(RemoteTransferHandler):
             # Get comma separated list of files
             attachment_file_list = ", ".join([file.split("/")[-1] for file in files])
 
-            # Add a plaintext body to the email
-            msg.attach(
-                MIMEText(
-                    self.spec.get(
-                        "message", f"Please find attached: {attachment_file_list}"
-                    )
-                )
+            # Add a body to the email
+            content_type = (
+                "html"
+                if "messageContentType" not in self.spec
+                or self.spec["messageContentType"] == "text/html"
+                else "plain"
             )
+            message = self.spec.get(
+                "message",
+                f"{'<p>Please find attached: <b>' if content_type == 'html' else 'Please find attached: '}{attachment_file_list}{'</b></p>' if content_type == 'html' else ''}",
+            )
+            msg.attach(MIMEText(message, content_type))
+
             # Set the email subject
             if "subject" in self.spec:
                 msg["Subject"] = self.spec["subject"]
