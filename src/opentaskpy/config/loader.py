@@ -203,14 +203,15 @@ class ConfigLoader:
         for key, value in os.environ.items():
             if key.startswith("OTF_OVERRIDE_"):
                 # Split the key by _ but handle !! special case first
-                if "!!" in key:
-                    # Split into parts before and after !!
-                    prefix, property_name = key.split("!!")
-                    # Split the prefix normally by _ and remove OTF_OVERRIDE_
-                    split_key = prefix.split("_")[3:] + [property_name]
-                else:
-                    # Original behavior
-                    split_key = key.split("_")[3:]
+                split_key: list[str] = []
+                while "!!" in key:
+                    # Split into parts before and after !! from right
+                    prefix, property_name = key.rsplit("!!", maxsplit=1)
+                    # Add the property name to the start of the split key list
+                    split_key.insert(0, property_name)
+                    key = prefix
+                # Split the prefix normally by _ and remove OTF_OVERRIDE_
+                split_key = key.split("_")[3:] + split_key
 
                 self._apply_env_var_overrides_to_task_definition(
                     task_definition, split_key, value
@@ -219,7 +220,7 @@ class ConfigLoader:
         return task_definition
 
     def _apply_env_var_overrides_to_task_definition(
-        self, task_definition: dict, split_key: str, value: str
+        self, task_definition: dict, split_key: list[str], value: str
     ) -> None:
         attribute = split_key[0]
 

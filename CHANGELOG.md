@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.22.0
+
+- Support for attribute overrides where there are multiple nested keys with underscores (using `!!` override syntax)
+
 # v25.16.2
 
 - Support for HTML email body

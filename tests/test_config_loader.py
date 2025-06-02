@@ -752,7 +752,11 @@ def test_override_task_specific_attribute_execution(write_dummy_variables_file, 
         "type": "execution",
         "directory": "/tmp/testFiles/dest",
         "command": "echo 'hello world'",
-        "protocol": {"name": "local", "some_attribute": "somethingrandom"},
+        "protocol": {
+            "name": "local",
+            "some_attribute": "somethingrandom",
+            "some_dict_attribute": {"some_dict_item": "somethingrandom"},
+        },
     }
 
     # Write the task definition to a file
@@ -769,6 +773,9 @@ def test_override_task_specific_attribute_execution(write_dummy_variables_file, 
     # Override things
     os.environ["OTF_OVERRIDE_EXECUTION_DIRECTORY"] = "/tmp/testFiles/dest2"
     os.environ["OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_ATTRIBUTE"] = "my_attribute"
+    os.environ[
+        "OTF_OVERRIDE_EXECUTION_PROTOCOL!!SOME_DICT_ATTRIBUTE!!SOME_DICT_ITEM"
+    ] = "my_dict_item"
 
     # Load the task definition
     config_loader = ConfigLoader(tmpdir)
@@ -780,3 +787,7 @@ def test_override_task_specific_attribute_execution(write_dummy_variables_file, 
     # Check that the directory and some_attribute properties have been overridden
     assert task_definition["directory"] == "/tmp/testFiles/dest2"
     assert task_definition["protocol"]["some_attribute"] == "my_attribute"
+    assert (
+        task_definition["protocol"]["some_dict_attribute"]["some_dict_item"]
+        == "my_dict_item"
+    )
