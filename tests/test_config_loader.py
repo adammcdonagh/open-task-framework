@@ -25,6 +25,10 @@ def write_dummy_variables_file(tmpdir):
         "test": "{{ SOME_VARIABLE }}6",
         "SOME_VARIABLE": "{{ SOME_VARIABLE2 }}5",
         "SOME_VARIABLE2": "test1234",
+        "NESTED_VAR_LEVEL_0": {
+            "NESTED_VAR_LEVEL_1": {"NESTED_VAR_LEVEL_2": "nested_test1234"},
+            "nested_variable_MIXED_CASE": "nested_mixed_case_test1234",
+        },
     }
 
     fs.create_files(
@@ -689,6 +693,88 @@ def test_override_task_variables(tmpdir, write_dummy_variables_file):
     }
     new_task_definition = config_loader.load_task_definition("task")
     del os.environ["MY_VARIABLE"]
+    assert new_task_definition == expected_task_definition
+
+
+def test_override_nested_task_variables(tmpdir, write_dummy_variables_file):
+    config_loader = ConfigLoader(tmpdir)
+
+    # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/task.json": {
+                    "content": (
+                        '{"test_var": "{{ test }}", "variables": {"MY_VARIABLE": {"NESTED": "value123"}}}'
+                    )
+                }
+            }
+        ]
+    )
+
+    expected_task_definition = {
+        "test_var": "test123456",
+        "variables": {"MY_VARIABLE": {"NESTED": "value123"}},
+    }
+
+    # Test that the task definition is loaded correctly
+    assert config_loader.load_task_definition("task") == expected_task_definition
+
+    # Now override it with an environment variable and load it again
+    os.environ["MY_VARIABLE.NESTED"] = "overridden_value123"
+
+    expected_task_definition = {
+        "test_var": "test123456",
+        "variables": {"MY_VARIABLE": {"NESTED": "overridden_value123"}},
+    }
+    new_task_definition = config_loader.load_task_definition("task")
+    del os.environ["MY_VARIABLE.NESTED"]
+    assert new_task_definition == expected_task_definition
+
+
+def test_override_nested_variables_file(tmpdir, write_dummy_variables_file):
+    config_loader = ConfigLoader(tmpdir)
+
+    # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/task.json": {
+                    "content": (
+                        '{"test_var": "{{ NESTED_VAR_LEVEL_0.NESTED_VAR_LEVEL_1.NESTED_VAR_LEVEL_2 }}",'
+                        '"test_var_mixed_case": "{{ NESTED_VAR_LEVEL_0.nested_variable_MIXED_CASE }}"}'
+                    )
+                }
+            }
+        ]
+    )
+
+    expected_task_definition = {
+        "test_var": "nested_test1234",
+        "test_var_mixed_case": "nested_mixed_case_test1234",
+    }
+
+    assert config_loader.load_task_definition("task") == expected_task_definition
+
+    # Now override it with an environment variable and load it again
+    os.environ["NESTED_VAR_LEVEL_0.NESTED_VAR_LEVEL_1.NESTED_VAR_LEVEL_2"] = (
+        "overridden_value123"
+    )
+    os.environ["NESTED_VAR_LEVEL_0.nested_variable_MIXED_CASE"] = (
+        "overridden_mixed_case_test1234"
+    )
+
+    # Evaluate the global variables
+    global_vars = config_loader.get_global_variables()
+
+    expected_task_definition = {
+        "test_var": "overridden_value123",
+        "test_var_mixed_case": "overridden_mixed_case_test1234",
+    }
+
+    new_task_definition = config_loader.load_task_definition("task")
+    del os.environ["NESTED_VAR_LEVEL_0.NESTED_VAR_LEVEL_1.NESTED_VAR_LEVEL_2"]
+    del os.environ["NESTED_VAR_LEVEL_0.nested_variable_MIXED_CASE"]
     assert new_task_definition == expected_task_definition
 
 

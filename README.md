@@ -8,7 +8,7 @@
 <h1>Open Task Framework (opentaskpy)</h1>
 
 - [Installation](#installation)
-  - [Docker Images](#docker-images)
+    - [Docker Images](#docker-images)
   - [Example Deployment](#example-deployment)
 - [Configuration](#configuration)
   - [Command Line Arguments](#command-line-arguments)
@@ -207,6 +207,8 @@ In the log output, you'll see something like this:
 Overriding global variable (DD: 05) with environment variable (01)
 ```
 
+Nested variables can also be overridden using dot notation e.g. `export SOME_VARIABLE.NESTED_VARIABLE=new_value`. Bear in mind, this is case sensitive.
+
 To override task specific values, you can use the following format in the environment variable name:
 `OTF_OVERRIDE_<TASK_TYPE>_<ATTRIBUTE>_<ATTRIBUTE>_<ATTRIBUTE>`
 
@@ -313,7 +315,7 @@ Below are examples of some useful variables to start with:
 Usage:
 
 ```json
-"fileRegex": "somefile.*{{ YYYY }}\\.txt"
+"fileRegex": "somefile.*{{ YYYY }}\.txt"
 ```
 
 `now` is added by OTF, it will return a `datetime` object aligned to whatever timezone the worker is running. If you need the UTC time, then you can use `utc_now` instead.
@@ -415,7 +417,7 @@ An explanation of what's going on in the order it will handled:
 3. Find all files matching the regex `/tmp/testFiles/src/.*\.txt`, with the conditions that the are >10B and <20B in size, as well as being older than 60 seconds, but newer than 600 seconds since last modification
 4. Transfer the files that were found to 2 destinations.
    1. The first destination is a simple SCP from `HOST_A` to `HOST_B` where the file is placed under `/tmp/testFiles/dest`. The group ownership of the file(s) is then set to `operator`
-   2. The second destination is done via a pull from the destination server into the same directory. The SCP connects to `HOST_A` as `transferUsername`. Once the file has been retrieved, it is renamed using the following regex match `^(.*)\.txt$` and substitution `\1-2.txt`
+   2. The second destination is done via a pull from the destination server into the same directory. The SCP connects to `HOST_A` as `transferUsername`. Once the file has been retrieved, it is renamed using the following regex match `^(.*)\.txt and substitution `\1-2.txt`
 5. Transferred files are moved into `/tmp/testFiles/archive` on `HOST_A`
 
 ## Executions

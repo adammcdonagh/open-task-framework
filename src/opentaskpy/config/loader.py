@@ -48,6 +48,32 @@ class ConfigLoader:
 
         self._resolve_templated_variables(lazy_load=self.lazy_load)
 
+    def _override_variables_from_env(self, variables: dict, variable_type: str) -> None:
+        """Overrides variables with environment variables."""
+        for env_var_name, env_var_value in os.environ.items():
+            if "." in env_var_name:
+                key_path = env_var_name.split(".")
+                current_dict = variables
+                for i, key in enumerate(key_path):
+                    if isinstance(current_dict, dict) and key in current_dict:
+                        if i == len(key_path) - 1:
+                            # It's the final key, override the value
+                            self.logger.info(
+                                f"Overriding nested {variable_type} variable '{env_var_name}' with environment variable."
+                            )
+                            current_dict[key] = env_var_value
+                        else:
+                            # Traverse deeper
+                            current_dict = current_dict[key]
+                    else:
+                        # The key path does not exist in the dictionary
+                        break
+            elif env_var_name in variables:
+                self.logger.info(
+                    f"Overriding {variable_type} variable ({env_var_name}: {variables[env_var_name]}) with environment variable ({env_var_value})"
+                )
+                variables[env_var_name] = env_var_value
+
     def get_global_variables(self) -> dict:
         """Return the set of global variables that have been assigned via config files.
 
@@ -59,13 +85,7 @@ class ConfigLoader:
         """
         # Before we return the variables, we need to check for any environment variables that match the same name, and are set
         # if this is the case, then we replace the value with the environment variable
-        for key, _ in self.global_variables.items():
-            if key in os.environ:
-                self.logger.info(
-                    f"Overriding global variable ({key}: {self.global_variables[key]})"
-                    f" with environment variable ({os.environ[key]})"
-                )
-                self.global_variables[key] = os.environ[key]
+        self._override_variables_from_env(self.global_variables, "global")
 
         return self.global_variables
 
@@ -185,9 +205,7 @@ class ConfigLoader:
 
         # If the task has any variables, we need to check if they're overridden by environment variables
         if "variables" in task_definition:
-            for key, _ in task_definition["variables"].items():
-                if key in os.environ:
-                    task_definition["variables"][key] = os.environ[key]
+            self._override_variables_from_env(task_definition["variables"], "task")
 
         # Check to see if this is not a batch type
         if "type" in task_definition and task_definition["type"] == "batch":
