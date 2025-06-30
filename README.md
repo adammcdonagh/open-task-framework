@@ -8,7 +8,7 @@
 <h1>Open Task Framework (opentaskpy)</h1>
 
 - [Installation](#installation)
-    - [Docker Images](#docker-images)
+  - [Docker Images](#docker-images)
   - [Example Deployment](#example-deployment)
 - [Configuration](#configuration)
   - [Command Line Arguments](#command-line-arguments)
