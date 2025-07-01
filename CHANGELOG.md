@@ -1,5 +1,10 @@
 # Changelog
 
+# v25.26.0
+
+- Improved environment variable override logic for nested variables in both global and task-specific contexts.
+- Allow overriding of nested variables using dot notation e.g. `export SOME_VARIABLE.NESTED_VARIABLE=new_value`.
+
 # v25.22.0
 
 - Support for attribute overrides where there are multiple nested keys with underscores (using `!!` override syntax)
