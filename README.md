@@ -17,6 +17,7 @@
   - [Logging](#logging)
   - [Variables](#variables)
     - [Lazy Loading Variables](#lazy-loading-variables)
+  - [Filters](#filters)
   - [Runtime Overrides](#runtime-overrides)
   - [Lookup plugins](#lookup-plugins)
     - [Adding your own](#adding-your-own)
@@ -195,6 +196,23 @@ Individual tasks can have their own local variables too
 ### Lazy Loading Variables
 
 By default, all variables are loaded whenever the variables file is loaded. This can be slow if you have a large number of variables, or there are variables that some tasks use that others don't. To avoid this, you can set the `OTF_LAZY_LOAD_VARIABLES` environment variable to `1`. This will only load variables that are used by the task definition at runtime.
+
+## Filters
+
+All of the standard Jinja2 filters are available, as well as some additional ones that are useful for OTF.
+
+You can add your own custom filters by placing them in the `<config>/filters` directory. Examples can be found in the `tests/cfg/filters` directory, or the defaults under `src/opentaskpy/filters`, these are simple Python functions. For more information on writing custom filters, see the [Jinja2 documentation](https://jinja.palletsprojects.com/en/stable/api/#writing-filters).
+
+The following filters are available by default:
+
+- `base64_encode` - Encodes a string using base64
+- `base64_decode` - Decodes a string using base64
+- `delta_days` - Returns a new datetime object + or - the number of delta days
+- `delta_hours` - Returns a new datetime object + or - the number of delta hours
+- `utc_now` - Returns a new datetime object in UTC
+- `now_utc` - Alias for `utc_now`
+- `now` - Returns a new datetime object in the local timezone of the worker
+- `now_localtime` - Alias for `now`
 
 ## Runtime Overrides
 

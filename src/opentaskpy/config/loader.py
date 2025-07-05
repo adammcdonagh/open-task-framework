@@ -1,7 +1,8 @@
 """Config loader."""
 
-import datetime
 import importlib
+import importlib.util
+import inspect
 import json
 import os
 import sys
@@ -15,6 +16,7 @@ from opentaskpy.exceptions import (
     DuplicateConfigFileError,
     VariableResolutionTooDeepError,
 )
+from opentaskpy.filters import default_filters
 
 MAX_DEPTH = 5
 
@@ -37,8 +39,8 @@ class ConfigLoader:
         # Force Jinja2 to log undefined variables
         jinja2.make_logging_undefined(logger=self.logger, base=jinja2.Undefined)
         self.template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
-        self.template_env.filters["delta_days"] = self.delta_days
-        self.template_env.filters["delta_hours"] = self.delta_hours
+
+        self._load_filters(self.template_env.filters)
 
         self._load_global_variables()
 
@@ -47,6 +49,35 @@ class ConfigLoader:
             self.lazy_load = True
 
         self._resolve_templated_variables(lazy_load=self.lazy_load)
+
+    def _load_filters(self, destination: dict) -> None:
+        """Load default filters from opentaskpy.filters.default_filters.
+
+        Args:
+            destination (dict): The destination dictionary to load the filters into
+        """
+        # Check what functions exist in the module
+        for name, func in inspect.getmembers(default_filters, inspect.isfunction):
+            destination[name] = func
+            self.logger.log(12, f"Registered default filter: {name}")
+
+        # Support for custom filters
+        filters_dir = f"{self.config_dir}/filters"
+        if os.path.isdir(filters_dir):
+            for filter_file in glob(f"{self.config_dir}/filters/*.py", recursive=True):
+                module_name = f"{os.path.basename(filter_file).replace('.py', '')}"
+                spec = importlib.util.spec_from_file_location(module_name, filter_file)
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    # Register all functions in the module as Jinja2 filters
+                    for name, func in inspect.getmembers(module, inspect.isfunction):
+                        destination[name] = func
+                        self.logger.log(
+                            12, f"Registered custom filter: {name} from {filter_file}"
+                        )
+                else:
+                    self.logger.log(12, f"Couldn't import custom filter: {filter_file}")
 
     def _override_variables_from_env(self, variables: dict, variable_type: str) -> None:
         """Overrides variables with environment variables."""
@@ -89,30 +120,6 @@ class ConfigLoader:
 
         return self.global_variables
 
-    def delta_days(self, value: datetime.datetime, days: int) -> datetime.datetime:
-        """Returns a new datetime object + or - the number of delta days.
-
-        Args:
-            value (datetime.datetime): Starting datetime object
-            days (int): Days to increment or decrement the value
-
-        Returns:
-            datetime.datetime: New datetime object with the delta applied
-        """
-        return value + datetime.timedelta(days)
-
-    def delta_hours(self, value: datetime.datetime, hours: int) -> datetime.datetime:
-        """Returns a new datetime object + or - the number of delta hours.
-
-        Args:
-            value (datetime.datetime): Starting datetime object
-            hours (int): Hours to increment or decrement the value
-
-        Returns:
-            datetime.datetime: New datetime object with the delta applied
-        """
-        return value + datetime.timedelta(hours=hours)
-
     def template_lookup(self, plugin: str, **kwargs) -> str:  # type: ignore[no-untyped-def]
         """Lookup function used by Jinja.
 
@@ -152,11 +159,12 @@ class ConfigLoader:
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:
             plugin_path = f"{self.config_dir}/plugins/lookup/{plugin}.py"
             if os.path.isfile(plugin_path):
-                spec = importlib.util.spec_from_file_location(  # type: ignore[attr-defined]
+                spec = importlib.util.spec_from_file_location(
                     f"opentaskpy.plugins.lookup.{plugin}", plugin_path
                 )
-                module = importlib.util.module_from_spec(spec)  # type: ignore[attr-defined]
-                spec.loader.exec_module(module)
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
                 sys.modules[f"opentaskpy.plugins.lookup.{plugin}"] = module
 
         # If we are in noop mode, then don't actually run the plugin
@@ -292,8 +300,7 @@ class ConfigLoader:
 
                 template = self.template_env.from_string(json_content)
 
-            template.globals["utc_now"] = self.now_utc
-            template.globals["now"] = self.now_localtime
+            self._load_filters(template.globals)
 
             # Define lookup function
             template.globals["lookup"] = self.template_lookup
@@ -397,14 +404,6 @@ class ConfigLoader:
 
         self.global_variables = global_variables
 
-    def now_localtime(self) -> datetime.datetime:
-        """Return the current time in the local timezone."""
-        return datetime.datetime.now().astimezone()
-
-    def now_utc(self) -> datetime.datetime:
-        """Return the current time in UTC."""
-        return datetime.datetime.utcnow()
-
     # RESOLVE ANY VARIABLES THAT USE OTHER VARIABLES IN THE VARIABLE FILES
     def _resolve_templated_variables(self, lazy_load: bool = False) -> None:
         # We need to evaluate the variables themselves, in case there's any recursion
@@ -415,8 +414,7 @@ class ConfigLoader:
         template = self.global_variables
 
         variables_template = self.template_env.from_string(json.dumps(template))
-        variables_template.globals["utc_now"] = self.now_utc
-        variables_template.globals["now"] = self.now_localtime
+        self._load_filters(variables_template.globals)
 
         # Define lookup function
         variables_template.globals["lookup"] = self.template_lookup
@@ -431,8 +429,7 @@ class ConfigLoader:
             previous_render = evaluated_variables
 
             variables_template = self.template_env.from_string(evaluated_variables)
-            variables_template.globals["utc_now"] = self.now_utc
-            variables_template.globals["now"] = self.now_localtime
+            self._load_filters(variables_template.globals)
 
             # Define lookup function
             variables_template.globals["lookup"] = self.template_lookup
@@ -462,8 +459,7 @@ class ConfigLoader:
         previous_render = None
 
         variables_template = self.template_env.from_string(json_content)
-        variables_template.globals["utc_now"] = self.now_utc
-        variables_template.globals["now"] = self.now_localtime
+        self._load_filters(variables_template.globals)
 
         # Define lookup function
         variables_template.globals["lookup"] = self.template_lookup
@@ -475,8 +471,7 @@ class ConfigLoader:
 
             variables_template = self.template_env.from_string(evaluated_variables)
 
-            variables_template.globals["utc_now"] = self.now_utc
-            variables_template.globals["now"] = self.now_localtime
+            self._load_filters(variables_template.globals)
 
             # Define lookup function
             variables_template.globals["lookup"] = self.template_lookup

@@ -1,4 +1,6 @@
 name: Test & Linting
+permissions:
+  contents: read
 
 env:
   DEFAULT_PYTHON: "3.11"
@@ -299,7 +301,6 @@ jobs:
 
   test:
     name: test
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: prepare-base
@@ -337,6 +338,8 @@ jobs:
     name: Check Changelog
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Changelog check
         uses: tarides/changelog-check-action@v3

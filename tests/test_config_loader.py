@@ -321,6 +321,89 @@ def test_custom_plugin(tmpdir):
     assert config_loader.get_global_variables() == {"test": "hello"}
 
 
+def test_default_filters(tmpdir):
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": (
+                        '{"test": "{{ \'SOME_TEXT\' | base64_encode }}", "test2": "{{ \'aGVsbG8=\' | base64_decode }}"}'
+                    )
+                }
+            },
+        ]
+    )
+
+    # Test that the global variables are loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+
+    assert config_loader.get_global_variables() == {
+        "test": "U09NRV9URVhU",
+        "test2": "hello",
+    }
+
+
+def test_custom_ordinal_date_filter(tmpdir):
+    # Add the test config directory the the python path
+    import sys
+
+    sys.path.append(f"test/cfg/filters")
+    import custom_ordinal_date as custom_ordinal_date
+
+    test_data = [
+        {
+            "inputs": [[1, 4], datetime.strptime("2025-07-03", "%Y-%m-%d")],
+            "expected": "25052",
+        },
+        {
+            "inputs": [[1, 4], datetime.strptime("2025-07-04", "%Y-%m-%d")],
+            "expected": "25053",
+        },
+        {
+            "inputs": [[1, 4], datetime.strptime("2025-07-05", "%Y-%m-%d")],
+            "expected": "25053",
+        },
+        {
+            "inputs": [[1, 4], datetime.strptime("2025-07-08", "%Y-%m-%d")],
+            "expected": "25054",
+        },
+    ]
+
+    for test in test_data:
+        assert (
+            custom_ordinal_date.custom_weekday_ordinal(
+                test["inputs"][0], test["inputs"][1]
+            )
+            == test["expected"]
+        )
+
+
+def test_custom_filter(tmpdir):
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": '{"test": "{{ \'SOME_TEXT\' | md5 }}"}'
+                }
+            },
+        ]
+    )
+    # Symlink test/cfg/filters to tmpdir/filters
+    os.symlink(
+        os.path.join(os.path.dirname(__file__), "../test/cfg", "filters"),
+        f"{tmpdir}/filters",
+    )
+
+    # Test that the global variables are loaded correctly
+    config_loader = ConfigLoader(tmpdir)
+
+    assert config_loader.get_global_variables() == {
+        "test": "f7a5d4ca0b2a6cf667fe3da9fc06edff"
+    }
+
+
 def test_load_global_variables(tmpdir):
     # Create a JSON file with some test variables in it
     fs.create_files(
@@ -509,9 +592,13 @@ def test_default_date_variable_resolution(tmpdir):
         "DAY_SHORT": "{{ now().strftime('%a') }}",
         "PREV_DD": "{{ (now()|delta_days(-1)).strftime('%d') }}",
         "PREV_UTC_DD": "{{ (utc_now()|delta_days(-1)).strftime('%d') }}",
+        "PREV_NOW_UTC_DD": "{{ (now_utc()|delta_days(-1)).strftime('%d') }}",
         "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
         "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
         "PREV_1H_HH": "{{ (now()|delta_hours(-1)).strftime('%H') }}",
+        "PREV_1H_HH_LOCALTIME": (
+            "{{ (now_localtime()|delta_hours(-1)).strftime('%H') }}"
+        ),
     }
 
     # Create a JSON file with some test variables in it
@@ -543,12 +630,18 @@ def test_default_date_variable_resolution(tmpdir):
     assert config_loader.get_global_variables()["PREV_YYYY"] == yesterday.strftime("%Y")
     assert config_loader.get_global_variables()["PREV_MM"] == yesterday.strftime("%m")
     assert config_loader.get_global_variables()["PREV_DD"] == yesterday.strftime("%d")
+    assert config_loader.get_global_variables()[
+        "PREV_NOW_UTC_DD"
+    ] == yesterday.astimezone(tz=UTC).strftime("%d")
 
     # Get datetime for 1 hour ago
     previous_hour = datetime.now() - timedelta(hours=1)
     assert config_loader.get_global_variables()["PREV_1H_HH"] == previous_hour.strftime(
         "%H"
     )
+    assert config_loader.get_global_variables()[
+        "PREV_1H_HH_LOCALTIME"
+    ] == previous_hour.strftime("%H")
 
     # Play around with the current time. Set it to a GMT time before the clocks change
     # Change the time to before BST starts

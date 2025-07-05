@@ -1,6 +1,7 @@
 """Email handler to send files via email."""
 
 import glob
+import os
 import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -109,10 +110,26 @@ class EmailTransfer(RemoteTransferHandler):
                 or self.spec["messageContentType"] == "text/html"
                 else "plain"
             )
-            message = self.spec.get(
-                "message",
-                f"{'<p>Please find attached: <b>' if content_type == 'html' else 'Please find attached: '}{attachment_file_list}{'</b></p>' if content_type == 'html' else ''}",
-            )
+
+            # Determine whether the load the message from a file or from a string
+            # Check that message and messageContentFilename are not both defined
+            if "message" in self.spec and "messageContentFilename" in self.spec:
+                self.logger.error(
+                    "message and messageContentFilename cannot both be defined!"
+                )
+                result = 1
+                return result
+
+            # Load message from the file, or use the string if defined
+            if "messageContentFilename" in self.spec:
+                with open(self.spec["messageContentFilename"], encoding="utf-8") as f:
+                    message = f.read()
+            else:
+                message = self.spec.get(
+                    "message",
+                    f"{'<p>Please find attached: <b>' if content_type == 'html' else 'Please find attached: '}{attachment_file_list}{'</b></p>' if content_type == 'html' else ''}",
+                )
+
             msg.attach(MIMEText(message, content_type))
 
             # Set the email subject
@@ -154,6 +171,14 @@ class EmailTransfer(RemoteTransferHandler):
                     self.protocol_vars["sender"], email_address, msg.as_string()
                 )
                 smtp.quit()
+
+                # Delete the content file if it exists
+                if "messageContentFilename" in self.spec and (
+                    "deleteContentFileAfterTransfer" not in self.spec
+                    or self.spec["deleteContentFileAfterTransfer"]
+                ):
+                    os.remove(self.spec["messageContentFilename"])
+
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Failed to send email to {email_address}")
                 self.logger.error(ex)
