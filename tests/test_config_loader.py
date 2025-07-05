@@ -596,7 +596,7 @@ def test_default_date_variable_resolution(tmpdir):
         "PREV_MM": "{{ (now()|delta_days(-1)).strftime('%m') }}",
         "PREV_YYYY": "{{ (now()|delta_days(-1)).strftime('%Y') }}",
         "PREV_1H_HH": "{{ (now()|delta_hours(-1)).strftime('%H') }}",
-        "PREV_1H_HH_LOCALTIOME": (
+        "PREV_1H_HH_LOCALTIME": (
             "{{ (now_localtime()|delta_hours(-1)).strftime('%H') }}"
         ),
     }
@@ -640,7 +640,7 @@ def test_default_date_variable_resolution(tmpdir):
         "%H"
     )
     assert config_loader.get_global_variables()[
-        "PREV_1H_HH_LOCALTIOME"
+        "PREV_1H_HH_LOCALTIME"
     ] == previous_hour.strftime("%H")
 
     # Play around with the current time. Set it to a GMT time before the clocks change
