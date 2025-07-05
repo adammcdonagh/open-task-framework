@@ -1,4 +1,6 @@
 name: Test & Linting
+permissions:
+  contents: read
 
 env:
   DEFAULT_PYTHON: "3.11"
