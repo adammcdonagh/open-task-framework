@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.26.1
+
+- Add the ability to add custom filters for Jinja2 templates under the `<config>/filters` directory.
+
 # v25.26.0
 
 - Improved environment variable override logic for nested variables in both global and task-specific contexts.

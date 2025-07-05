@@ -2,7 +2,9 @@
 # ruff: noqa
 
 import json
+import logging
 import os
+import subprocess
 
 import pytest
 
@@ -112,3 +114,46 @@ def test_batch_definition_non_existent_task_id(tmpdir, write_config_files):
     # Expect a FileNotFoundError exception as the task_id doesn't exist
     with pytest.raises(FileNotFoundError):
         batch_validator.main("test-task", 2, tmpdir)
+
+
+def test_batch_validator_as_process(tmpdir, write_config_files):
+    with open(f"{tmpdir}/test-task.json", "w", encoding="utf-8") as f:
+        f.write(json.dumps(valid_batch_defininition))
+
+    # Call batch validator script as a sub process from the cli
+    result = run_batch_validator("test-task", 2, tmpdir)
+    assert result["returncode"] == 0
+
+    # Test with invalid task and check return code is 1
+    result = run_batch_validator("non-existent-task", 2, tmpdir)
+    assert result["returncode"] == 1
+
+
+def run_batch_validator(task, verbose="2", config_dir="test/cfg", noop=False):
+    # We need to run the bin/task-run script to test this
+    script = "python"
+    args = [
+        "src/opentaskpy/cli/batch_validator.py",
+        "-t",
+        task,
+        "-v",
+        str(verbose),
+        "-c",
+        config_dir,
+    ]
+
+    # Run the script
+    result = subprocess.run([script] + args, capture_output=True)
+    # Write stdout and stderr to the console
+    logging.info("\n########## STDOUT ##########")
+    logging.info(result.stdout.decode("utf-8"))
+    # Get the console colour for red
+
+    logging.info("########## STDERR ##########")
+    logging.info(f"{result.stderr.decode('utf-8')}")
+
+    return {
+        "returncode": result.returncode,
+        "stdout": result.stdout.decode("utf-8"),
+        "stderr": result.stderr.decode("utf-8"),
+    }
