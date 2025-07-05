@@ -21,6 +21,13 @@
     "message": {
       "type": "string"
     },
+    "messageContentFilename": {
+      "type": "string"
+    },
+    "deleteContentFileAfterTransfer": {
+      "type": "boolean",
+      "default": true
+    },
     "encryption": {
       "$ref": "http://localhost/transfer/encryption.json"
     },

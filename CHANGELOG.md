@@ -3,6 +3,7 @@
 # v25.26.1
 
 - Add the ability to add custom filters for Jinja2 templates under the `<config>/filters` directory.
+- Allow email destination task handler to load the email body content from a file
 
 # v25.26.0
 
