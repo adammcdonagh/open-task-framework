@@ -337,6 +337,8 @@ jobs:
     name: Check Changelog
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Changelog check
         uses: tarides/changelog-check-action@v3
