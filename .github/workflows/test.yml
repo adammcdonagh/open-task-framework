@@ -301,7 +301,7 @@ jobs:
 
   test:
     name: test
-    if: github.event_name == 'push'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: prepare-base
