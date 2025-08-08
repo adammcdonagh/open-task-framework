@@ -172,17 +172,35 @@ class EmailTransfer(RemoteTransferHandler):
                 )
                 smtp.quit()
 
-                # Delete the content file if it exists
-                if "messageContentFilename" in self.spec and (
-                    "deleteContentFileAfterTransfer" not in self.spec
-                    or self.spec["deleteContentFileAfterTransfer"]
-                ):
-                    os.remove(self.spec["messageContentFilename"])
-
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"Failed to send email to {email_address}")
                 self.logger.error(ex)
                 result = 1
+
+        # Delete the content file if every email send succeeded
+        if (
+            result == 0
+            and "messageContentFilename" in self.spec
+            and (
+                "deleteContentFileAfterTransfer" not in self.spec
+                or self.spec["deleteContentFileAfterTransfer"]
+            )
+        ):
+            try:
+                os.remove(self.spec["messageContentFilename"])
+                self.logger.debug(
+                    f"Deleted content file: {self.spec['messageContentFilename']}"
+                )
+            except Exception as ex:  # pylint: disable=broad-exception-caught
+                self.logger.error(
+                    f"Failed to delete content file: {self.spec['messageContentFilename']}"
+                )
+                self.logger.error(ex)
+                result = 1
+        elif "messageContentFilename" in self.spec:
+            self.logger.debug(
+                "Skipping deletion of content file because one or more emails failed to send"
+            )
 
         return result
 
