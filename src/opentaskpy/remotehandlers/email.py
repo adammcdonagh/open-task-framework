@@ -116,10 +116,9 @@ class EmailTransfer(RemoteTransferHandler):
                 f"Failed to read message content file: {self.spec['messageContentFilename']}"
             )
             self.logger.error(ex)
-            result = 1 
+            result = 1
             return result
 
-       
         for email_address in self.spec["recipients"]:
             # Create an email message
             msg = MIMEMultipart()
