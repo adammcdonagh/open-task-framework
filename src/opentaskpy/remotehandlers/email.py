@@ -74,11 +74,50 @@ class EmailTransfer(RemoteTransferHandler):
         Returns:
             int: The result of the transfer.
         """
-        result = 0
+       result = 0
+
         if file_list:
             files = list(file_list.keys())
         else:
             files = glob.glob(f"{local_staging_directory}/*")
+
+        # Get comma separated list of files
+        attachment_file_list = ", ".join([file.split("/")[-1] for file in files])
+
+        # Add a body to the email
+        content_type = (
+            "html"
+            if "messageContentType" not in self.spec
+            or self.spec["messageContentType"] == "text/html"
+            else "plain"
+        )
+
+        # Determine whether the load the message from a file or from a string
+        # Check that message and messageContentFilename are not both defined
+        if "message" in self.spec and "messageContentFilename" in self.spec:
+            self.logger.error(
+                "message and messageContentFilename cannot both be defined!"
+            )
+            result = 1
+            return result
+
+        # Load message from the file, or use the string if defined
+        try:
+            if "messageContentFilename" in self.spec:
+                with open(self.spec["messageContentFilename"], encoding="utf-8") as f:
+                    message = f.read()
+            else:
+                message = self.spec.get(
+                    "message",
+                    f"{'<p>Please find attached: <b>' if content_type == 'html' else 'Please find attached: '}{attachment_file_list}{'</b></p>' if content_type == 'html' else ''}",
+                )
+        except (FileNotFoundError, PermissionError, OSError, UnicodeDecodeError) as ex:
+            self.logger.error(
+                f"Failed to read message content file: {self.spec['messageContentFilename']}"
+            )
+            self.logger.error(ex)
+            result = 1 
+            return result
 
         for email_address in self.spec["recipients"]:
             # Create an email message
@@ -99,36 +138,6 @@ class EmailTransfer(RemoteTransferHandler):
                     self.logger.error(f"Failed to attach file: {file}")
                     self.logger.error(ex)
                     result = 1
-
-            # Get comma separated list of files
-            attachment_file_list = ", ".join([file.split("/")[-1] for file in files])
-
-            # Add a body to the email
-            content_type = (
-                "html"
-                if "messageContentType" not in self.spec
-                or self.spec["messageContentType"] == "text/html"
-                else "plain"
-            )
-
-            # Determine whether the load the message from a file or from a string
-            # Check that message and messageContentFilename are not both defined
-            if "message" in self.spec and "messageContentFilename" in self.spec:
-                self.logger.error(
-                    "message and messageContentFilename cannot both be defined!"
-                )
-                result = 1
-                return result
-
-            # Load message from the file, or use the string if defined
-            if "messageContentFilename" in self.spec:
-                with open(self.spec["messageContentFilename"], encoding="utf-8") as f:
-                    message = f.read()
-            else:
-                message = self.spec.get(
-                    "message",
-                    f"{'<p>Please find attached: <b>' if content_type == 'html' else 'Please find attached: '}{attachment_file_list}{'</b></p>' if content_type == 'html' else ''}",
-                )
 
             msg.attach(MIMEText(message, content_type))
 
