@@ -74,7 +74,7 @@ class EmailTransfer(RemoteTransferHandler):
         Returns:
             int: The result of the transfer.
         """
-       result = 0
+        result = 0
 
         if file_list:
             files = list(file_list.keys())
@@ -119,6 +119,7 @@ class EmailTransfer(RemoteTransferHandler):
             result = 1 
             return result
 
+       
         for email_address in self.spec["recipients"]:
             # Create an email message
             msg = MIMEMultipart()
