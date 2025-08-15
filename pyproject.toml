@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "v25.26.1"
+version = "v25.32.0"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
 license-files = [ "LICENSE" ]
 
@@ -71,7 +71,7 @@ otf-batch-validator = "opentaskpy.cli.batch_validator:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v25.26.1"
+current_version = "v25.32.0"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
