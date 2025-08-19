@@ -1,5 +1,10 @@
 # Changelog
 
+# v25.32.0
+
+- Email destination task handler to load the email message once instead of once per recipient
+- Email message content file deletion now occurs only if all emails are sent successfully
+
 # v25.26.1
 
 - Add the ability to add custom filters for Jinja2 templates under the `<config>/filters` directory.
