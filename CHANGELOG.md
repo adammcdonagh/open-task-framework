@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.35.0
+
+- Alter connectivity check for SFTP connections to ensure that the connection is actually active before continuing
+
 # v25.32.0
 
 - Email destination task handler to load the email message once instead of once per recipient

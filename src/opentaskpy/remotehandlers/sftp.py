@@ -70,8 +70,18 @@ class SFTPTransfer(RemoteTransferHandler):
         if self.sftp_client and isinstance(self.sftp_client, SFTPClient):
             channel = self.sftp_client.get_channel()
             if channel is not None and isinstance(channel, Channel) and channel.active:
-                self.logger.info("[{hostname}] SFTP connection already active")
-                return
+                self.logger.info(f"[{hostname}] SFTP connection already active")
+
+                # Check that the connection actually works by trying to do something, if not
+                # then we need to re-establish the connection again
+                try:
+                    self.sftp_client.listdir()
+                    return
+                except Exception as e:  # pylint: disable=broad-exception-caught
+                    self.logger.warning(
+                        f"[{hostname}] SFTP connection check failed. Re-establishing connection: {e}"
+                    )
+                    self.sftp_client = None
 
         self.logger.info("Creating new SFTP connection")
 
@@ -399,10 +409,8 @@ class SFTPTransfer(RemoteTransferHandler):
                 destination_directory = ""
 
             try:
-
                 # Check the protocol to see if supportsPosixRename is set
                 if self.spec["protocol"].get("supportsPosixRename", True):
-
                     # While writing, the file should not have it's final name. Replace the
                     # file extension with .partial, and then rename it once the file has
                     # been transferred
