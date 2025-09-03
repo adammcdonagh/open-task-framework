@@ -3,6 +3,7 @@
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
+from os import environ
 
 import opentaskpy.otflogging
 from opentaskpy.config.loader import ConfigLoader
@@ -302,7 +303,8 @@ class Batch(TaskHandler):
                     batch_task["kill_event"] = e
 
                     # Sleep 1 second to allow the thread to start
-                    time.sleep(1)
+                    if not environ.get("OTF_NO_THREAD_SLEEP"):
+                        time.sleep(1)
 
                 # Check if the task has completed
                 if batch_task["status"] == "RUNNING":

@@ -1,5 +1,10 @@
 # Changelog
 
+# v25.35.1
+
+- Fix race condition in concurrent protocol imports by implementing thread-safe class-level cache with double-checked locking pattern
+- Add `OTF_NO_THREAD_SLEEP` environment variable to disable the 1-second sleep between batch task thread creation (primarily for testing)
+
 # v25.35.0
 
 - Alter connectivity check for SFTP connections to ensure that the connection is actually active before continuing

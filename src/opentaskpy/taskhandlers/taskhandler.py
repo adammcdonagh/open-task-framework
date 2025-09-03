@@ -1,21 +1,63 @@
 """Abstract task handler class."""
 
+import threading
 from abc import ABC, abstractmethod
 from importlib import import_module
 from logging import Logger
 from sys import modules
+from typing import NamedTuple
 
 import opentaskpy.otflogging
 from opentaskpy.exceptions import UnknownProtocolError
 from opentaskpy.remotehandlers.remotehandler import RemoteHandler
 
 
+class DefaultProtocolCharacteristics(NamedTuple):
+    """Class defining the configuration for default protocols."""
+
+    module: str
+    class_: str
+
+
 class TaskHandler(ABC):
     """Abstract task handler class."""
+
+    TASK_TYPE: str = ""
+
+    DEFAULT_PROTOCOL_MAP = {
+        "T": {
+            "ssh": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.ssh", "SSHTransfer"
+            ),
+            "sftp": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.sftp", "SFTPTransfer"
+            ),
+            "email": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.email", "EmailTransfer"
+            ),
+            "local": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.local", "LocalTransfer"
+            ),
+            "dummy": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.dummy", "DummyTransfer"
+            ),
+        },
+        "E": {
+            "ssh": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.ssh", "SSHExecution"
+            ),
+            "local": DefaultProtocolCharacteristics(
+                "opentaskpy.remotehandlers.local", "LocalExecution"
+            ),
+        },
+    }
 
     logger: Logger
     overall_result: bool
     handled_exception: bool = False
+
+    _protocol_classes: dict[str, type] = {}  # Class-level cache
+    _protocol_lock = threading.Lock()  # Lock for class-level cache
 
     def __init__(self, global_config: dict):
         """Initialize the class."""
@@ -135,3 +177,41 @@ class TaskHandler(ABC):
 
         # Create the remote handler from this class
         return addon_class(spec)
+
+    def _get_default_class(self, task_type: str, protocol_name: str) -> type:
+        try:
+            return self._protocol_classes[protocol_name]  # Fast path when cached
+        except KeyError:
+            self.logger.debug(
+                f"Protocol: {protocol_name} - has not yet been loaded, importing..."
+            )
+            self.logger.debug(
+                f"Thread {threading.current_thread().name} waiting for protocol lock"
+            )
+            with self._protocol_lock:  # Slow path with lock
+                self.logger.debug(
+                    f"Thread {threading.current_thread().name} acquired protocol lock"
+                )
+                if protocol_name not in self._protocol_classes:  # Double-check
+                    class_name = self.DEFAULT_PROTOCOL_MAP[task_type][
+                        protocol_name
+                    ].class_
+                    module_name = self.DEFAULT_PROTOCOL_MAP[task_type][
+                        protocol_name
+                    ].module
+                    if module_name not in modules:
+                        self.logger.debug(
+                            f"Thread {threading.current_thread().name} importing {module_name}"
+                        )
+                        import_module(module_name)
+                    self._protocol_classes[protocol_name] = getattr(
+                        modules[module_name], class_name
+                    )
+                else:
+                    self.logger.debug(
+                        f"Thread {threading.current_thread().name} protocol {protocol_name} already loaded (inside lock)"
+                    )
+                self.logger.debug(
+                    f"Thread {threading.current_thread().name} releasing protocol lock"
+                )
+                return self._protocol_classes[protocol_name]

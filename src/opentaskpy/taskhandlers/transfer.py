@@ -4,11 +4,8 @@ import random
 import shutil
 import threading
 import time
-from importlib import import_module
 from math import ceil, floor
 from os import environ, getpid, makedirs, path, remove
-from sys import modules
-from typing import NamedTuple
 
 import gnupg
 
@@ -22,31 +19,8 @@ from opentaskpy.taskhandlers.taskhandler import TaskHandler
 # for doing some of the more complex work, rather than triggering a tonne of shell commands
 
 
-class DefaultProtocolCharacteristics(NamedTuple):
-    """Class defining the configuration for default protocols."""
-
-    module: str
-    class_: str
-
-
 TASK_TYPE = "T"
-DEFAULT_PROTOCOL_MAP = {
-    "ssh": DefaultProtocolCharacteristics(
-        "opentaskpy.remotehandlers.ssh", "SSHTransfer"
-    ),
-    "sftp": DefaultProtocolCharacteristics(
-        "opentaskpy.remotehandlers.sftp", "SFTPTransfer"
-    ),
-    "email": DefaultProtocolCharacteristics(
-        "opentaskpy.remotehandlers.email", "EmailTransfer"
-    ),
-    "local": DefaultProtocolCharacteristics(
-        "opentaskpy.remotehandlers.local", "LocalTransfer"
-    ),
-    "dummy": DefaultProtocolCharacteristics(
-        "opentaskpy.remotehandlers.dummy", "DummyTransfer"
-    ),
-}
+
 DEFAULT_STAGING_DIR_BASE = "/tmp"  # nosec B108
 
 
@@ -132,16 +106,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         # Call super to do the rest
         return super().return_result(status, message, exception)  # type: ignore[no-any-return]
 
-    def _get_default_class(self, protocol_name: str) -> type:
-        class_name = DEFAULT_PROTOCOL_MAP[protocol_name].class_
-        module_name = DEFAULT_PROTOCOL_MAP[protocol_name].module
-
-        # Load module
-        if module_name not in modules:
-            import_module(module_name)
-
-        return getattr(modules[module_name], class_name)  # type: ignore[no-any-return]
-
     def _set_remote_handlers(self) -> None:
         # Based on the transfer definition, determine what to do first
         self.source_file_spec = self.transfer_definition["source"]
@@ -162,8 +126,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                 dest_file_spec["task_id"] = self.task_id
 
         # Based on the source protocol pick the appropriate remote handler
-        if source_protocol in DEFAULT_PROTOCOL_MAP:
-            handler_class = self._get_default_class(source_protocol)
+        if source_protocol in super().DEFAULT_PROTOCOL_MAP[TASK_TYPE]:
+            handler_class = super()._get_default_class(TASK_TYPE, source_protocol)
             self.source_remote_handler = handler_class(self.source_file_spec)
 
         # If not SSH, then it's a non-standard protocol, we need to see if it's loadable
@@ -183,8 +147,10 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 # For each host, create a remote handler
                 remote_handler = None
-                if remote_protocol in DEFAULT_PROTOCOL_MAP:
-                    handler_class = self._get_default_class(remote_protocol)
+                if remote_protocol in super().DEFAULT_PROTOCOL_MAP[TASK_TYPE]:
+                    handler_class = super()._get_default_class(
+                        TASK_TYPE, remote_protocol
+                    )
                     remote_handler = handler_class(dest_file_spec)
 
                 else:

@@ -614,3 +614,82 @@ def test_batch_check_all_dependencies_fail():
     assert not batch.Batch.check_all_dependency_statuses(
         None, batch_task, ["COMPLETED"]
     )
+
+
+def test_batch_concurrent_protocol_imports(
+    setup_ssh_keys, env_vars, root_dir, clear_logs
+):
+    """Test concurrent protocol imports don't cause partial initialization errors."""
+    # Create a batch with multiple transfers using the same protocol
+    concurrent_protocol_batch = {
+        "type": "batch",
+        "tasks": [{"order_id": i, "task_id": "scp-basic"} for i in range(1, 6)],
+    }
+
+    # Remove sleep between tasks to force concurrent imports
+    os.environ["OTF_NO_THREAD_SLEEP"] = "1"
+
+    config_loader = ConfigLoader("test/cfg")
+    batch_obj = batch.Batch(
+        None, f"concurrent-protocols-{RANDOM}", concurrent_protocol_batch, config_loader
+    )
+
+    # This should complete without partial initialization errors
+    assert batch_obj.run()
+
+    # Verify all tasks completed
+    for i in range(1, 6):
+        assert batch_obj.task_order_tree[i]["status"] == "COMPLETED"
+
+
+def test_protocol_cache_reuse(setup_ssh_keys, env_vars, root_dir, clear_logs):
+    """Test that protocol classes are properly cached and reused."""
+    # Run two batches sequentially using the same protocol
+    config_loader = ConfigLoader("test/cfg")
+
+    # First batch
+    batch1 = batch.Batch(
+        None,
+        f"cache-test-1-{RANDOM}",
+        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "scp-basic"}]},
+        config_loader,
+    )
+    assert batch1.run()
+
+    # Second batch
+    batch2 = batch.Batch(
+        None,
+        f"cache-test-2-{RANDOM}",
+        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "scp-basic"}]},
+        config_loader,
+    )
+    assert batch2.run()
+
+    # The second batch should use the cached protocol class
+    # This can be verified through logs, but we're mainly ensuring no errors occur
+
+
+def test_mixed_protocol_batch(setup_ssh_keys, env_vars, root_dir, clear_logs):
+    """Test batch with multiple different protocols running concurrently."""
+    mixed_protocol_batch = {
+        "type": "batch",
+        "tasks": [
+            {"order_id": 1, "task_id": "scp-basic"},  # SSH
+            {"order_id": 2, "task_id": "sftp-basic"},  # SFTP
+            {"order_id": 3, "task_id": "local-basic"},  # Local
+            {"order_id": 4, "task_id": "scp-basic"},  # SSH again
+        ],
+    }
+
+    os.environ["OTF_NO_THREAD_SLEEP"] = "1"
+
+    config_loader = ConfigLoader("test/cfg")
+    batch_obj = batch.Batch(
+        None, f"mixed-protocols-{RANDOM}", mixed_protocol_batch, config_loader
+    )
+
+    assert batch_obj.run()
+
+    # Verify all tasks completed
+    for i in range(1, 5):
+        assert batch_obj.task_order_tree[i]["status"] == "COMPLETED"
