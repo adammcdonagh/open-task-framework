@@ -1,0 +1,13 @@
+{
+  "$id": "http://localhost/execution/test_addon/protocol.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "enum": ["custom.test_addon.RandomNumberGenerator"]
+    }
+  },
+  "required": ["name"],
+  "additionalProperties": false
+}
