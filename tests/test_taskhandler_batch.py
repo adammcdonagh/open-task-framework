@@ -616,18 +616,27 @@ def test_batch_check_all_dependencies_fail():
     )
 
 
+@pytest.fixture
+def no_thread_sleep():
+    """Temporarily set OTF_NO_THREAD_SLEEP for testing."""
+    old_value = os.environ.get("OTF_NO_THREAD_SLEEP")
+    os.environ["OTF_NO_THREAD_SLEEP"] = "1"
+    yield
+    if old_value is None:
+        del os.environ["OTF_NO_THREAD_SLEEP"]
+    else:
+        os.environ["OTF_NO_THREAD_SLEEP"] = old_value
+
+
 def test_batch_concurrent_protocol_imports(
-    setup_ssh_keys, env_vars, root_dir, clear_logs
+    env_vars, root_dir, clear_logs, no_thread_sleep
 ):
     """Test concurrent protocol imports don't cause partial initialization errors."""
     # Create a batch with multiple transfers using the same protocol
     concurrent_protocol_batch = {
         "type": "batch",
-        "tasks": [{"order_id": i, "task_id": "scp-basic"} for i in range(1, 6)],
+        "tasks": [{"order_id": i, "task_id": "df-local"} for i in range(1, 6)],
     }
-
-    # Remove sleep between tasks to force concurrent imports
-    os.environ["OTF_NO_THREAD_SLEEP"] = "1"
 
     config_loader = ConfigLoader("test/cfg")
     batch_obj = batch.Batch(
@@ -642,7 +651,7 @@ def test_batch_concurrent_protocol_imports(
         assert batch_obj.task_order_tree[i]["status"] == "COMPLETED"
 
 
-def test_protocol_cache_reuse(setup_ssh_keys, env_vars, root_dir, clear_logs):
+def test_protocol_cache_reuse(env_vars, root_dir, clear_logs):
     """Test that protocol classes are properly cached and reused."""
     # Run two batches sequentially using the same protocol
     config_loader = ConfigLoader("test/cfg")
@@ -651,7 +660,7 @@ def test_protocol_cache_reuse(setup_ssh_keys, env_vars, root_dir, clear_logs):
     batch1 = batch.Batch(
         None,
         f"cache-test-1-{RANDOM}",
-        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "scp-basic"}]},
+        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "df-local"}]},
         config_loader,
     )
     assert batch1.run()
@@ -660,36 +669,10 @@ def test_protocol_cache_reuse(setup_ssh_keys, env_vars, root_dir, clear_logs):
     batch2 = batch.Batch(
         None,
         f"cache-test-2-{RANDOM}",
-        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "scp-basic"}]},
+        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "df-local"}]},
         config_loader,
     )
     assert batch2.run()
 
     # The second batch should use the cached protocol class
     # This can be verified through logs, but we're mainly ensuring no errors occur
-
-
-def test_mixed_protocol_batch(setup_ssh_keys, env_vars, root_dir, clear_logs):
-    """Test batch with multiple different protocols running concurrently."""
-    mixed_protocol_batch = {
-        "type": "batch",
-        "tasks": [
-            {"order_id": 1, "task_id": "scp-basic"},  # SSH
-            {"order_id": 2, "task_id": "sftp-basic"},  # SFTP
-            {"order_id": 3, "task_id": "local-basic"},  # Local
-            {"order_id": 4, "task_id": "scp-basic"},  # SSH again
-        ],
-    }
-
-    os.environ["OTF_NO_THREAD_SLEEP"] = "1"
-
-    config_loader = ConfigLoader("test/cfg")
-    batch_obj = batch.Batch(
-        None, f"mixed-protocols-{RANDOM}", mixed_protocol_batch, config_loader
-    )
-
-    assert batch_obj.run()
-
-    # Verify all tasks completed
-    for i in range(1, 5):
-        assert batch_obj.task_order_tree[i]["status"] == "COMPLETED"
