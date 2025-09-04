@@ -614,3 +614,65 @@ def test_batch_check_all_dependencies_fail():
     assert not batch.Batch.check_all_dependency_statuses(
         None, batch_task, ["COMPLETED"]
     )
+
+
+@pytest.fixture
+def no_thread_sleep():
+    """Temporarily set OTF_NO_THREAD_SLEEP for testing."""
+    old_value = os.environ.get("OTF_NO_THREAD_SLEEP")
+    os.environ["OTF_NO_THREAD_SLEEP"] = "1"
+    yield
+    if old_value is None:
+        del os.environ["OTF_NO_THREAD_SLEEP"]
+    else:
+        os.environ["OTF_NO_THREAD_SLEEP"] = old_value
+
+
+def test_batch_concurrent_protocol_imports(
+    env_vars, root_dir, clear_logs, no_thread_sleep
+):
+    """Test concurrent protocol imports don't cause partial initialization errors."""
+    # Create a batch with multiple transfers using the same protocol
+    concurrent_protocol_batch = {
+        "type": "batch",
+        "tasks": [{"order_id": i, "task_id": "df-local"} for i in range(1, 6)],
+    }
+
+    config_loader = ConfigLoader("test/cfg")
+    batch_obj = batch.Batch(
+        None, f"concurrent-protocols-{RANDOM}", concurrent_protocol_batch, config_loader
+    )
+
+    # This should complete without partial initialization errors
+    assert batch_obj.run()
+
+    # Verify all tasks completed
+    for i in range(1, 6):
+        assert batch_obj.task_order_tree[i]["status"] == "COMPLETED"
+
+
+def test_protocol_cache_reuse(env_vars, root_dir, clear_logs):
+    """Test that protocol classes are properly cached and reused."""
+    # Run two batches sequentially using the same protocol
+    config_loader = ConfigLoader("test/cfg")
+
+    # First batch
+    batch1 = batch.Batch(
+        None,
+        f"cache-test-1-{RANDOM}",
+        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "df-local"}]},
+        config_loader,
+    )
+    assert batch1.run()
+
+    # Second batch
+    batch2 = batch.Batch(
+        None,
+        f"cache-test-2-{RANDOM}",
+        {"type": "batch", "tasks": [{"order_id": 1, "task_id": "df-local"}]},
+        config_loader,
+    )
+    assert batch2.run()
+
+    # The second batch should use the cached protocol class
+    # This can be verified through logs, but we're mainly ensuring no errors occur

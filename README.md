@@ -171,6 +171,7 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_NO_LOG` - Disable logging to file. Only log to stderr. Set to `1` to enable
 - `OTF_LOG_JSON` - Stderr logging will be in JSON format. Set to `1` to enable
 - `OTF_LOG_DIRECTORY` - Path under which log files are written
+- `OTF_NO_THREAD_SLEEP` - Disable the 1-second sleep between batch task thread creation. This sleep exists to prevent race conditions with concurrent protocol imports. Only disable this if you understand the implications. Set to `1` to disable.
 - `OTF_RUN_ID` - (meant for internal use) An aggregator for log files. When set, all log files for a run will go under this sub directory. E.g. running a batch, all execution and transfer logs will be dropped into this sub directory, rather than a directory for each task name. This is equivalent to using `-r` or `--runId` command line arguments, which is generally preferred.
 - `OTF_SSH_KEY` - The private SSH key to use by default for all SSH connections. This is essential when using a basic docker container to trigger OTF. If not specified, it will default to use any private SSH keys available to the user executing the application.
 - `OTF_STAGING_DIR` - Staging base directory to place files before they're dropped into their final location. Default is `/tmp`
