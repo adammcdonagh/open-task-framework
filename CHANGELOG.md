@@ -1,5 +1,9 @@
 # Changelog
 
+# v25.35.2
+
+- Fix race condition when importing addons too. See previous release notes for more details.
+
 # v25.35.1
 
 - Fix race condition in concurrent protocol imports by implementing thread-safe class-level cache with double-checked locking pattern

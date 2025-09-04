@@ -57,6 +57,7 @@ class TaskHandler(ABC):
     handled_exception: bool = False
 
     _protocol_classes: dict[str, type] = {}  # Class-level cache
+    _addon_packages: dict[str, type] = {}  # Class-level cache for addon packages
     _protocol_lock = threading.Lock()  # Lock for class-level cache
 
     def __init__(self, global_config: dict):
@@ -163,19 +164,37 @@ class TaskHandler(ABC):
         if addon_package == "":
             raise UnknownProtocolError(f"Unknown protocol {protocol_name}")
 
-        # Import the plugin if its not already loaded
-        if addon_package not in modules:
-            # Check the module is loadable
-            try:
-                self.logger.log(12, f"Loading addon protocol: {addon_package}")
-                import_module(addon_package)
-            except ModuleNotFoundError as exc:
-                raise UnknownProtocolError(f"Unknown protocol {protocol_name}") from exc
+        try:
+            addon_class = self._addon_packages[protocol_name]
+            self.logger.debug(f"Using cached addon class for {protocol_name}")
+            return addon_class(spec)
+        except KeyError:
+            self.logger.debug(
+                f"Addon package {protocol_name} not yet loaded, importing..."
+            )
+            with self._protocol_lock:
+                if protocol_name not in self._addon_packages:
+                    try:
+                        if addon_package not in modules:
+                            self.logger.debug(
+                                f"Thread {threading.current_thread().name} importing {addon_package}"
+                            )
+                            import_module(addon_package)
 
-        # Get the imported class relating to addon_protocol
-        addon_class = getattr(modules[addon_package], protocol_name.split(".")[-1])
+                        addon_class = getattr(
+                            modules[addon_package], protocol_name.split(".")[-1]
+                        )
+                        self._addon_packages[protocol_name] = addon_class
+                    except ModuleNotFoundError as exc:
+                        raise UnknownProtocolError(
+                            f"Unknown protocol {protocol_name}"
+                        ) from exc
+                else:
+                    self.logger.debug(
+                        f"Thread {threading.current_thread().name} addon {protocol_name} already loaded (inside lock)"
+                    )
+                addon_class = self._addon_packages[protocol_name]
 
-        # Create the remote handler from this class
         return addon_class(spec)
 
     def _get_default_class(self, task_type: str, protocol_name: str) -> type:

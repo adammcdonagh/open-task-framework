@@ -159,7 +159,7 @@ class EmailTransfer(RemoteTransferHandler):
 
             # Send the email using a provided SMTP server
             try:
-                self.logger.debug(f"Sending email to {email_address}")
+                self.logger.info(f"Sending email to {email_address}")
                 smtp = smtplib.SMTP(
                     self.protocol_vars["smtp_server"],
                     port=smtp_port,
@@ -179,6 +179,7 @@ class EmailTransfer(RemoteTransferHandler):
                 smtp.sendmail(
                     self.protocol_vars["sender"], email_address, msg.as_string()
                 )
+                self.logger.info(f"Email sent to {email_address}")
                 smtp.quit()
 
             except Exception as ex:  # pylint: disable=broad-exception-caught

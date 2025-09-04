@@ -1,0 +1,16 @@
+{
+  "$id": "http://localhost/execution/test_addon/test_addon.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["execution"]
+    },
+    "protocol": {
+      "$ref": "protocol.json"
+    }
+  },
+  "required": ["protocol"],
+  "additionalProperties": false
+}
