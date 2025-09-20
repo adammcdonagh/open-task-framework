@@ -2,6 +2,7 @@
 
 import glob
 import os
+import re
 import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -81,8 +82,24 @@ class EmailTransfer(RemoteTransferHandler):
         else:
             files = glob.glob(f"{local_staging_directory}/*")
 
+        # Rename files if required
+
+        # Don't rename the files themselves, because it's unnecessary, we just need
+        # to set the new file names in the email attachment
+        file_names = []
+        if "rename" in self.spec:
+            # Handle any rename that might be specified in the spec
+
+            rename_regex = self.spec["rename"]["pattern"]
+            rename_sub = self.spec["rename"]["sub"]
+
+            for file in files:
+                file_names.append(re.sub(rename_regex, rename_sub, file))
+        else:
+            file_names = files
+
         # Get comma separated list of files
-        attachment_file_list = ", ".join([file.split("/")[-1] for file in files])
+        attachment_file_list = ", ".join([file.split("/")[-1] for file in file_names])
 
         # Add a body to the email
         content_type = (
@@ -124,9 +141,9 @@ class EmailTransfer(RemoteTransferHandler):
             msg = MIMEMultipart()
 
             # Attach the files to the message
-            for file in files:
-                # Strip the directory from the file
-                file_name = file.split("/")[-1]
+            for file, file_name in zip(files, file_names):
+                # Strip the directory from the file name
+                file_name = file_name.split("/")[-1]
                 self.logger.debug(f"Emailing file: {files} to {email_address}")
                 try:
                     with open(file, "rb") as file_handle:

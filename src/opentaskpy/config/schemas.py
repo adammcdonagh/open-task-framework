@@ -215,9 +215,11 @@ def validate_transfer_json(json_data: dict) -> bool:
                     module_path = schema_dir
 
                 schema_def = {
-                    "$ref": Path(
-                        f"{module_path}/transfer/{destination_protocol}_destination.json"
-                    ).as_uri()
+                    "$ref": (
+                        Path(
+                            f"{module_path}/transfer/{destination_protocol}_destination.json"
+                        ).as_uri()
+                    )
                 }
 
                 # If schema_refs does not already contain the schema_def, then append it
@@ -249,6 +251,7 @@ def validate_transfer_json(json_data: dict) -> bool:
 
     except ValidationError as err:
         print(err.message)  # noqa: T201
+        logger.error(err.message)
         return False
     return True
 
@@ -312,6 +315,7 @@ def validate_execution_json(json_data: dict) -> bool:
 
     except ValidationError as err:
         print(err.message)  # noqa: T201
+        logger.error(err.message)
         return False
     return True
 
@@ -337,5 +341,6 @@ def validate_batch_json(json_data: dict) -> bool:
 
     except ValidationError as err:
         print(err.message)  # noqa: T201
+        logger.error(err.message)
         return False
     return True

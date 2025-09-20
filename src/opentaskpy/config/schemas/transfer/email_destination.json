@@ -24,6 +24,9 @@
     "messageContentFilename": {
       "type": "string"
     },
+    "rename": {
+      "$ref": "http://localhost/transfer/email/rename.json"
+    },
     "deleteContentFileAfterTransfer": {
       "type": "boolean",
       "default": true

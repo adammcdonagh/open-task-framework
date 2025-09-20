@@ -302,6 +302,9 @@ class SFTPTransfer(RemoteTransferHandler):
                 )
                 result = 1
 
+        if result == 0:
+            self.logger.info(f"[LOCALHOST] Downloaded {len(files)} files to worker")
+
         return result
 
     def push_files_from_worker(
@@ -384,7 +387,9 @@ class SFTPTransfer(RemoteTransferHandler):
             # Get list of files in local_staging_directory
             files = glob.glob(f"{local_staging_directory}/*")
         for file in files:
-            self.logger.info(f"[LOCALHOST] Transferring file via SFTP: {file}")
+            self.logger.info(
+                f"[{self.spec['hostname']}]] Transferring file via SFTP: {file} to {destination_directory}"
+            )
             file_name = os.path.basename(file)
 
             # Handle any rename that might be specified in the spec
@@ -439,6 +444,10 @@ class SFTPTransfer(RemoteTransferHandler):
                     self.sftp_client.chmod(
                         f"{destination_directory}/{file_name}", int(mode, base=8)
                     )
+
+                self.logger.info(
+                    f"[{self.spec['hostname']}] Transferred file via SFTP to: {destination_directory}/{file_name}"
+                )
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(
                     f"[{self.spec['hostname']}] Unable to transfer file via SFTP: {ex}"
@@ -482,6 +491,7 @@ class SFTPTransfer(RemoteTransferHandler):
                 try:
                     self.logger.info(f"Deleting file {file}")
                     self.sftp_client.remove(file)
+                    self.logger.info(f"Deleted file {file}")
                 except OSError:
                     self.logger.error(
                         f"[{self.spec['hostname']}] Could not delete file {file} on"
@@ -545,6 +555,10 @@ class SFTPTransfer(RemoteTransferHandler):
                                 file,
                                 f"{self.spec['postCopyAction']['destination']}/{file_name}",
                             )
+                        self.logger.info(
+                            f"[{self.spec['hostname']}] Renamed file {file} to {self.spec['postCopyAction']['destination']}/{file_name}"
+                        )
+
                     # If this is a rename, then we need to rename the file
                     if self.spec["postCopyAction"]["action"] == "rename":
                         # Determine the new file name
@@ -572,6 +586,9 @@ class SFTPTransfer(RemoteTransferHandler):
                             self.sftp_client.rename(
                                 file, f"{new_file_dir}/{new_file_name}"
                             )
+                        self.logger.info(
+                            f"[{self.spec['hostname']}] Renamed file {file} to {new_file_dir}/{new_file_name}"
+                        )
                 except OSError as e:
                     self.logger.error(f"[{self.spec['hostname']}] Error: {e}")
                     self.logger.error(
@@ -600,6 +617,7 @@ class SFTPTransfer(RemoteTransferHandler):
         try:
             # Use the SFTP client to create an empty file at this path
             self.sftp_client.file(filename, "w").close()
+            self.logger.info(f"[{self.spec['hostname']}] Created flag file: {filename}")
 
             # Set permissions on the file to whatever was specified in the spec,
             # otherwise we leave them as is

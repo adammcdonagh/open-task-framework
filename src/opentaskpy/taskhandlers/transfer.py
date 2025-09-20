@@ -46,17 +46,27 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         # Set up the local staging directory
         # Allow for a custom staging directory to be set via environment variable
-        staging_dir_name = f"OTF_STAGING_{getpid()}.{random.randint(0, 1000000)}"
-        if "OTF_STAGING_DIR" in environ:
-            self.local_staging_dir = f"{environ['OTF_STAGING_DIR']}/{staging_dir_name}"
-        else:
-            self.local_staging_dir = f"{DEFAULT_STAGING_DIR_BASE}/{staging_dir_name}"
+        self.local_staging_dir = self._get_staging_directory()
 
         self.logger = opentaskpy.otflogging.init_logging(
             "opentaskpy.taskhandlers.transfer", self.task_id, TASK_TYPE
         )
 
         super().__init__(global_config)
+
+    def _get_staging_directory(self) -> str:
+        """GEt a unique staging directory path.
+
+        Uses the OTF_STAGING_DIR environment variable if set, otherwise uses the default base.
+
+        Returns:
+            str: The full path to the staging directory
+        """
+        staging_dir_name = f"OTF_STAGING_{getpid()}.{random.randint(0, 1000000)}"
+        if "OTF_STAGING_DIR" in environ:
+            return f"{environ['OTF_STAGING_DIR']}/{staging_dir_name}"
+
+        return f"{DEFAULT_STAGING_DIR_BASE}/{staging_dir_name}"
 
     def return_result(
         self,
@@ -265,14 +275,21 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         1, "KILLED DUE TO TIMEOUT FROM PARENT BATCH"
                     )
 
+                self.logger.info(
+                    f"Searching in {watch_directory} for files with"
+                    f" pattern {watch_file_pattern}",
+                )
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
                 if check_conditionals_during_filewatch and remote_files:
                     self.check_conditionals(remote_files)
-                # TODO: #5 Change all references to remote_files to expect a generator # pylint: disable=fixme
+
                 if remote_files:
-                    self.logger.info("Filewatch found remote file(s)")
+                    self.logger.info("Filewatch found remote file(s):")
+                    self.logger.info(
+                        f"Found {len(remote_files)} remote files: {remote_files}"
+                    )
                     break
 
                 remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
@@ -444,6 +461,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 decrypted_files = remote_files.copy()
 
+                self.logger.info(f"Decrypted {len(remote_files)} files")
+
             i = 0
             for dest_file_spec in self.dest_file_specs:
                 encryption_requested = (
@@ -492,6 +511,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
 
                     encrypted_files = remote_files.copy()
+
+                    self.logger.info(f"Encrypted {len(remote_files)} files")
 
                 # Handle the push transfers first
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
@@ -602,6 +623,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 i += 1
 
+                self.logger.info(f"Transferred {len(remote_files)} files")
+
             if (
                 different_protocols
                 and self.source_file_spec["protocol"]["name"] != "dummy"
@@ -655,6 +678,29 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
         return self.return_result(0)
 
+    def _setup_gnupg(self) -> gnupg.GPG:
+        """Setup gnupg object with homedir set to a temporary directory.
+
+        Returns:
+            gnupg.GPG: The gnupg object
+        """
+        # Make the gnupg home directory in a temporary directory, use the
+        # original directory, and create it if it doesn't exist
+        gnupg_home_dir = f"{self._get_staging_directory()}/.gnupg"
+        makedirs(gnupg_home_dir, exist_ok=True)
+
+        return gnupg.GPG(gnupghome=gnupg_home_dir)
+
+    def _tidy_gnupg_home(self, gpg: gnupg.GPG) -> None:
+        """Tidy up the gnupg homedir."""
+        if path.exists(gpg.gnupghome):
+            try:
+                shutil.rmtree(gpg.gnupghome, ignore_errors=True)
+            except FileNotFoundError as e:
+                self.logger.warning(
+                    f".gnupg deletion failed - FileNotFound but continuing: {e}"
+                )
+
     def encrypt_files(
         self,
         files: dict,
@@ -673,15 +719,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         Returns:
             dict: Dictionary of encrypted files.
         """
-        # Use the local staging dir (or the path where the files live) as the gnupg home
-        # Get the dirname of the first file in the list
-        tmpdir = path.dirname(list(files.keys())[0])
-
-        # Make the gnupg home directory
-        makedirs(f"{tmpdir}/.gnupg", exist_ok=True)
-
         # Set up gnupg
-        gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
+        gpg = self._setup_gnupg()
 
         # Remove any escaped newline characters from the key
         public_key = public_key.replace("\\n", "\n")
@@ -732,20 +771,15 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
                     # Print the stderr line too
                     self.logger.error(f"GPG STDERR: {encryption_data.stderr}")
+                    self._tidy_gnupg_home(gpg)
                     raise exceptions.EncryptionError(
                         f"Error encrypting file {file}: {encryption_data.status}"
                     )
 
             encrypted_files[output_filename] = files[file]
 
-        # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-        if path.exists(f"{tmpdir}/.gnupg"):
-            try:
-                shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
-            except FileNotFoundError as e:
-                self.logger.warning(
-                    f".gnupg deletion failed - FileNotFound but continuing: {e}"
-                )
+        # Remove the temporary gnupg keychain files under gpg.gnupghome
+        self._tidy_gnupg_home(gpg)
 
         return encrypted_files
 
@@ -759,15 +793,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         Returns:
             dict: Dictionary of decrypted files.
         """
-        # Use the local staging dir (or the path where the files live) as the gnupg home
-        # Get the dirname of the first file in the list
-        tmpdir = path.dirname(list(files.keys())[0])
-
-        # Make the gnupg home directory
-        makedirs(f"{tmpdir}/.gnupg", exist_ok=True)
-
         # Set up gnupg
-        gpg = gnupg.GPG(gnupghome=f"{tmpdir}/.gnupg")
+        gpg = self._setup_gnupg()
 
         private_key = private_key.replace("\\n", "\n")
 
@@ -805,14 +832,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     # Print the stderr line too
                     self.logger.error(f"GPG STDERR: {decryption_data.stderr}")
 
-                    # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-                    if path.exists(f"{tmpdir}/.gnupg"):
-                        try:
-                            shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
-                        except FileNotFoundError as e:
-                            self.logger.warning(
-                                f".gnupg deletion failed - FileNotFound but continuing: {e}"
-                            )
+                    self._tidy_gnupg_home(gpg)
 
                     raise exceptions.DecryptionError(
                         f"Error decrypting file {file}: {decryption_data.status}"
@@ -820,15 +840,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
             decrypted_files[output_filename] = files[file]
 
-        # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-        # Check if the directory exists first
-        if path.exists(f"{tmpdir}/.gnupg"):
-            try:
-                shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
-            except FileNotFoundError as e:
-                self.logger.warning(
-                    f".gnupg deletion failed - FileNotFound but continuing: {e}"
-                )
+        # Tidy up the gnupg homedir
+        self._tidy_gnupg_home(gpg)
 
         self.logger.debug(f"Returning decrypted files: {decrypted_files}")
 

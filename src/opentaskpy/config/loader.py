@@ -33,6 +33,8 @@ class ConfigLoader:
         self.logger = opentaskpy.otflogging.init_logging(__name__)
         self.config_dir = config_dir
         self.global_variables: dict = {}
+        self.loaded_filters: dict = {}
+        self.file_cache: dict[str, str] = {}  # Cache for preloaded files
 
         self.logger.log(12, f"Looking in {self.config_dir}")
 
@@ -41,6 +43,7 @@ class ConfigLoader:
         self.template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
 
         self._load_filters(self.template_env.filters)
+        self.loaded_filters = self.template_env.filters
 
         self._load_global_variables()
 
@@ -50,12 +53,33 @@ class ConfigLoader:
 
         self._resolve_templated_variables(lazy_load=self.lazy_load)
 
+        # Preload all files in the config directory
+        self._preload_files()
+
+    def _preload_files(self) -> None:
+        """Preload all JSON and Jinja2 files in the config directory into memory."""
+        self.file_cache = {}
+        file_patterns = [
+            f"{self.config_dir}/**/*.json",
+            f"{self.config_dir}/**/*.json.j2",
+        ]
+        for pattern in file_patterns:
+            for file_path in glob(pattern, recursive=True):
+                with open(file_path, encoding="utf-8") as file:
+                    self.file_cache[file_path] = file.read()
+        self.logger.log(12, f"Preloaded {len(self.file_cache)} files into memory.")
+
     def _load_filters(self, destination: dict) -> None:
         """Load default filters from opentaskpy.filters.default_filters.
 
         Args:
             destination (dict): The destination dictionary to load the filters into
         """
+        # Prevent multiple loads
+        if self.loaded_filters:
+            destination.update(self.loaded_filters)
+            return
+
         # Check what functions exist in the module
         for name, func in inspect.getmembers(default_filters, inspect.isfunction):
             destination[name] = func
@@ -79,12 +103,18 @@ class ConfigLoader:
                 else:
                     self.logger.log(12, f"Couldn't import custom filter: {filter_file}")
 
+        destination = self.loaded_filters
+
     def _override_variables_from_env(self, variables: dict, variable_type: str) -> None:
         """Overrides variables with environment variables."""
-        for env_var_name, env_var_value in os.environ.items():
+        for (  # pylint: disable=too-many-nested-blocks
+            env_var_name,
+            env_var_value,
+        ) in os.environ.items():
             if "." in env_var_name:
                 key_path = env_var_name.split(".")
                 current_dict = variables
+                self.logger.log(12, f"Searching for {env_var_name}")
                 for i, key in enumerate(key_path):
                     if isinstance(current_dict, dict) and key in current_dict:
                         if i == len(key_path) - 1:
@@ -92,18 +122,27 @@ class ConfigLoader:
                             self.logger.info(
                                 f"Overriding nested {variable_type} variable '{env_var_name}' with environment variable."
                             )
-                            current_dict[key] = env_var_value
+                            # Check the original type of the variable, if it was an int, then cast it to an int
+                            if isinstance(current_dict[key], int):
+                                current_dict[key] = int(env_var_value)
+                            else:
+                                current_dict[key] = env_var_value
                         else:
                             # Traverse deeper
                             current_dict = current_dict[key]
                     else:
                         # The key path does not exist in the dictionary
                         break
+
             elif env_var_name in variables:
                 self.logger.info(
                     f"Overriding {variable_type} variable ({env_var_name}: {variables[env_var_name]}) with environment variable ({env_var_value})"
                 )
-                variables[env_var_name] = env_var_value
+                # Check the original type of the variable, if it was an int, then cast it to an int
+                if isinstance(variables[env_var_name], int):
+                    variables[env_var_name] = int(env_var_value)
+                else:
+                    variables[env_var_name] = env_var_value
 
     def get_global_variables(self) -> dict:
         """Return the set of global variables that have been assigned via config files.
@@ -179,11 +218,12 @@ class ConfigLoader:
         )
 
     # TASK DEFINITION FIND FILE
-    def load_task_definition(self, task_id: str) -> dict:
+    def load_task_definition(self, task_id: str, cache: bool = True) -> dict:
         """Load the task definition from the config directory.
 
         Args:
             task_id (str): The id of the task to load
+            cache (bool, optional): Whether to use the cache or load from disk. Defaults to True.
 
         Raises:
             DuplicateConfigFileError: Raised if more than one config file is found
@@ -193,20 +233,25 @@ class ConfigLoader:
         Returns:
             dict: A dictionary representing the task definition
         """
-        json_config = glob(f"{self.config_dir}/**/{task_id}.json", recursive=True)
-        json_config.extend(
-            glob(f"{self.config_dir}/**/{task_id}.json.j2", recursive=True)
-        )
+        if not cache:
+            self._preload_files()
 
-        if not json_config or len(json_config) != 1:
-            if len(json_config) > 1:
+        # Search for files matching the task_id in the preloaded cache
+        matching_files = [
+            path
+            for path in self.file_cache
+            if path.endswith(f"{task_id}.json") or path.endswith(f"{task_id}.json.j2")
+        ]
+
+        if not matching_files or len(matching_files) != 1:
+            if len(matching_files) > 1:
                 raise DuplicateConfigFileError(
                     f"Found more than one task with name: {task_id}"
                 )
 
             raise FileNotFoundError(f"Couldn't find task with name: {task_id}")
 
-        found_file = json_config[0]
+        found_file = matching_files[0]
         self.logger.log(12, f"Found: {found_file}")
 
         task_definition = self._enrich_variables(found_file)
