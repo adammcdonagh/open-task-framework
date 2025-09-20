@@ -5,8 +5,14 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 from opentaskpy.config.loader import ConfigLoader
+from opentaskpy.config.schemas import (
+    validate_batch_json,
+    validate_execution_json,
+    validate_transfer_json,
+)
 from opentaskpy.otflogging import OTF_LOG_FORMAT
 
 CONFIG_PATH = f"{os.getcwd()}/cfg"
@@ -106,7 +112,32 @@ def main(
             return False
 
     # Loop through the tasks and ensure that the dependencies are valid
+    start = time.time() * 1000
     for task in batch_task_definition["tasks"]:
+        order_id = task["order_id"]
+        full_task = tasks[order_id]
+        # Validate that the task definition is valid
+        # Determine the task type and use the appropriate validation function
+        if full_task["type"] == "transfer":
+            # Validate the schema
+            if not validate_transfer_json(full_task):
+                logger.error("JSON format does not match schema")
+                return False
+
+        elif full_task["type"] == "execution":
+
+            # Validate the schema
+            if not validate_execution_json(full_task):
+                logger.error("JSON format does not match schema")
+                return False
+
+        elif full_task["type"] == "batch":
+
+            # Validate the schema
+            if not validate_batch_json(full_task):
+                logger.error("JSON format does not match schema")
+                return False
+
         logger.debug(f"Checking dependencies for task {task['order_id']}")
         if "dependencies" not in task:
             continue
@@ -116,6 +147,9 @@ def main(
                     f"Task {task['order_id']} has a dependency on task {dependency} which is not defined"
                 )
                 return False
+
+    end = time.time() * 1000
+    logger.info(f"Batch definition is valid in {end - start} ms")
 
     logger.info("Batch definition is valid")
     return True
