@@ -676,7 +676,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         gnupg_home_dir = f"{self._get_staging_directory()}/.gnupg"
         makedirs(gnupg_home_dir, exist_ok=True)
 
-        return gnupg.GPG(gnupghome=f"{gnupg_home_dir}/.gnupg")
+        return gnupg.GPG(gnupghome=gnupg_home_dir)
 
     def _tidy_gnupg_home(self, gpg: gnupg.GPG) -> None:
         """Tidy up the gnupg homedir."""
@@ -758,6 +758,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
                     # Print the stderr line too
                     self.logger.error(f"GPG STDERR: {encryption_data.stderr}")
+                    self._tidy_gnupg_home(gpg)
                     raise exceptions.EncryptionError(
                         f"Error encrypting file {file}: {encryption_data.status}"
                     )
@@ -779,9 +780,6 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
         Returns:
             dict: Dictionary of decrypted files.
         """
-        # Get the dirname of the first file in the list
-        tmpdir = path.dirname(list(files.keys())[0])
-
         # Set up gnupg
         gpg = self._setup_gnupg()
 
@@ -821,14 +819,7 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     # Print the stderr line too
                     self.logger.error(f"GPG STDERR: {decryption_data.stderr}")
 
-                    # Remove the temporary gnupg keychain files under f"{tmpdir}/.gnupg"
-                    if path.exists(f"{tmpdir}/.gnupg"):
-                        try:
-                            shutil.rmtree(f"{tmpdir}/.gnupg", ignore_errors=True)
-                        except FileNotFoundError as e:
-                            self.logger.warning(
-                                f".gnupg deletion failed - FileNotFound but continuing: {e}"
-                            )
+                    self._tidy_gnupg_home(gpg)
 
                     raise exceptions.DecryptionError(
                         f"Error decrypting file {file}: {decryption_data.status}"
