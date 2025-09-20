@@ -5,6 +5,7 @@
 - Add additional logging to `sftp` & `local` protocol.
 - Add `rename` option to `email` destination protocol.
 - Tidy GPG logic and move gpghome creation into a temporary directory to avoid issues with multiple processes (or retries) finding broken keychains. Hopefully fixes an issue encountered when uusing EFS as a staging location and the contents of the .gnupg directory being locked.
+- Performance improvements to config loading
 
 # v25.35.2
 
