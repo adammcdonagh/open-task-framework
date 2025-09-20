@@ -33,6 +33,7 @@ class ConfigLoader:
         self.logger = opentaskpy.otflogging.init_logging(__name__)
         self.config_dir = config_dir
         self.global_variables: dict = {}
+        self.loaded_filters: dict = {}
 
         self.logger.log(12, f"Looking in {self.config_dir}")
 
@@ -41,6 +42,7 @@ class ConfigLoader:
         self.template_env = jinja2.Environment(undefined=jinja2.StrictUndefined)
 
         self._load_filters(self.template_env.filters)
+        self.loaded_filters = self.template_env.filters
 
         self._load_global_variables()
 
@@ -56,6 +58,11 @@ class ConfigLoader:
         Args:
             destination (dict): The destination dictionary to load the filters into
         """
+        # Prevent multiple loads
+        if self.loaded_filters:
+            destination.update(self.loaded_filters)
+            return
+
         # Check what functions exist in the module
         for name, func in inspect.getmembers(default_filters, inspect.isfunction):
             destination[name] = func
@@ -79,12 +86,18 @@ class ConfigLoader:
                 else:
                     self.logger.log(12, f"Couldn't import custom filter: {filter_file}")
 
+        destination = self.loaded_filters
+
     def _override_variables_from_env(self, variables: dict, variable_type: str) -> None:
         """Overrides variables with environment variables."""
-        for env_var_name, env_var_value in os.environ.items():
+        for (  # pylint: disable=too-many-nested-blocks
+            env_var_name,
+            env_var_value,
+        ) in os.environ.items():
             if "." in env_var_name:
                 key_path = env_var_name.split(".")
                 current_dict = variables
+                self.logger.log(12, f"Searching for {env_var_name}")
                 for i, key in enumerate(key_path):
                     if isinstance(current_dict, dict) and key in current_dict:
                         if i == len(key_path) - 1:
@@ -92,18 +105,27 @@ class ConfigLoader:
                             self.logger.info(
                                 f"Overriding nested {variable_type} variable '{env_var_name}' with environment variable."
                             )
-                            current_dict[key] = env_var_value
+                            # Check the original type of the variable, if it was an int, then cast it to an int
+                            if isinstance(current_dict[key], int):
+                                current_dict[key] = int(env_var_value)
+                            else:
+                                current_dict[key] = env_var_value
                         else:
                             # Traverse deeper
                             current_dict = current_dict[key]
                     else:
                         # The key path does not exist in the dictionary
                         break
+
             elif env_var_name in variables:
                 self.logger.info(
                     f"Overriding {variable_type} variable ({env_var_name}: {variables[env_var_name]}) with environment variable ({env_var_value})"
                 )
-                variables[env_var_name] = env_var_value
+                # Check the original type of the variable, if it was an int, then cast it to an int
+                if isinstance(variables[env_var_name], int):
+                    variables[env_var_name] = int(env_var_value)
+                else:
+                    variables[env_var_name] = env_var_value
 
     def get_global_variables(self) -> dict:
         """Return the set of global variables that have been assigned via config files.
