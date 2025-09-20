@@ -193,6 +193,10 @@ class LocalTransfer(RemoteTransferHandler):
                 shutil.copy(file, final_destination)
                 if mode:
                     os.chmod(final_destination, int(mode, base=8))
+
+                self.logger.info(
+                    f"[LOCALHOST] Copied file {file} to {final_destination}"
+                )
             except Exception as ex:  # pylint: disable=broad-exception-caught
                 self.logger.error(f"[LOCALHOST] Failed to move file: {ex}")
                 result = 1
@@ -227,6 +231,7 @@ class LocalTransfer(RemoteTransferHandler):
                 try:
                     self.logger.info(f"[LOCALHOST] Deleting file {file}")
                     os.remove(file)
+                    self.logger.info(f"[LOCALHOST] Deleted file {file}")
                 except OSError:
                     self.logger.error(
                         f"[LOCALHOST] Could not delete file {file} on source host"
@@ -272,6 +277,9 @@ class LocalTransfer(RemoteTransferHandler):
                             file,
                             f"{self.spec['postCopyAction']['destination']}/{file_name}",
                         )
+                        self.logger.info(
+                            f"[LOCALHOST] Renamed file {file} to {self.spec['postCopyAction']['destination']}/{file_name}"
+                        )
                     # If this is a rename, then we need to rename the file
                     if self.spec["postCopyAction"]["action"] == "rename":
                         # Determine the new file name
@@ -292,6 +300,9 @@ class LocalTransfer(RemoteTransferHandler):
                             f" {new_file_dir}/{new_file_name}"
                         )
                         os.rename(file, f"{new_file_dir}/{new_file_name}")
+                        self.logger.info(
+                            f"[LOCALHOST] Renamed file {file} to {new_file_dir}/{new_file_name}"
+                        )
                 except OSError as e:
                     self.logger.error(f"[LOCALHOST] Error: {e}")
                     self.logger.error(
@@ -319,6 +330,8 @@ class LocalTransfer(RemoteTransferHandler):
             # We cannot change ownership without using sudo, so we don't bother
             if "permissions" in self.spec:
                 os.chmod(filename, int(self.spec["permissions"], base=8))
+
+            self.logger.info(f"[LOCALHOST] Created flag file: {filename}")
 
         except OSError as e:
             self.logger.error(f"[LOCALHOST] Error: {e}")
