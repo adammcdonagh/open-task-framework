@@ -1,5 +1,11 @@
 # Changelog
 
+# v25.37.0
+
+- Add additional logging to `sftp` & `local` protocol.
+- Add `rename` option to `email` destination protocol.
+- Tidy GPG logic and move gpghome creation into a temporary directory to avoid issues with multiple processes (or retries) finding broken keychains. Hopefully fixes an issue encountered when uusing EFS as a staging location and the contents of the .gnupg directory being locked.
+
 # v25.35.2
 
 - Fix race condition when importing addons too. See previous release notes for more details.
