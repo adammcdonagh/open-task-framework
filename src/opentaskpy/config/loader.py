@@ -34,6 +34,7 @@ class ConfigLoader:
         self.config_dir = config_dir
         self.global_variables: dict = {}
         self.loaded_filters: dict = {}
+        self.file_cache: dict[str, str] = {}  # Cache for preloaded files
 
         self.logger.log(12, f"Looking in {self.config_dir}")
 
@@ -51,6 +52,21 @@ class ConfigLoader:
             self.lazy_load = True
 
         self._resolve_templated_variables(lazy_load=self.lazy_load)
+
+        # Preload all files in the config directory
+        self._preload_files()
+
+    def _preload_files(self) -> None:
+        """Preload all JSON and Jinja2 files in the config directory into memory."""
+        file_patterns = [
+            f"{self.config_dir}/**/*.json",
+            f"{self.config_dir}/**/*.json.j2",
+        ]
+        for pattern in file_patterns:
+            for file_path in glob(pattern, recursive=True):
+                with open(file_path, encoding="utf-8") as file:
+                    self.file_cache[file_path] = file.read()
+        self.logger.log(12, f"Preloaded {len(self.file_cache)} files into memory.")
 
     def _load_filters(self, destination: dict) -> None:
         """Load default filters from opentaskpy.filters.default_filters.
@@ -215,20 +231,22 @@ class ConfigLoader:
         Returns:
             dict: A dictionary representing the task definition
         """
-        json_config = glob(f"{self.config_dir}/**/{task_id}.json", recursive=True)
-        json_config.extend(
-            glob(f"{self.config_dir}/**/{task_id}.json.j2", recursive=True)
-        )
+        # Search for files matching the task_id in the preloaded cache
+        matching_files = [
+            path
+            for path in self.file_cache
+            if path.endswith(f"{task_id}.json") or path.endswith(f"{task_id}.json.j2")
+        ]
 
-        if not json_config or len(json_config) != 1:
-            if len(json_config) > 1:
+        if not matching_files or len(matching_files) != 1:
+            if len(matching_files) > 1:
                 raise DuplicateConfigFileError(
                     f"Found more than one task with name: {task_id}"
                 )
 
             raise FileNotFoundError(f"Couldn't find task with name: {task_id}")
 
-        found_file = json_config[0]
+        found_file = matching_files[0]
         self.logger.log(12, f"Found: {found_file}")
 
         task_definition = self._enrich_variables(found_file)
