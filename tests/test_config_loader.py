@@ -789,7 +789,45 @@ def test_override_task_variables(tmpdir, write_dummy_variables_file):
     assert new_task_definition == expected_task_definition
 
 
+def test_override_variables_typing(tmpdir):
+
+    # Test that the default date variable is resolved correctly
+    json_obj = {
+        "some_int": 1234,
+        "some_string": "1234",
+    }
+
+    # Create a JSON file with some test variables in it
+    fs.create_files(
+        [
+            {f"{tmpdir}/variables.json.j2": {"content": json.dumps(json_obj)}},
+        ]
+    )
+
+    config_loader = ConfigLoader(tmpdir)
+    config_loader.get_global_variables()
+
+    # Check that the variables are of the correct type
+    assert config_loader.get_global_variables()["some_int"] == 1234
+    assert config_loader.get_global_variables()["some_string"] == "1234"
+
+    # Now override the variables with a string (simulating a real environment variable)
+    os.environ["some_int"] = "1234"
+    os.environ["some_string"] = "1234"
+
+    # Check that the variables are of the correct type
+    assert config_loader.get_global_variables()["some_int"] == 1234
+    assert config_loader.get_global_variables()["some_string"] == "1234"
+
+
 def test_override_nested_task_variables(tmpdir, write_dummy_variables_file):
+
+    import opentaskpy.otflogging
+
+    opentaskpy.otflogging.init_logging(
+        __name__, None, level=1, override_root_logger=True
+    )
+
     config_loader = ConfigLoader(tmpdir)
 
     # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
@@ -798,7 +836,7 @@ def test_override_nested_task_variables(tmpdir, write_dummy_variables_file):
             {
                 f"{tmpdir}/task.json": {
                     "content": (
-                        '{"test_var": "{{ test }}", "variables": {"MY_VARIABLE": {"NESTED": "value123"}}}'
+                        '{"test_var": "{{ test }}", "variables": {"MY_VARIABLE": {"NESTED": "value123", "NESTED_INT_VARIABLE": 9999}, "INT_VARIABLE": 1111}}'
                     )
                 }
             }
@@ -807,7 +845,10 @@ def test_override_nested_task_variables(tmpdir, write_dummy_variables_file):
 
     expected_task_definition = {
         "test_var": "test123456",
-        "variables": {"MY_VARIABLE": {"NESTED": "value123"}},
+        "variables": {
+            "MY_VARIABLE": {"NESTED": "value123", "NESTED_INT_VARIABLE": 9999},
+            "INT_VARIABLE": 1111,
+        },
     }
 
     # Test that the task definition is loaded correctly
@@ -815,13 +856,23 @@ def test_override_nested_task_variables(tmpdir, write_dummy_variables_file):
 
     # Now override it with an environment variable and load it again
     os.environ["MY_VARIABLE.NESTED"] = "overridden_value123"
+    os.environ["INT_VARIABLE"] = "2345"
+    os.environ["MY_VARIABLE.NESTED_INT_VARIABLE"] = "1234"
 
     expected_task_definition = {
         "test_var": "test123456",
-        "variables": {"MY_VARIABLE": {"NESTED": "overridden_value123"}},
+        "variables": {
+            "MY_VARIABLE": {
+                "NESTED": "overridden_value123",
+                "NESTED_INT_VARIABLE": 1234,
+            },
+            "INT_VARIABLE": 2345,
+        },
     }
     new_task_definition = config_loader.load_task_definition("task")
     del os.environ["MY_VARIABLE.NESTED"]
+    del os.environ["INT_VARIABLE"]
+    del os.environ["MY_VARIABLE.NESTED_INT_VARIABLE"]
     assert new_task_definition == expected_task_definition
 
 
