@@ -274,6 +274,87 @@ def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
     assert transfer_obj.run()
 
 
+def test_email_file_rename_transfer(env_vars, setup_ssh_keys, root_dir):
+
+    import logging
+
+    import opentaskpy.otflogging
+
+    logger = opentaskpy.otflogging.init_logging(
+        __name__, "email-transfer", level=logging.DEBUG, override_root_logger=True
+    )
+
+    # In GitHub Actions, the variables we need are in the environment
+    # Pull those and write them to the config files first
+    if os.getenv("GITHUB_ACTIONS"):
+        # Get SMTP_USERNAME and SMTP_PASSWORD from environment and write them to files under /tmp
+        fs.create_files(
+            [
+                {
+                    "/tmp/smtp_username": {
+                        "content": os.getenv("SMTP_USERNAME"),
+                    }
+                },
+                {
+                    "/tmp/smtp_password": {
+                        "content": os.getenv("SMTP_PASSWORD"),
+                    }
+                },
+            ]
+        )
+
+    # Create a file to transfer
+    fs.create_files(
+        [
+            {
+                f"{root_dir}/testFiles/ssh_1/src/emailhandler.txt": {
+                    "content": "test1234"
+                }
+            },
+            {
+                f"{root_dir}/testFiles/ssh_1/src/emailhandler2.txt": {
+                    "content": "test456"
+                }
+            },
+        ]
+    )
+
+    # Write the email_task_definition to a file which we will read in to resolve the templated values for username and password
+    task_definition_file = f"{root_dir}/cfg/transfers/email-transfer.json"
+    # Delete the file if it exists
+    if os.path.exists(task_definition_file):
+        os.remove(task_definition_file)
+
+    fs.create_files(
+        [{task_definition_file: {"content": json.dumps(email_task_definition)}}]
+    )
+
+    # Load the global config
+    config_loader = ConfigLoader("test/cfg")
+    global_variables = config_loader.get_global_variables()
+    global_variables["global_protocol_vars"] = [
+        {"name": "email", "smtp_port": 587, "smtp_server": "smtp.gmail.com"}
+    ]
+
+    # Load the task definition using the config_loader
+    imported_task_def = config_loader.load_task_definition("email-transfer")
+    os.remove(task_definition_file)
+
+    # Add a rename to the task definition
+    imported_task_def["destination"][0]["rename"] = {
+        "pattern": "e(mail)handler(.*).txt",
+        "sub": "R\\1HANDLER\\2.txt",
+    }
+
+    transfer_obj = transfer.Transfer(
+        global_variables, "email-transfer", imported_task_def
+    )
+    transfer_obj._set_remote_handlers()
+
+    # Run the transfer
+    assert transfer_obj.run()
+
+
 def test_email_transfer_message_content_filename(env_vars, setup_ssh_keys, root_dir):
 
     import logging
