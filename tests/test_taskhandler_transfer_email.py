@@ -231,7 +231,9 @@ def test_email_transfer(env_vars, setup_ssh_keys, root_dir):
     ]
 
     # Load the task definition using the config_loader
-    imported_task_def = config_loader.load_task_definition("email-transfer")
+    imported_task_def = config_loader.load_task_definition(
+        "email-transfer", cache=False
+    )
     os.remove(task_definition_file)
 
     transfer_obj = transfer.Transfer(

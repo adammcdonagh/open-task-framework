@@ -21,7 +21,8 @@ valid_batch_defininition = {
 valid_task_definition = {
     "type": "execution",
     "command": "echo 'hello world'",
-    "protocol": "local",
+    "directory": "/tmp",
+    "protocol": {"name": "local"},
 }
 
 batch_def_no_order_id_1 = {

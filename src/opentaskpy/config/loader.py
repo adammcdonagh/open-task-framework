@@ -58,6 +58,7 @@ class ConfigLoader:
 
     def _preload_files(self) -> None:
         """Preload all JSON and Jinja2 files in the config directory into memory."""
+        self.file_cache = {}
         file_patterns = [
             f"{self.config_dir}/**/*.json",
             f"{self.config_dir}/**/*.json.j2",
@@ -217,11 +218,12 @@ class ConfigLoader:
         )
 
     # TASK DEFINITION FIND FILE
-    def load_task_definition(self, task_id: str) -> dict:
+    def load_task_definition(self, task_id: str, cache: bool = True) -> dict:
         """Load the task definition from the config directory.
 
         Args:
             task_id (str): The id of the task to load
+            cache (bool, optional): Whether to use the cache or load from disk. Defaults to True.
 
         Raises:
             DuplicateConfigFileError: Raised if more than one config file is found
@@ -231,6 +233,9 @@ class ConfigLoader:
         Returns:
             dict: A dictionary representing the task definition
         """
+        if not cache:
+            self._preload_files()
+
         # Search for files matching the task_id in the preloaded cache
         matching_files = [
             path

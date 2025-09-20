@@ -132,10 +132,11 @@ def test_load_multiple_variables_file_override(tmpdir):
 
 
 def test_load_task_definition(write_dummy_variables_file, tmpdir):
-    # Initialise the task runner
-    config_loader = ConfigLoader(tmpdir)
     # Create a task definition file (this isn't valid, but it proves if the evaluation of variables works)
     fs.create_files([{f"{tmpdir}/task.json": {"content": '{"test": "{{ test }}"}'}}])
+
+    # Initialise the task runner
+    config_loader = ConfigLoader(tmpdir)
 
     expected_task_definition = {"test": "test123456"}
 
@@ -144,8 +145,9 @@ def test_load_task_definition(write_dummy_variables_file, tmpdir):
 
     # Test that a non existent task definition file raises an error
     os.remove(f"{tmpdir}/task.json")
+
     with pytest.raises(FileNotFoundError) as e:
-        config_loader.load_task_definition("task")
+        config_loader.load_task_definition("task", cache=False)
     assert e.value.args[0] == "Couldn't find task with name: task"
 
 
@@ -209,12 +211,15 @@ def test_load_task_definition_lazy_load(tmpdir):
     expected_task_definition = {"test": f"{expected_variable}"}
 
     # Test that the task definition is loaded correctly
-    assert config_loader.load_task_definition("task") == expected_task_definition
+    assert (
+        config_loader.load_task_definition("task", cache=False)
+        == expected_task_definition
+    )
 
     # Test that a non existent task definition file raises an error
     os.remove(f"{tmpdir}/task.json")
     with pytest.raises(FileNotFoundError) as e:
-        config_loader.load_task_definition("task")
+        config_loader.load_task_definition("task", cache=False)
     assert e.value.args[0] == "Couldn't find task with name: task"
 
 
@@ -289,13 +294,16 @@ def test_load_new_variables_from_task_def(write_dummy_variables_file, tmpdir):
     }
 
     # Test that the task definition is loaded correctly
-    assert config_loader.load_task_definition("task") == expected_task_definition
+    assert (
+        config_loader.load_task_definition("task", cache=False)
+        == expected_task_definition
+    )
     # task1 should fail because it's a jinja template and we don't support setting
     # variables in jinja templates
     config_loader = ConfigLoader(tmpdir)
     # Expect a jinja2 UndefinedError
     with pytest.raises(UndefinedError):
-        config_loader.load_task_definition("task1")
+        config_loader.load_task_definition("task1", cache=False)
 
 
 def test_custom_plugin(tmpdir):
@@ -775,7 +783,10 @@ def test_override_task_variables(tmpdir, write_dummy_variables_file):
     }
 
     # Test that the task definition is loaded correctly
-    assert config_loader.load_task_definition("task") == expected_task_definition
+    assert (
+        config_loader.load_task_definition("task", cache=False)
+        == expected_task_definition
+    )
 
     # Now override it with an environment variable and load it again
     os.environ["MY_VARIABLE"] = "overridden_value123"
@@ -852,7 +863,10 @@ def test_override_nested_task_variables(tmpdir, write_dummy_variables_file):
     }
 
     # Test that the task definition is loaded correctly
-    assert config_loader.load_task_definition("task") == expected_task_definition
+    assert (
+        config_loader.load_task_definition("task", cache=False)
+        == expected_task_definition
+    )
 
     # Now override it with an environment variable and load it again
     os.environ["MY_VARIABLE.NESTED"] = "overridden_value123"
@@ -898,7 +912,10 @@ def test_override_nested_variables_file(tmpdir, write_dummy_variables_file):
         "test_var_mixed_case": "nested_mixed_case_test1234",
     }
 
-    assert config_loader.load_task_definition("task") == expected_task_definition
+    assert (
+        config_loader.load_task_definition("task", cache=False)
+        == expected_task_definition
+    )
 
     # Now override it with an environment variable and load it again
     os.environ["NESTED_VAR_LEVEL_0.NESTED_VAR_LEVEL_1.NESTED_VAR_LEVEL_2"] = (
