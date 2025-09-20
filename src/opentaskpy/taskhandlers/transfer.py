@@ -275,14 +275,21 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         1, "KILLED DUE TO TIMEOUT FROM PARENT BATCH"
                     )
 
+                self.logger.info(
+                    f"Searching in {watch_directory} for files with"
+                    f" pattern {watch_file_pattern}",
+                )
                 remote_files = self.source_remote_handler.list_files(
                     directory=watch_directory, file_pattern=watch_file_pattern
                 )
                 if check_conditionals_during_filewatch and remote_files:
                     self.check_conditionals(remote_files)
-                # TODO: #5 Change all references to remote_files to expect a generator # pylint: disable=fixme
+
                 if remote_files:
-                    self.logger.info("Filewatch found remote file(s)")
+                    self.logger.info("Filewatch found remote file(s):")
+                    self.logger.info(
+                        f"Found {len(remote_files)} remote files: {remote_files}"
+                    )
                     break
 
                 remaining_seconds = ceil((start_time + timeout_seconds) - time.time())
@@ -454,6 +461,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
 
                 decrypted_files = remote_files.copy()
 
+                self.logger.info(f"Decrypted {len(remote_files)} files")
+
             i = 0
             for dest_file_spec in self.dest_file_specs:
                 encryption_requested = (
@@ -502,6 +511,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                     )
 
                     encrypted_files = remote_files.copy()
+
+                    self.logger.info(f"Encrypted {len(remote_files)} files")
 
                 # Handle the push transfers first
                 associated_dest_remote_handler = self.dest_remote_handlers[i]
@@ -611,6 +622,8 @@ class Transfer(TaskHandler):  # pylint: disable=too-many-instance-attributes
                         )
 
                 i += 1
+
+                self.logger.info(f"Transferred {len(remote_files)} files")
 
             if (
                 different_protocols
