@@ -1,20 +1,49 @@
 # OTF Task Types
 
-As mentioned in the [README.md](../README.md), there are 3 types of tasks
+This page documents the high-level task types supported by the Open Task Framework (OTF).
 
-## **Transfers**
+## Table of contents
 
-As the name suggests, these are just file transfers from a source system, to 1 or more destinations.
-At present, this only supports transfer via SFTP/SSH, but in future the plan is to add S3 capabilities too.
+- [Task types overview](#task-types-overview)
+- [Transfers](#transfers)
+- [Executions](#executions)
+- [Batches](#batches)
+- [Templates and variable resolution](#templates-and-variable-resolution)
 
-In addition to a simple file transfer, transfers can poll for files, watch the contents of log files, only collect files based on age and size, and carry out post copy actions (archive or delete source file) once the transfer has completed.
+## Task types overview
 
-## **Executions**
+As mentioned in the [README.md](../README.md), OTF supports three main task types: Transfers, Executions and Batches. Task payloads are JSON-based (either plain `.json` or Jinja2 `.json.j2` templates). See `docs/architecture.md` for the full rendering/parsing pipeline.
 
-Again, fairly obvious, this will run commands on one or more remote hosts via SSH.
+## Transfers
 
-## **Batches**
+Transfers move files from a single source to one or more destinations. Supported protocols include SFTP/SSH and local filesystem handlers. Key features:
 
-A batch is a combination of the above 2 task types, and other batches too.
+- File polling and filewatch (wait for files to appear)
+- Log watching for specific patterns
+- Conditional selection by file size, age, and count
+- Post-copy actions: archive, delete, or move source files
 
-Batches can have dependencies between tasks, timeouts, and failure recovery e.g. rerunning from the last point of failure
+Transfers can operate in "direct" mode (remote-to-remote where supported) or via a local staging step if protocols differ.
+
+## Executions
+
+Execution tasks run commands on remote hosts (via SSH or local execution handlers). Execution handlers capture stdout, stderr, exit code and may include PID tokenization for advanced lifecycle management (useful for `kill`).
+
+## Batches
+
+Batches compose multiple tasks (executions, transfers, or nested batches). They support:
+
+- Ordered execution using `order_id`
+- Explicit `dependencies` for DAG-style control
+- `timeout`, `continue_on_fail`, and `retry_on_rerun` per-task options
+- Resumption via log markers so batches can be rerun from the last known state
+
+Batches are documented in more detail in `docs/taskhandlers.md`.
+
+## Templates and variable resolution
+
+- All task/config payloads are JSON-based. Files are either plain `.json` or Jinja2 templates with `.json.j2`.
+- The loader pipeline renders `.json.j2` templates using Jinja2 and available plugin helpers, then parses the rendered text as JSON and validates against `src/opentaskpy/config/schemas/`.
+- When editing templates, ensure the rendered output is valid JSON and that required variables are present in the rendering context.
+
+If you want this page removed instead of updated, tell me and I'll delete it.
