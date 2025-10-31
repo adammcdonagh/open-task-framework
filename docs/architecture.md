@@ -36,7 +36,7 @@ This document explains how the framework is organized and how components interac
 
   - Small, reusable helpers that can be used inside tasks (e.g., `lookup.file`, `lookup.http_json`, `lookup.random_number`).
 
-- `config/schemas` — JSON schemas are authoritative; they define valid task payloads and protocol configuration.
+- `config/schemas` — JSON schemas define valid task payloads and protocol configuration.
 
 ## Runtime flows
 
@@ -67,16 +67,13 @@ This flow documents the behavior after `TransferTaskHandler` is invoked.
 - Handlers may return metadata (size, checksums, timestamps) and may stream file contents or place them into staging.
 
 3. `TransferTaskHandler` applies optional post-processing (decrypt, unpack, move to final location) and records per-file results.
-4. If any transfer item fails, the handler follows the manifest's error semantics (continue_on_error, retry policy) and records failure details.
-5. The handler composes a final transfer result object and returns it to the caller (TaskRun) including per-file statuses and any produced artifacts.
 
 ### Execution handler flow (post-handler)
 
 This flow documents the behavior after `ExecutionTaskHandler` is invoked.
 
-1. `ExecutionTaskHandler` prepares the execution environment (staging, environment variables, temp dirs, working directory).
-2. Resolve the configured execution handler implementation and instantiate it with provided config.
-3. Call `execute()` with the command payload. The execution handler is expected to:
+1. Resolve the configured execution handler implementation and instantiate it with provided config.
+2. Call `execute()` with the command payload. The execution handler is expected to:
 
 - Start the command/process on the target (local or remote), streaming stdout/stderr back to the handler.
 - Optionally provide a PID or process identifier for later lookup or termination.
@@ -84,7 +81,6 @@ This flow documents the behavior after `ExecutionTaskHandler` is invoked.
 
 4. Collect the exit code, stdout, stderr, and any structured outputs (files written to staging, JSON result objects).
 5. Apply any configured result parsing (e.g., parse JSON output, extract return artifacts) and persist or move artifacts as specified.
-6. Return a composed execution result object to the TaskRun, including exit_code, captured output, and artifact references.
 
 ### Batch handler flow (post-handler)
 
@@ -95,7 +91,7 @@ This flow documents the behavior after `BatchTaskHandler` is invoked.
 3. Schedule runnable subtasks (those with no unmet dependencies) and spawn worker threads/processes to run them concurrently according to configured concurrency.
 4. For each subtask execution:
 
-- The Batch handler invokes the appropriate subtask handler (Transfer or Execution) which follows its post-handler flow.
+- The Batch handler invokes the appropriate subtask handler (Transfer, Execution or Batch) which follows its post-handler flow.
 - Monitor progress, apply timeouts, and capture per-subtask results.
 - If a subtask fails, apply `continue_on_fail` and `retry_on_rerun` semantics as configured.
 
@@ -115,7 +111,7 @@ Templates can call lookup plugins and small helpers (see `src/opentaskpy/plugins
 
 ## Architecture diagrams (Mermaid + sequences)
 
-Below are a set of diagrams broken into a startup/pre-handler sequence and three handler-specific sequences (Transfer, Execution, Batch). Each Mermaid sequence focuses on the responsibilities that occur in that phase; compact textual summaries follow each Mermaid block (no ASCII fallbacks).
+Below are a set of diagrams broken into a startup/pre-handler sequence and three handler-specific sequences (Transfer, Execution, Batch). Each Mermaid sequence focuses on the responsibilities that occur in that phase; compact textual summaries follow each Mermaid block.
 
 ### Startup / Pre-handler sequence
 
@@ -145,7 +141,7 @@ sequenceDiagram
   Dispatcher-->>User: dispatch to selected TaskHandler
 ```
 
-Compact pre-handler summary:
+Pre-handler summary:
 
 - read file (.json or .json.j2) from `config_dir`
 - if `.json.j2`, render with Jinja2 using template context (lookup plugins, env overrides)
