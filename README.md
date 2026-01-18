@@ -34,6 +34,7 @@
     - [otf-addons-aws](#otf-addons-aws)
     - [otf-addons-vault](#otf-addons-vault)
     - [otf-addons-o365](#otf-addons-o365)
+    - [otf-addons-winrm](#otf-addons-winrm)
   - [Developing your own addon/plugin](#developing-your-own-addonplugin)
     - [Lookup Plugins](#lookup-plugins-1)
     - [Addons](#addons)
@@ -531,6 +532,13 @@ Lookup plugins:
 Provides transfer addons:
 
 - Remote handler for interacting with Microsoft SharePoint Online
+
+### [otf-addons-winrm](https://github.com/adammcdonagh/otf-addons-winrm)
+
+Provides transfer and execution addons:
+
+- Remote handler for interacting with Windows machines using WinRM protocol. Supports file transfer operations
+- Remote handler for executing commands on Windows machines using WinRM protocol
 
 ## Developing your own addon/plugin
 
