@@ -1,6 +1,6 @@
 # Changelog
 
-# v25.8.0
+# v25.8.1
 
 - Handle race condition when creating directories in logging module, triggered byu many threads trying to create the same directory at the same time.
 - Enforce log output bufering to flush after newline characters.
