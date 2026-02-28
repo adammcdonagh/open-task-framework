@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import threading
 from datetime import datetime
 
 OTF_LOG_FORMAT = (
@@ -393,7 +394,11 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
         # Now everything is closed, we can rename the log file
         # If result is True, then rename the file and remove _running from the name
         if new_log_filename:
-            os.rename(log_file_name, new_log_filename)
+            # Use lock to prevent race condition when multiple threads rename same file
+            with _file_operations_lock:
+                # Check file still exists before renaming (another thread may have renamed it)
+                if os.path.exists(log_file_name):
+                    os.rename(log_file_name, new_log_filename)
 
             # Change the basename of the handler to match the new filename, in case it
             # wants to log anything else
@@ -443,6 +448,9 @@ def redact(log_message: str) -> str:
 
 logger = init_logging(__name__)
 
+# Thread lock for directory creation and file operations
+_file_operations_lock = threading.Lock()
+
 
 # mypy: ignore-errors
 class TaskFileHandler(logging.FileHandler):
@@ -461,3 +469,22 @@ class TaskFileHandler(logging.FileHandler):
         """
         _mkdir(os.path.dirname(filename))
         logging.FileHandler.__init__(self, filename, mode, encoding, delay)
+
+    def _open(self):
+        """Open the log file, ensuring the directory exists.
+
+        Overrides the FileHandler._open to ensure directory creation is thread-safe
+        even when delay=True is used. Also uses line buffering for real-time log updates,
+        which is important when using network filesystems like EFS.
+        """
+        # Ensure directory exists with thread safety before opening file
+        with _file_operations_lock:
+            _mkdir(os.path.dirname(self.baseFilename))
+        # Open with line buffering (buffering=1) for real-time log visibility on network filesystems
+        return open(
+            self.baseFilename,
+            self.mode,
+            buffering=1,
+            encoding=self.encoding,
+            errors=self.errors,
+        )

@@ -1,5 +1,10 @@
 # Changelog
 
+# v25.8.1
+
+- Handle race condition when creating directories in logging module, triggered byu many threads trying to create the same directory at the same time.
+- Enforce log output bufering to flush after newline characters.
+
 # v25.37.0
 
 - Add additional logging to `sftp` & `local` protocol.
