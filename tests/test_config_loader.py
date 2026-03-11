@@ -312,7 +312,13 @@ def test_custom_plugin(tmpdir):
         [
             {
                 f"{tmpdir}/variables.json.j2": {
-                    "content": '{"test": "{{ lookup(\'test_plugin\') }}"}'
+                    "content": (
+                        "{"
+                        '"DD": "{{ now().strftime(\'%d\') }}",'
+                        '"YYYY": "{{ now().strftime(\'%Y\') }}",'
+                        '"NESTED_VAR": {"NESTED_VAR1": "{{ YYYY }}"},'
+                        '"test": "{{ lookup(\'test_plugin\', dd=DD, yyyy=NESTED_VAR.NESTED_VAR1) }}"}'
+                    )
                 }
             },
         ]
@@ -325,8 +331,52 @@ def test_custom_plugin(tmpdir):
 
     # Test that the global variables are loaded correctly
     config_loader = ConfigLoader(tmpdir)
+    global_variables = config_loader.get_global_variables()
 
-    assert config_loader.get_global_variables() == {"test": "hello"}
+    dd = datetime.now().strftime("%d")
+    yyyy = datetime.now().strftime("%Y")
+
+    assert global_variables["DD"] == dd
+    assert global_variables["YYYY"] == yyyy
+    assert global_variables["NESTED_VAR"] == {"NESTED_VAR1": yyyy}
+    assert global_variables["test"] == f"hello {int(dd)+1} {int(yyyy)+1}"
+
+
+def test_custom_plugin_lazy_load(tmpdir):
+    os.environ["OTF_LAZY_LOAD_VARIABLES"] = "1"
+
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": (
+                        "{"
+                        '"DD": "{{ now().strftime(\'%d\') }}",'
+                        '"YYYY": "{{ now().strftime(\'%Y\') }}",'
+                        '"NESTED_VAR": {"NESTED_VAR1": "{{ YYYY }}"},'
+                        '"test": "{{ lookup(\'test_plugin\', dd=DD, yyyy=NESTED_VAR.NESTED_VAR1) }}"}'
+                    )
+                }
+            },
+            {f"{tmpdir}/task.json": {"content": '{"test": "{{ test }}"}'}},
+        ]
+    )
+
+    os.symlink(
+        os.path.join(os.path.dirname(__file__), "../test/cfg", "plugins"),
+        f"{tmpdir}/plugins",
+    )
+
+    config_loader = ConfigLoader(tmpdir)
+
+    del os.environ["OTF_LAZY_LOAD_VARIABLES"]
+
+    dd = datetime.now().strftime("%d")
+    yyyy = datetime.now().strftime("%Y")
+
+    assert config_loader.load_task_definition("task", cache=False) == {
+        "test": f"hello {int(dd)+1} {int(yyyy)+1}"
+    }
 
 
 def test_default_filters(tmpdir):
