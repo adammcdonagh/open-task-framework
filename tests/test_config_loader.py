@@ -10,7 +10,7 @@ from freezegun import freeze_time
 from jinja2.exceptions import UndefinedError
 from pytest_shell import fs
 
-from opentaskpy.config.loader import ConfigLoader
+from opentaskpy.config.loader import ConfigLoader, LazyResolvedDict
 from opentaskpy.exceptions import VariableResolutionTooDeepError
 
 GLOBAL_VARIABLES: str | None = None
@@ -377,6 +377,74 @@ def test_custom_plugin_lazy_load(tmpdir):
     assert config_loader.load_task_definition("task", cache=False) == {
         "test": f"hello {int(dd)+1} {int(yyyy)+1}"
     }
+
+
+def test_resolve_lookup_value_variants(tmpdir):
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": json.dumps(
+                        {
+                            "YYYY": "2026",
+                            "MM": "03",
+                        }
+                    )
+                }
+            },
+        ]
+    )
+
+    config_loader = ConfigLoader(tmpdir)
+
+    assert config_loader._resolve_lookup_value({"year": "{{ YYYY }}"}) == {
+        "year": "2026"
+    }
+    assert config_loader._resolve_lookup_value(["{{ YYYY }}", "{{ MM }}", 7]) == [
+        "2026",
+        "03",
+        7,
+    ]
+    assert (
+        config_loader._resolve_lookup_value(
+            "{{ lookup('file', path='/tmp/skip.txt') }}", resolve_lookups=False
+        )
+        == "{{ lookup('file', path='/tmp/skip.txt') }}"
+    )
+    assert config_loader._resolve_lookup_value(1234) == 1234
+
+
+def test_lazy_resolved_dict_accessors(tmpdir):
+    fs.create_files(
+        [
+            {
+                f"{tmpdir}/variables.json.j2": {
+                    "content": json.dumps(
+                        {
+                            "YYYY": "2026",
+                            "MM": "03",
+                        }
+                    )
+                }
+            },
+        ]
+    )
+
+    config_loader = ConfigLoader(tmpdir)
+    lazy_dict = LazyResolvedDict(
+        {
+            "nested": {"value": "{{ YYYY }}"},
+            "items": ["{{ MM }}", 2],
+            "lookup": "{{ lookup('file', path='/tmp/skip.txt') }}",
+        },
+        config_loader._resolve_lookup_value,
+        resolve_lookups=False,
+    )
+
+    assert lazy_dict["nested"]["value"] == "2026"
+    assert lazy_dict["items"] == ["03", 2]
+    assert lazy_dict.get("lookup") == "{{ lookup('file', path='/tmp/skip.txt') }}"
+    assert lazy_dict.get("missing", "fallback") == "fallback"
 
 
 def test_default_filters(tmpdir):

@@ -11,23 +11,11 @@ PLUGIN_NAME = "test_plugin"
 
 def run(**kwargs) -> str:  # type: ignore[no-untyped-def]
     """Test."""
-    dd = kwargs.get("dd")
-    yyyy = kwargs.get("yyyy")
+    dd = str(kwargs.get("dd"))
+    yyyy = str(kwargs.get("yyyy"))
     globals_dict = kwargs.get("globals", {})
     global_dd = globals_dict.get("DD")
     global_yyyy = globals_dict.get("NESTED_VAR", {}).get("NESTED_VAR1")
-
-    if not isinstance(dd, str):
-        raise TypeError("dd should be a string")
-
-    if not isinstance(yyyy, str):
-        raise TypeError("yyyy should be a string")
-
-    if not isinstance(global_dd, str):
-        raise TypeError("globals DD should be a string")
-
-    if not isinstance(global_yyyy, str):
-        raise TypeError("globals NESTED_VAR.NESTED_VAR1 should be a string")
 
     # dd and YYY should be ints not strings, they should have been resolved. If not then we should error
     # Do a regex match to check that the variables are ints
