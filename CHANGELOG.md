@@ -1,6 +1,6 @@
 # Changelog
 
-# v26.10.1
+# v26.10.0
 
 - Resolve Jinja-templated lookup arguments before invoking lookup plugins.
 - Make lookup plugin `globals` resolution lazy so plugins can access needed variables without forcing unrelated deep variable chains to resolve.
