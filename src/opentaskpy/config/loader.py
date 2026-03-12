@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from glob import glob
+from typing import Any
 
 import jinja2
 from jinja2 import meta
@@ -19,6 +20,45 @@ from opentaskpy.exceptions import (
 from opentaskpy.filters import default_filters
 
 MAX_DEPTH = 5
+
+
+class LazyResolvedDict(dict):
+    """Dictionary wrapper that resolves values only when accessed."""
+
+    def __init__(
+        self,
+        values: dict[str, Any],
+        resolver: Any,
+        resolve_lookups: bool = False,
+    ) -> None:
+        """Initialise the wrapper around a dictionary of unresolved values."""
+        super().__init__(values)
+        self._resolver = resolver
+        self._resolve_lookups = resolve_lookups
+
+    def _wrap(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return LazyResolvedDict(
+                value,
+                self._resolver,
+                resolve_lookups=self._resolve_lookups,
+            )
+
+        if isinstance(value, list):
+            return [self._wrap(item) for item in value]
+
+        return self._resolver(value, resolve_lookups=self._resolve_lookups)
+
+    def __getitem__(self, key: str) -> Any:
+        """Return a lazily resolved value for the requested key."""
+        return self._wrap(super().__getitem__(key))
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Return a lazily resolved value when the key exists."""
+        if key not in self:
+            return default
+
+        return self[key]
 
 
 class ConfigLoader:
@@ -159,6 +199,28 @@ class ConfigLoader:
 
         return self.global_variables
 
+    def _resolve_lookup_value(self, value: Any, resolve_lookups: bool = True) -> Any:
+        """Resolve templated values before they are passed to a lookup plugin."""
+        if isinstance(value, dict):
+            return {
+                key: self._resolve_lookup_value(item, resolve_lookups=resolve_lookups)
+                for key, item in value.items()
+            }
+
+        if isinstance(value, list):
+            return [
+                self._resolve_lookup_value(item, resolve_lookups=resolve_lookups)
+                for item in value
+            ]
+
+        if isinstance(value, str):
+            if not resolve_lookups and "lookup(" in value:
+                return value
+
+            return self._resolve_templated_variables_from_string(value)
+
+        return value
+
     def template_lookup(self, plugin: str, **kwargs) -> str:  # type: ignore[no-untyped-def]
         """Lookup function used by Jinja.
 
@@ -177,8 +239,16 @@ class ConfigLoader:
             11, f"Got call to lookup function {plugin} with kwargs {kwargs}"
         )
 
+        kwargs = {
+            key: self._resolve_lookup_value(value) for key, value in kwargs.items()
+        }
+
         # Append the globals to the kwargs
-        kwargs["globals"] = self.global_variables
+        kwargs["globals"] = LazyResolvedDict(
+            self.global_variables,
+            self._resolve_lookup_value,
+            resolve_lookups=False,
+        )
 
         # Import the plugin if its not already loaded
         if f"opentaskpy.plugins.lookup.{plugin}" not in sys.modules:

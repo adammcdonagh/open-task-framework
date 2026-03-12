@@ -1,5 +1,11 @@
 # Changelog
 
+# v26.10.0
+
+- Resolve Jinja-templated lookup arguments before invoking lookup plugins.
+- Make lookup plugin `globals` resolution lazy so plugins can access needed variables without forcing unrelated deep variable chains to resolve.
+- Preserve lookup compatibility when lazy variable loading is enabled.
+
 # v25.8.1
 
 - Handle race condition when creating directories in logging module, triggered byu many threads trying to create the same directory at the same time.
