@@ -94,6 +94,8 @@ This is an example deployment for using OTF in an AWS environment, using BMC Con
 
 # Configuration
 
+> For a step-by-step guide to getting started, see [docs/usage.md](docs/usage.md).
+
 There are several ways to customise the running of tasks.
 
 ## Command Line Arguments
@@ -245,6 +247,8 @@ Again this will be logged to show you that the override is being applied.
 
 ## Lookup plugins
 
+> For full plugin reference and a guide to writing your own, see [docs/plugins/lookup.md](docs/plugins/lookup.md).
+
 Static variables are useful, however sometimes you need to look up something a bit more dynamic, or secret, that you don't want to hard code into the variables file.
 
 There are 2 default lookup plugins available:
@@ -350,6 +354,8 @@ The task definitions themselves live under the `cfg` directory, and any number o
 
 ## Transfers
 
+> For a full attribute reference, see [docs/task-types.md#transfers](docs/task-types.md#transfers).
+
 Transfers consist of a `source` definition, and an optional `destination`.
 
 The easiest way to see usage is to look at the examples under the `examples` directory
@@ -442,6 +448,8 @@ An explanation of what's going on in the order it will handled:
 
 ## Executions
 
+> For a full attribute reference, see [docs/task-types.md#executions](docs/task-types.md#executions).
+
 Executions are the simplest task to configure. They consist of a list of hosts to run on, the username to run/connect as, and the command to run.
 
 Executions do not currently have a timeout, so can in theory run forever, or until they are killed. If a timeout is required, either use a wrapper script on the host the command is being executed on, or they should be wrapped inside a batch.
@@ -466,6 +474,8 @@ The above is running the command `touch touchedFile.txt` on `{{ HOST_A }}`, from
 If multiple `hosts` are defined, a thread is spawned in parallel for each host. If the command fails on any of the hosts in the list, it will cause the task run to fail, once all processes have returned a result.
 
 ## Batches
+
+> For a full attribute reference, see [docs/task-types.md#batches](docs/task-types.md#batches).
 
 Batches are a little more complex. They do not contain any task definitions, only the list, and order of execution for each task.
 
@@ -541,6 +551,8 @@ Provides transfer and execution addons:
 - Remote handler for executing commands on Windows machines using WinRM protocol
 
 ## Developing your own addon/plugin
+
+> For a full developer reference including package layout, abstract method signatures, schema discovery, and a worked example, see [docs/addons.md](docs/addons.md).
 
 When using external libraries, be sure to add `opentaskpy.otflogging.set_log_file("<PACKAGE>")` somewhere to ensure that any additional logs from the 3rd party library make their way into the OTF logs.
 

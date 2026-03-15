@@ -1,5 +1,9 @@
 # Changelog
 
+# No release
+
+- Update docs
+
 # v26.10.0
 
 - Resolve Jinja-templated lookup arguments before invoking lookup plugins.
