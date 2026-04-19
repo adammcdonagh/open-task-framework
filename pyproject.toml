@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opentaskpy"
-version = "v26.10.0"
+version = "v26.15.0"
 authors = [{ name = "Adam McDonagh", email = "adam@elitemonkey.net" }]
 license-files = [ "LICENSE" ]
 
@@ -25,13 +25,13 @@ keywords = [
 ]
 dependencies = [
     "jinja2 >= 3.1",
-    "jsonpath-ng >= 1.5",
-    "jsonschema >= 4.17",
-    "paramiko >= 3.0",
-    "requests >= 2.28",
-    "referencing >= 0.29.1",
-    "tenacity >= 8.2.3",
-    "python-gnupg >= 0.5.2",
+    "jsonpath-ng >= 1.8",
+    "jsonschema >= 4.26",
+    "paramiko >= 4.0",
+    "requests >= 2.33",
+    "referencing >= 0.37",
+    "tenacity >= 9.1",
+    "python-gnupg >= 0.5.6",
     "omegaconf >= 2.3.0",
 ]
 description = "A framework for automation execution of commands and transferring files between hosts"
@@ -42,14 +42,14 @@ requires-python = ">=3.11"
 dev = [
     "types-requests >=2.28",
     "types-paramiko >=3.0",
-    "black == 26.3.0",
+    "black == 26.3.1",
     "isort",
     "pytest",
     "bumpver",
     "pytest-shell",
     "lovely-pytest-docker",
     "pre-commit",
-    "pylint >= 3.2.2",
+    "pylint >= 4.0",
     "pydantic",
     "mypy",
     "ruff",
@@ -71,7 +71,7 @@ otf-batch-validator = "opentaskpy.cli.batch_validator:main"
 profile = 'black'
 
 [tool.bumpver]
-current_version = "v26.10.0"
+current_version = "v26.15.0"
 version_pattern = "vYY.WW.PATCH[-TAG]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -385,8 +385,6 @@ ignore = [
     "D407", # Section name underlining
     "E501", # line too long
     "E731", # do not assign a lambda expression, use a def
-    # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
-    "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]
 
 

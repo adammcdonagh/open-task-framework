@@ -182,6 +182,7 @@ These are some environment variables that can be used to customise the behaviour
 - `OTF_VARIABLES_FILE` - Override the default variables file. This is useful when you want to use the same job definitions, but point at a different environment with different for example. Multiple files can be specified comma-separated. If variables appear in more than one file, they will be resolved from the last entry found.
 - `OTF_PARAMIKO_ULTRA_DEBUG` - Enables the hidden `ultra_debug` option for Paramiko. This will log all SSH communications to the console, and can be very verbose, so be careful when using this. Set to `1` to enable (This is for SFTP only)
 - `OTF_LAZY_LOAD_VARIABLES` - Enables lazy loading of variables. This will only load variables that are used by the task definition. This can be useful if you have a large number of variables, and you only need a few of them.
+- `OTF_STALE_RUNNING_LOG_SECONDS` - When resuming a batch, this variable defines how long a `_running` log file must be inactive for before it's considered stale, and the batch will attempt to resume from it. This is to prevent resuming from a log file that is still being written to by a currently running batch. Default behaviour ignores all `_running` log files, and only resumes using `_failed` log files. Set to `0` to disable this check, and allow resuming from any log file regardless of last modification time, or something like `300` to resume a crashed batch that's at least 5 minutes old.
 
 ## Logging
 
@@ -492,6 +493,8 @@ Each task in a batch has an `order_id`, this is a unique ID for each task, and i
 `timeout` specifies the number of seconds a task is allowed to be running before it gets terminated. This counts as a failure. The default timeout, if not specified is 300 seconds.
 
 As a batch task runs, it writes out the status of each sub task to it's log file. If a failure occurs, and the batch is rerun with the same arguments, it will attempt to resume from the point of failure. To determine the previous state, the batch handler will look at only logs that are from the current date. This is tp ensure that if something failed at 1am yesterday, but hasn't been rerun, we won't try to recover from the point of failure. Sometimes you might want to recover regardless, this can be done by passing in the date of the log files that you want to recover from, using the environment variable `OTF_BATCH_RESUME_LOG_DATE` in the format `YYYYMMDD`. This will instruct the batch handler to look at logs with that date instead.
+
+By default a batch will only every resume from a `_failed` run. If for some reason you want to resume from a `_running` log file (perhaps you had a crash for some reason), you can set the environment variable `OTF_STALE_RUNNING_LOG_SECONDS` to the number of seconds a `_running` log file must be inactive for before it's considered stale. This will then cause the resume logic to read the `_running` log file if it's at least as old as the number of seconds specified.
 
 # Development
 

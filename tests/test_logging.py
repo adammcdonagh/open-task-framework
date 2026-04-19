@@ -213,6 +213,104 @@ def test_get_latest_log_file(env_vars):
     assert opentaskpy.otflogging.get_latest_log_file(None, "B") is None
 
 
+def test_get_latest_log_file_stale_running(env_vars):
+    """Test that _running logs are handled correctly based on OTF_STALE_RUNNING_LOG_SECONDS.
+
+    Scenarios covered:
+    1. _running only, no env var                                                 → None
+    2. _running only, env var set, file is fresh                                 → None
+    3. _running only, env var set, file is stale                                 → _running returned
+    4. _failed (later timestamp) + stale _running (earlier), env var set         → _failed wins
+    5. _failed (earlier timestamp) + _running (later), NO env var                → _failed wins  (running ignored by regex)
+    6. _failed (earlier timestamp) + stale _running (later), env var set         → _running wins (latest by filename)
+    """
+    log_path = "test/testLogs"
+    os.environ["OTF_LOG_DIRECTORY"] = log_path
+    opentaskpy.otflogging.logger.setLevel(logging.DEBUG)
+
+    def reset_prefix():
+        if "OTF_LOG_RUN_PREFIX" in os.environ:
+            del os.environ["OTF_LOG_RUN_PREFIX"]
+
+    def make_running_log():
+        reset_prefix()
+        log_file_name = opentaskpy.otflogging._define_log_file_name(None, "B")
+        os.makedirs(os.path.dirname(log_file_name), exist_ok=True)
+        with open(log_file_name, "w") as f:
+            f.write("test")
+        return log_file_name
+
+    def make_failed_log():
+        reset_prefix()
+        log_file_name = opentaskpy.otflogging._define_log_file_name(None, "B")
+        failed_name = log_file_name.replace("_running", "_failed")
+        os.makedirs(os.path.dirname(log_file_name), exist_ok=True)
+        with open(log_file_name, "w") as f:
+            f.write("test")
+        os.rename(log_file_name, failed_name)
+        return failed_name
+
+    def backdate(path, seconds_ago):
+        t = time.time() - seconds_ago
+        os.utime(path, (t, t))
+
+    # -------------------------------------------------------------------------
+    # Case 1: _running log only, no env var → None
+    # -------------------------------------------------------------------------
+    shutil.rmtree(log_path, ignore_errors=True)
+    running_log = make_running_log()
+    assert "OTF_STALE_RUNNING_LOG_SECONDS" not in os.environ
+    assert opentaskpy.otflogging.get_latest_log_file(None, "B") is None
+
+    # -------------------------------------------------------------------------
+    # Case 2: _running log only, env var set, file is FRESH → None
+    # -------------------------------------------------------------------------
+    os.environ["OTF_STALE_RUNNING_LOG_SECONDS"] = "300"
+    assert opentaskpy.otflogging.get_latest_log_file(None, "B") is None
+
+    # -------------------------------------------------------------------------
+    # Case 3: _running log only, env var set, file mtime backdated → _running returned
+    # -------------------------------------------------------------------------
+    backdate(running_log, 600)
+    result = opentaskpy.otflogging.get_latest_log_file(None, "B")
+    assert result == running_log
+
+    # -------------------------------------------------------------------------
+    # Case 4: stale _running (earlier filename timestamp) + _failed (later) + env var
+    #         → _failed wins because it sorts last by filename timestamp
+    # -------------------------------------------------------------------------
+    time.sleep(0.02)
+    failed_log = make_failed_log()
+    backdate(running_log, 1200)
+    result = opentaskpy.otflogging.get_latest_log_file(None, "B")
+    assert result == failed_log
+
+    # -------------------------------------------------------------------------
+    # Case 5: _failed (earlier filename timestamp) + _running (later), NO env var
+    #         → _failed wins because _running is excluded by the regex pattern
+    # -------------------------------------------------------------------------
+    shutil.rmtree(log_path, ignore_errors=True)
+    del os.environ["OTF_STALE_RUNNING_LOG_SECONDS"]
+    time.sleep(0.02)
+    failed_log = make_failed_log()  # earlier timestamp
+    time.sleep(0.02)
+    running_log = make_running_log()  # later timestamp
+    result = opentaskpy.otflogging.get_latest_log_file(None, "B")
+    assert result == failed_log
+
+    # -------------------------------------------------------------------------
+    # Case 6: _failed (earlier filename timestamp) + stale _running (later), env var set
+    #         → _running wins because it sorts last by filename timestamp AND is stale
+    # -------------------------------------------------------------------------
+    os.environ["OTF_STALE_RUNNING_LOG_SECONDS"] = "300"
+    backdate(running_log, 600)
+    result = opentaskpy.otflogging.get_latest_log_file(None, "B")
+    assert result == running_log
+
+    # Cleanup env
+    del os.environ["OTF_STALE_RUNNING_LOG_SECONDS"]
+
+
 def test_close_log_file(env_vars, tmpdir):
     os.environ["OTF_LOG_DIRECTORY"] = f"{tmpdir}/test/testLogs"
 
