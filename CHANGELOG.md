@@ -1,5 +1,18 @@
 # Changelog
 
+# v26.15.0
+
+- Add `OTF_STALE_RUNNING_LOG_SECONDS` environment variable to allow resuming of batches from a `_running` log file that is older than the specified number of seconds.
+- Update GPG key used for testing with a 10 year expiry to stop tests failing.
+- Bump minimum versions dependencies to:
+  - `jsonpath-ng >= 1.8`
+  - `jsonschema >= 4.26`
+  - `paramiko >= 4.0`
+  - `requests >= 2.33`
+  - `referencing >= 0.37`
+  - `tenacity >= 9.1`
+  - `python-gnupg >= 0.5.6`
+
 # No release
 
 - Update docs

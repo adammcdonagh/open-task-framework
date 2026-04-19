@@ -20,6 +20,8 @@ def env_vars() -> None:
         del os.environ["OTF_RUN_ID"]
     if "OTF_NO_LOG" in os.environ:
         del os.environ["OTF_NO_LOG"]
+    if "OTF_STALE_RUNNING_LOG_SECONDS" in os.environ:
+        del os.environ["OTF_STALE_RUNNING_LOG_SECONDS"]
 
     # We're using the proper config file for this, so we need to make sure something exist in /tmp/variable_lookup.txt
     fs.create_files(

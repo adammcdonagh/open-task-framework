@@ -41,6 +41,10 @@ repos:
     rev: v2.2.2
     hooks:
       - id: codespell
+        exclude: >
+          (?x)^(
+            .*/pgp\.py
+          )$
         args:
           - --ignore-words-list=
           - --skip="./.*,*.csv,*.json"

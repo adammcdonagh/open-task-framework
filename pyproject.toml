@@ -25,13 +25,13 @@ keywords = [
 ]
 dependencies = [
     "jinja2 >= 3.1",
-    "jsonpath-ng >= 1.5",
-    "jsonschema >= 4.17",
-    "paramiko >= 3.0",
-    "requests >= 2.28",
-    "referencing >= 0.29.1",
-    "tenacity >= 8.2.3",
-    "python-gnupg >= 0.5.2",
+    "jsonpath-ng >= 1.8",
+    "jsonschema >= 4.26",
+    "paramiko >= 4.0",
+    "requests >= 2.33",
+    "referencing >= 0.37",
+    "tenacity >= 9.1",
+    "python-gnupg >= 0.5.6",
     "omegaconf >= 2.3.0",
 ]
 description = "A framework for automation execution of commands and transferring files between hosts"
@@ -49,7 +49,7 @@ dev = [
     "pytest-shell",
     "lovely-pytest-docker",
     "pre-commit",
-    "pylint >= 3.2.2",
+    "pylint >= 4.0",
     "pydantic",
     "mypy",
     "ruff",
@@ -385,8 +385,6 @@ ignore = [
     "D407", # Section name underlining
     "E501", # line too long
     "E731", # do not assign a lambda expression, use a def
-    # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
-    "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]
 
 

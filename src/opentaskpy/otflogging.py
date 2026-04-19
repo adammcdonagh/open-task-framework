@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import threading
+import time
 from datetime import datetime
 
 OTF_LOG_FORMAT = (
@@ -287,12 +288,18 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
         logs
     """
     log_file_name = _define_log_file_name(task_id, task_type)
+
+    stale_running_log_secs = int(os.environ.get("OTF_STALE_RUNNING_LOG_SECONDS", -1))
+
     # Obviously the date/time in the filename needs to be replaced with the latest
     # log file
     # Replace the prefix with a regex wildcard
     log_file_name = log_file_name.replace(os.environ["OTF_LOG_RUN_PREFIX"], ".*")
-    # Also, we don't want to limit to running jobs, only failed or successful ones
-    log_file_name = log_file_name.replace("_running", "(_failed)*")
+    # Also, we don't want to limit to running jobs, only failed or successful ones, unless we're looking for stale logs
+    log_file_name = log_file_name.replace(
+        "_running",
+        "(_failed)*" if stale_running_log_secs < 0 else "(_failed|_running)*",
+    )
 
     logger.debug(f"Looking for log file: {log_file_name}")
     if not os.path.exists(os.path.dirname(log_file_name)):
@@ -334,14 +341,35 @@ def get_latest_log_file(task_id: str, task_type: str) -> str | None:
     # Sort the list by the date/time in the filename
     log_files.sort(key=lambda x: datetime.strptime(x.split("_")[0], "%Y%m%d-%H%M%S.%f"))
     logger.debug(f"Log files after sorting: {log_files}")
+
+    # If we're looking for stale logs, then we want to filter out any _running logs that are NOT yet stale
+    # (i.e. newer than stale_running_log_secs). We need to use the mtime of the file, not the timestamp
+    # in the filename, since a live process keeps updating mtime whereas a crashed process stops.
+    if stale_running_log_secs >= 0:
+        log_files = [
+            f
+            for f in log_files
+            if "_running" not in f
+            or os.path.getmtime(os.path.join(os.path.dirname(log_file_name), f))
+            <= time.time() - stale_running_log_secs
+        ]
+        logger.debug(
+            f"Log files after filtering out non-stale running logs: {log_files}"
+        )
+
     # Get the latest log file
     if log_files:
         log_file_name = f"{os.path.dirname(log_file_name)}/{log_files[-1]}"
         logger.info(f"Latest log file: {log_file_name}")
-        # If the last log was a failure, return that, otherwise we just start from scratch, so return nothing
+        # If the last log was a failure, return that
         if "_failed" in log_file_name:
             return log_file_name
+        # If the last log is a stale running log, return it so the batch can resume from it
+        if "_running" in log_file_name and stale_running_log_secs >= 0:
+            logger.info("Stale running log file found. Resuming batch from it.")
+            return log_file_name
 
+        # Otherwise we just start from scratch, so return nothing
         logger.info("No failed log file found. Starting from scratch.")
 
     return None
