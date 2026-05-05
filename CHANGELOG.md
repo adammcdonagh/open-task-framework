@@ -1,5 +1,11 @@
 # Changelog
 
+# v26.18.0
+
+- Disable logging of initialisation events by default, can be enabled by setting env var `OTG_LOG_INIT_EVENTS=1`
+- Ensure that setting `OTF_LOG_LEVEL` to `DEBUG` actually sets the log level to `DEBUG` in the root logger, which ensures addons like the AWS addon will trigger `botocore` to log it's debug messages too.
+- Update `README.md` and help text to include new environment variables, and any missing ones.
+
 # v26.15.0
 
 - Add `OTF_STALE_RUNNING_LOG_SECONDS` environment variable to allow resuming of batches from a `_running` log file that is older than the specified number of seconds.

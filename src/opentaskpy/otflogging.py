@@ -167,6 +167,12 @@ def init_logging(
     # Set the log format
     formatter = logging.Formatter(OTF_LOG_FORMAT)
 
+    if os.environ.get("OTF_LOG_LEVEL") is not None:
+        # Only use env var if level is still at default (logging.INFO)
+        # This allows CLI args to override env vars
+        if level == logging.INFO:
+            level = os.environ["OTF_LOG_LEVEL"]
+
     # If the task_id isn't set yet, then use the env var
     if not task_id:
         task_id = os.getenv("OTF_TASK_ID")
@@ -207,9 +213,6 @@ def init_logging(
 
     # Set verbosity
     otf_logger.setLevel(logging.getLogger().getEffectiveLevel())
-    # Ensure the logger is at least at INFO level
-    if otf_logger.getEffectiveLevel() > logging.INFO:
-        otf_logger.setLevel(logging.INFO)
 
     # If the log level is set in the environment, then use that
     if os.environ.get("OTF_LOG_LEVEL") is not None:
@@ -232,7 +235,8 @@ def init_logging(
         otf_logger.addHandler(tfh)
         tfh.setFormatter(formatter)
 
-    otf_logger.debug("Logging initialised")
+    if os.environ.get("OTF_LOG_INIT_EVENTS", None) == "1":
+        otf_logger.debug("Logging initialised")
 
     return otf_logger
 

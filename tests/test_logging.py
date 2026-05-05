@@ -147,6 +147,41 @@ def test_init_logging(env_vars, top_level_root_dir):
     assert len(logger.handlers) == 0
 
 
+def test_init_logging_logs_init_event_when_enabled(env_vars, tmpdir, caplog):
+    os.environ["OTF_LOG_DIRECTORY"] = str(tmpdir)
+    os.environ["OTF_LOG_LEVEL"] = "DEBUG"
+    os.environ["OTF_LOG_INIT_EVENTS"] = "1"
+
+    with caplog.at_level(logging.DEBUG):
+        logger = opentaskpy.otflogging.init_logging(
+            "some.class.init_events", task_id="some_task_id", task_type="B"
+        )
+
+    assert any(
+        record.getMessage() == "Logging initialised" for record in caplog.records
+    )
+
+    opentaskpy.otflogging.close_log_file(logger, True)
+
+
+def test_init_logging_env_log_level_sets_root_debug(env_vars):
+    root_logger = logging.getLogger()
+    original_level = root_logger.level
+    original_handlers = list(root_logger.handlers)
+
+    os.environ["OTF_LOG_LEVEL"] = "DEBUG"
+    os.environ["OTF_NO_LOG"] = "1"
+
+    opentaskpy.otflogging.init_logging(
+        "some.class.root_logger", task_id="some_task_id", override_root_logger=True
+    )
+
+    assert logging.getLogger().getEffectiveLevel() == logging.DEBUG
+
+    root_logger.setLevel(original_level)
+    root_logger.handlers = original_handlers
+
+
 def test_get_latest_log_file(env_vars):
     # Setup some dummy log files
     log_path = "test/testLogs"

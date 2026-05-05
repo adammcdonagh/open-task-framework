@@ -28,8 +28,15 @@ def main() -> None:
                                     OTF_NO_LOG - Prevent logging to any files, will log to stdout/err only
                                     OTF_LOG_DIRECTORY - Specify a particular log directory to write log files to
                                     OTF_LOG_LEVEL - Equivalent to using -v
+                                    OTF_LOG_INIT_EVENTS - Enable logging of log initialisation events. Set to 1 to enable
+                                    OTF_NO_THREAD_SLEEP - Disable the 1-second sleep between batch task thread creation. Set to 1 to disable
                                     OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
+                                    OTF_STAGING_DIR - Staging base directory to place files before final location. Default is /tmp
+                                    OTF_BATCH_RESUME_LOG_DATE - Resume batch runs from a specific date in YYYYMMDD format
                                     OTF_VARIABLES_FILE - Override the default variables file location
+                                    OTF_PARAMIKO_ULTRA_DEBUG - Enable Paramiko ultra_debug for verbose SSH communications. Set to 1 to enable
+                                    OTF_LAZY_LOAD_VARIABLES - Only load variables used by the task definition. Set to 1 to enable
+                                    OTF_STALE_RUNNING_LOG_SECONDS - Resume using stale _running logs after this many inactive seconds
                                     OTF_NOOP - Equivalent to using --noop argument
 
                                 Task Definition Overrides:
