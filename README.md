@@ -172,6 +172,8 @@ options:
 These are some environment variables that can be used to customise the behaviour of the application. There are some internally used variables too, but changing them without a full understanding of the code is not advised.
 
 - `OTF_NO_LOG` - Disable logging to file. Only log to stderr. Set to `1` to enable
+- `OTF_LOG_LEVEL` - Set the log level.
+- `OTF_LOG_INIT_EVENTS` - Set to `1` to enable logging of log initialisation events. Defaults to `0`
 - `OTF_LOG_JSON` - Stderr logging will be in JSON format. Set to `1` to enable
 - `OTF_LOG_DIRECTORY` - Path under which log files are written
 - `OTF_NO_THREAD_SLEEP` - Disable the 1-second sleep between batch task thread creation. This sleep exists to prevent race conditions with concurrent protocol imports. Only disable this if you understand the implications. Set to `1` to disable.

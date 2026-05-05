@@ -67,7 +67,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: "python"
+        entry: "python3"
         language: system
         types: [python]
         args: ["-m", "mypy", "--config-file", "mypy.ini"]
