@@ -127,6 +127,7 @@ The full list of supported environment variables:
 | `OTF_LAZY_LOAD_VARIABLES`   | Set to `1` to only resolve variables that are referenced by the current task                                                                                 |
 | `OTF_NO_THREAD_SLEEP`       | Set to `1` to disable the 1-second sleep between batch task thread creation                                                                                  |
 | `OTF_BATCH_POLL_INTERVAL`   | Interval in seconds between batch status-check iterations (default: `5`). **Testing only** — do not lower in production without understanding the trade-offs |
+| `OTF_LOG_MEMORY_USAGE`      | Set to `1` to log RSS memory usage at each batch poll interval via the batch logger. Requires `psutil` to be installed                                       |
 | `OTF_PARAMIKO_ULTRA_DEBUG`  | Set to `1` to enable ultra-verbose Paramiko SSH debug output (SFTP only)                                                                                     |
 
 ## Overriding Variables at Runtime

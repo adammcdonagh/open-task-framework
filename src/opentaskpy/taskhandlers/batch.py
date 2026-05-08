@@ -1,5 +1,6 @@
 """Batch task handler class."""
 
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -19,6 +20,16 @@ DEFAULT_TASK_EXIT_CODE = 0
 TASK_TYPE = "B"
 BATCH_TASK_LOG_MARKER = "__OTF_BATCH_TASK_MARKER__"
 DEFAULT_BATCH_POLL_INTERVAL = 5
+
+
+def _rss_mb() -> float:
+    """Return the RSS of the current process in MB, or -1 if psutil is unavailable."""
+    try:
+        import psutil  # pylint: disable=import-outside-toplevel
+
+        return float(psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024))
+    except Exception:  # pylint: disable=broad-except
+        return -1.0
 
 
 class Batch(TaskHandler):
@@ -409,6 +420,10 @@ class Batch(TaskHandler):
                 environ.get("OTF_BATCH_POLL_INTERVAL", DEFAULT_BATCH_POLL_INTERVAL)
             )
             time.sleep(poll_interval)
+
+            # Log memory usage if requested
+            if environ.get("OTF_LOG_MEMORY_USAGE"):
+                self.logger.info(f"[memory] RSS: {_rss_mb():.1f} MB")
 
             # Check if we have been asked to kill the batch
             if kill_event and kill_event.is_set():

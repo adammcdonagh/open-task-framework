@@ -676,3 +676,58 @@ def test_protocol_cache_reuse(env_vars, root_dir, clear_logs):
 
     # The second batch should use the cached protocol class
     # This can be verified through logs, but we're mainly ensuring no errors occur
+
+
+def test_batch_log_memory_usage(
+    env_vars, root_dir, clear_logs, no_thread_sleep, caplog
+):
+    """Test that OTF_LOG_MEMORY_USAGE causes RSS memory to be logged each poll cycle."""
+    import logging
+
+    old_value = os.environ.get("OTF_LOG_MEMORY_USAGE")
+    os.environ["OTF_LOG_MEMORY_USAGE"] = "1"
+    # Use a fast poll interval so the test doesn't wait on the default 5s
+    old_poll = os.environ.get("OTF_BATCH_POLL_INTERVAL")
+    os.environ["OTF_BATCH_POLL_INTERVAL"] = "0.1"
+    try:
+        mem_batch = {
+            "type": "batch",
+            "tasks": [{"order_id": i, "task_id": "df-local"} for i in range(1, 4)],
+        }
+        config_loader = ConfigLoader("test/cfg")
+        batch_obj = batch.Batch(None, f"mem-log-{RANDOM}", mem_batch, config_loader)
+
+        with caplog.at_level(logging.INFO):
+            result = batch_obj.run()
+
+        assert result, "Batch should complete successfully"
+
+        memory_log_lines = [
+            r.message for r in caplog.records if "[memory] RSS:" in r.message
+        ]
+        assert len(memory_log_lines) > 0, (
+            "Expected at least one '[memory] RSS:' log entry when OTF_LOG_MEMORY_USAGE=1, "
+            f"but none were found. All log messages: {[r.message for r in caplog.records]}"
+        )
+        # Each entry should contain a positive numeric MB value — a value of -1.0
+        # means psutil was not importable, which is a missing-dependency error.
+        import re
+
+        for line in memory_log_lines:
+            assert re.search(
+                r"\[memory\] RSS: \d+\.\d+ MB", line
+            ), f"Memory log line has unexpected format: {line!r}"
+            rss_value = float(re.search(r"\[memory\] RSS: ([\d.]+) MB", line).group(1))
+            assert rss_value > 0, (
+                f"RSS value is {rss_value} MB — a value of -1.0 means psutil is not "
+                "installed. Add 'psutil' to the project dependencies."
+            )
+    finally:
+        if old_value is None:
+            os.environ.pop("OTF_LOG_MEMORY_USAGE", None)
+        else:
+            os.environ["OTF_LOG_MEMORY_USAGE"] = old_value
+        if old_poll is None:
+            os.environ.pop("OTF_BATCH_POLL_INTERVAL", None)
+        else:
+            os.environ["OTF_BATCH_POLL_INTERVAL"] = old_poll

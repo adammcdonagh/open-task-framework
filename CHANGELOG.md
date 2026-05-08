@@ -1,5 +1,11 @@
 # Changelog
 
+# v26.18.1
+
+- Fix memory leak in batches caused by now tidying up the remote handler objects after a task has completed.
+- Fixed potential but very small memory leak in logger where loggers were not being removed from the logger dictionary after they were closed.
+- Add `OTF_LOG_MEMORY_USAGE` environment variable to allow logging of RSS memory usage at each batch poll interval using the batch logger. This is useful for diagnosing memory growth in long-running batches. Added optional dev dependency `psutil` to allow this. Needs to be installed manually, otherwise log will just output `-1.0` for RSS memory usage.
+
 # v26.18.0
 
 - Disable logging of initialisation events by default, can be enabled by setting env var `OTG_LOG_INIT_EVENTS=1`
