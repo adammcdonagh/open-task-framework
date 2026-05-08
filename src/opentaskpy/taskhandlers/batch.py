@@ -18,6 +18,7 @@ DEFAULT_TASK_RETRY_ON_RERUN = False
 DEFAULT_TASK_EXIT_CODE = 0
 TASK_TYPE = "B"
 BATCH_TASK_LOG_MARKER = "__OTF_BATCH_TASK_MARKER__"
+DEFAULT_BATCH_POLL_INTERVAL = 5
 
 
 class Batch(TaskHandler):
@@ -403,8 +404,11 @@ class Batch(TaskHandler):
                 )
                 break
 
-            # Sleep 5 seconds before checking again
-            time.sleep(5)
+            # Sleep before checking again
+            poll_interval = float(
+                environ.get("OTF_BATCH_POLL_INTERVAL", DEFAULT_BATCH_POLL_INTERVAL)
+            )
+            time.sleep(poll_interval)
 
             # Check if we have been asked to kill the batch
             if kill_event and kill_event.is_set():
@@ -483,6 +487,10 @@ class Batch(TaskHandler):
                             batch_task["batch_task_spec"]["order_id"],
                             batch_task["task_id"],
                         )
+                        # Release the task handler so that remote handler objects
+                        # (boto3 clients, SSH connections, etc.) can be garbage
+                        # collected rather than accumulating for the whole batch run.
+                        batch_task["task_handler"] = None
                         break
 
                     # Check if we have been asked to kill the thread

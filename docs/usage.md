@@ -114,19 +114,20 @@ When running a batch, setting `-r` (or `OTF_RUN_ID`) causes all sub-task logs to
 
 The full list of supported environment variables:
 
-| Variable                    | Description                                                                  |
-| --------------------------- | ---------------------------------------------------------------------------- |
-| `OTF_SSH_KEY`               | Default private SSH key path for all SSH connections                         |
-| `OTF_LOG_DIRECTORY`         | Base directory for log files                                                 |
-| `OTF_NO_LOG`                | Set to `1` to disable file logging                                           |
-| `OTF_LOG_JSON`              | Set to `1` for JSON-formatted stderr logging                                 |
-| `OTF_STAGING_DIR`           | Override the staging directory for file transfers (default: `/tmp`)          |
-| `OTF_RUN_ID`                | Log aggregation identifier; equivalent to `-r` flag                          |
-| `OTF_BATCH_RESUME_LOG_DATE` | Resume batch from a specific date's logs (`YYYYMMDD` format)                 |
-| `OTF_VARIABLES_FILE`        | Override the default variables file path. Comma-separate multiple files      |
-| `OTF_LAZY_LOAD_VARIABLES`   | Set to `1` to only resolve variables that are referenced by the current task |
-| `OTF_NO_THREAD_SLEEP`       | Set to `1` to disable the 1-second sleep between batch task thread creation  |
-| `OTF_PARAMIKO_ULTRA_DEBUG`  | Set to `1` to enable ultra-verbose Paramiko SSH debug output (SFTP only)     |
+| Variable                    | Description                                                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OTF_SSH_KEY`               | Default private SSH key path for all SSH connections                                                                                                         |
+| `OTF_LOG_DIRECTORY`         | Base directory for log files                                                                                                                                 |
+| `OTF_NO_LOG`                | Set to `1` to disable file logging                                                                                                                           |
+| `OTF_LOG_JSON`              | Set to `1` for JSON-formatted stderr logging                                                                                                                 |
+| `OTF_STAGING_DIR`           | Override the staging directory for file transfers (default: `/tmp`)                                                                                          |
+| `OTF_RUN_ID`                | Log aggregation identifier; equivalent to `-r` flag                                                                                                          |
+| `OTF_BATCH_RESUME_LOG_DATE` | Resume batch from a specific date's logs (`YYYYMMDD` format)                                                                                                 |
+| `OTF_VARIABLES_FILE`        | Override the default variables file path. Comma-separate multiple files                                                                                      |
+| `OTF_LAZY_LOAD_VARIABLES`   | Set to `1` to only resolve variables that are referenced by the current task                                                                                 |
+| `OTF_NO_THREAD_SLEEP`       | Set to `1` to disable the 1-second sleep between batch task thread creation                                                                                  |
+| `OTF_BATCH_POLL_INTERVAL`   | Interval in seconds between batch status-check iterations (default: `5`). **Testing only** — do not lower in production without understanding the trade-offs |
+| `OTF_PARAMIKO_ULTRA_DEBUG`  | Set to `1` to enable ultra-verbose Paramiko SSH debug output (SFTP only)                                                                                     |
 
 ## Overriding Variables at Runtime
 

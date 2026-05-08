@@ -30,6 +30,7 @@ def main() -> None:
                                     OTF_LOG_LEVEL - Equivalent to using -v
                                     OTF_LOG_INIT_EVENTS - Enable logging of log initialisation events. Set to 1 to enable
                                     OTF_NO_THREAD_SLEEP - Disable the 1-second sleep between batch task thread creation. Set to 1 to disable
+                                    OTF_BATCH_POLL_INTERVAL - Interval in seconds between batch status-check iterations (default: 5). Intended for testing only; do not lower in production without understanding the trade-offs
                                     OTF_SSH_KEY - Specify a particular SSH key to use for SSH/SFTP related transfers
                                     OTF_STAGING_DIR - Staging base directory to place files before final location. Default is /tmp
                                     OTF_BATCH_RESUME_LOG_DATE - Resume batch runs from a specific date in YYYYMMDD format
