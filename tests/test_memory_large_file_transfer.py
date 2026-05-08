@@ -16,6 +16,7 @@ regressions while keeping the test fast enough for regular CI runs.
 Run this test in isolation with output visible:
     pytest tests/test_memory_large_file_transfer.py -v -s
 """
+
 import ctypes
 import datetime
 import gc
@@ -34,9 +35,9 @@ from opentaskpy.taskhandlers import batch
 from tests.fixtures.ssh_clients import *  # noqa: F403
 
 os.environ["OTF_LOG_LEVEL"] = "INFO"
-os.environ[
-    "OTF_BATCH_POLL_INTERVAL"
-] = "0.1"  # don't wait 5s between batch status checks
+os.environ["OTF_BATCH_POLL_INTERVAL"] = (
+    "0.1"  # don't wait 5s between batch status checks
+)
 os.environ["OTF_NO_THREAD_SLEEP"] = "1"  # don't wait 1s between task thread creation
 
 # ---------------------------------------------------------------------------
