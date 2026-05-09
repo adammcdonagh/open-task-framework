@@ -44,7 +44,7 @@ jobs:
           $GITHUB_OUTPUT
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           key: >-
@@ -64,7 +64,7 @@ jobs:
             hashFiles('.pre-commit-config.yaml') }}" >> $GITHUB_OUTPUT
       - name: Restore pre-commit environment
         id: cache-precommit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: ${{ env.PRE_COMMIT_CACHE }}
           key: >-
@@ -92,7 +92,7 @@ jobs:
           check-latest: true
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           fail-on-cache-miss: true
@@ -100,7 +100,7 @@ jobs:
             needs.prepare-base.outputs.python-key }}
       - name: Restore pre-commit environment
         id: cache-precommit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: ${{ env.PRE_COMMIT_CACHE }}
           fail-on-cache-miss: true
@@ -130,7 +130,7 @@ jobs:
           check-latest: true
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           fail-on-cache-miss: true
@@ -138,7 +138,7 @@ jobs:
             needs.prepare-base.outputs.python-key }}
       - name: Restore pre-commit environment
         id: cache-precommit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: ${{ env.PRE_COMMIT_CACHE }}
           fail-on-cache-miss: true
@@ -165,7 +165,7 @@ jobs:
           check-latest: true
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           fail-on-cache-miss: true
@@ -173,7 +173,7 @@ jobs:
             needs.prepare-base.outputs.python-key }}
       - name: Restore pre-commit environment
         id: cache-precommit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: ${{ env.PRE_COMMIT_CACHE }}
           fail-on-cache-miss: true
@@ -204,7 +204,7 @@ jobs:
           check-latest: true
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           fail-on-cache-miss: true
@@ -212,7 +212,7 @@ jobs:
             needs.prepare-base.outputs.python-key }}
       - name: Restore pre-commit environment
         id: cache-precommit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: ${{ env.PRE_COMMIT_CACHE }}
           fail-on-cache-miss: true
@@ -243,7 +243,7 @@ jobs:
           check-latest: true
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           fail-on-cache-miss: true
@@ -251,7 +251,7 @@ jobs:
             needs.prepare-base.outputs.python-key }}
       - name: Restore pre-commit environment
         id: cache-precommit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: ${{ env.PRE_COMMIT_CACHE }}
           fail-on-cache-miss: true
@@ -315,7 +315,7 @@ jobs:
           check-latest: true
       - name: Restore Python virtual environment
         id: cache-venv
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v5
         with:
           path: venv
           fail-on-cache-miss: true

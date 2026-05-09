@@ -403,6 +403,7 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
             log_file_name = handler.baseFilename
 
     log_handlers = []
+    loggers_to_remove = []
 
     if log_file_name:
         new_log_filename = None
@@ -413,7 +414,7 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
 
         # Loop through every logger that exists and has a handler of this filename, and
         # call the close method on it. Only the last one should rename the file
-        for logger_ in list(logging.Logger.manager.loggerDict.values()):
+        for logger_name, logger_ in list(logging.Logger.manager.loggerDict.items()):
             if isinstance(logger_, logging.Logger):
                 for handler in logger_.handlers:
                     if (
@@ -422,6 +423,8 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
                     ):
                         log_handlers.append(handler)
                         handler.close()
+                        loggers_to_remove.append(logger_name)
+                        break
 
         # Now everything is closed, we can rename the log file
         # If result is True, then rename the file and remove _running from the name
@@ -436,6 +439,16 @@ def close_log_file(logger__: logging.Logger, result: bool = False) -> None:
             # wants to log anything else
             for handler in log_handlers:
                 handler.baseFilename = new_log_filename
+
+    # Unregister all task-scoped loggers that wrote to this log file so they
+    # can be garbage collected rather than accumulating in the process.
+    for logger_name in loggers_to_remove:
+        logging.Logger.manager.loggerDict.pop(logger_name, None)
+
+    # Always unregister the logger passed in directly — this handles the case
+    # where OTF_NO_LOG is set and no file handler was attached, so the
+    # loggers_to_remove list above would be empty.
+    logging.Logger.manager.loggerDict.pop(logger__.name, None)
 
 
 def redact(log_message: str) -> str:
